@@ -54,7 +54,7 @@ public final class Constants {
 	/**
 	 * The radius within soldiers search for targets to attack them.
 	 */
-	public static final short SOLDIER_SEARCH_RADIUS = 30;
+	public static final short SOLDIER_SEARCH_RADIUS = 15;
 
 	public static final short DEFAULT_ATTACK_RADIUS = 1;
 

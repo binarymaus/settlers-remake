@@ -112,6 +112,10 @@ public enum EMovableType {
 		PIKEMAN_L1, PIKEMAN_L2, PIKEMAN_L3
 	);
 
+	public static final Set<EMovableType> GENERAL = EnumSet.of(
+		SWORDSMAN_L3, PIKEMAN_L3, BOWMAN_L3
+	);
+
 	/* when adding a movable type to this enum:
 	 - add Movable#handleFrozenEffect() to movable's behaviour
 	 - notice MageMovable SEND_FOES
@@ -208,6 +212,10 @@ public enum EMovableType {
 
 	public boolean isInfantry() {
 		return INFANTRY.contains(this);
+	}
+
+	public boolean isGeneral() {
+		return GENERAL.contains(this);
 	}
 
 	public boolean isShip() {

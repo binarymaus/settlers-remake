@@ -13,6 +13,7 @@ import jsettlers.algorithms.terraform.LandscapeEditor;
 import jsettlers.common.action.EMoveToType;
 import jsettlers.common.landscape.ELandscapeType;
 import jsettlers.common.map.shapes.MapCircle;
+import jsettlers.common.mapobject.EMapObjectType;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.common.material.ESearchType;
 import jsettlers.common.menu.messages.SimpleMessage;
@@ -329,7 +330,9 @@ public class MageMovable extends AttackableHumanMovable implements IMageMovable 
 						.forEach((x, y) -> {
 							ShortPoint2D at = new ShortPoint2D(x, y);
 							//TODO only give useful stuff
-							EMaterialType type = EMaterialType.values()[MatchConstants.random().nextInt(EMaterialType.values().length)];
+							// kohle, eisenbarren, gold, waffen
+							EMaterialType[] materials = new EMaterialType[] { EMaterialType.BLADE, EMaterialType.BOW, EMaterialType.SPEAR, EMaterialType.COAL, EMaterialType.IRON, EMaterialType.GOLD, EMaterialType.STONE };
+							EMaterialType type = materials[MatchConstants.random().nextInt(materials.length)];
 							int size = MatchConstants.random().nextInt(9);
 							for(int i = 0; i != size; i++) grid.dropMaterial(at, type, true, false);
 							effectLocations.add(at);
