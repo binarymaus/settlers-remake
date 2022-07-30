@@ -116,6 +116,9 @@ public class MannaInformation implements Serializable, IMannaInformation {
 
 	@Override
 	public short getSpellCost(ESpellType spell) {
+		if(spell == ESpellType.GIFTS) {
+			return spell.getMannaCost(0);
+		}
 		return spell.getMannaCost(spellUsedCount[spell.ordinal()]);
 	}
 

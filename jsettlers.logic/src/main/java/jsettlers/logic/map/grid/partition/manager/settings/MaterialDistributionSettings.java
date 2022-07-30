@@ -36,6 +36,7 @@ public final class MaterialDistributionSettings implements IMaterialDistribution
 	private final EMaterialType materialType;
 	private final RelativeSettings<EBuildingType> distributionSettings = new RelativeSettings<>(EBuildingType.NUMBER_OF_BUILDINGS, index -> EBuildingType.VALUES[index], false);
 	private float requestValueSum = 0f;
+
 	/**
 	 * Creates a new object of {@link MaterialDistributionSettings} holding the settings for the given {@link EMaterialType}.
 	 *
@@ -47,9 +48,38 @@ public final class MaterialDistributionSettings implements IMaterialDistribution
 		this.civilisation = civilisation;
 
 		EBuildingType[] requestingBuildings = getBuildingTypes();
-		requestValueSum = requestingBuildings.length;
-		float initialValue = 1.0f;
-		Arrays.stream(requestingBuildings).forEach(buildingType -> distributionSettings.setUserValue(buildingType, initialValue));
+		requestValueSum = requestingBuildings.length;	
+		Arrays.stream(requestingBuildings).forEach(buildingType -> {
+			float initialValue = getInitialValue(materialType, buildingType);
+			distributionSettings.setUserValue(buildingType, initialValue);
+		});
+	}
+
+	private float getInitialValue(EMaterialType materialType, EBuildingType buildingType) {
+		switch(materialType) {
+			case FISH:
+				switch(buildingType) {
+					case GOLDMINE: return 1.0f;
+					case IRONMINE: return 0.0f;
+					case COALMINE: return 0.0f;
+					default: return 1.0f;
+				}
+			case MEAT:
+				switch(buildingType) {
+					case GOLDMINE: return 0.0f;
+					case IRONMINE: return 1.0f;
+					case COALMINE: return 0.0f;
+					default: return 1.0f;
+				}
+			case BREAD:
+				switch(buildingType) {
+					case GOLDMINE: return 0.0f;
+					case IRONMINE: return 0.0f;
+					case COALMINE: return 1.0f;
+					default: return 1.0f;
+				}
+			default: return 1.0f;
+		}
 	}
 
 	public final EBuildingType[] getBuildingTypes() {

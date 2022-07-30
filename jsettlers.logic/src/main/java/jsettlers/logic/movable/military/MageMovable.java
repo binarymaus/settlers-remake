@@ -13,6 +13,7 @@ import jsettlers.algorithms.terraform.LandscapeEditor;
 import jsettlers.common.action.EMoveToType;
 import jsettlers.common.landscape.ELandscapeType;
 import jsettlers.common.map.shapes.MapCircle;
+import jsettlers.common.mapobject.EMapObjectType;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.common.material.ESearchType;
 import jsettlers.common.menu.messages.SimpleMessage;
@@ -325,13 +326,13 @@ public class MageMovable extends AttackableHumanMovable implements IMageMovable 
 			case GIFTS:
 				spellRegion(ESpellType.GIFTS_RADIUS).filter((x, y) -> !grid.isBlockedOrProtected(x, y))
 						.filter((x, y) -> teamId(x, y) == -1 || teamId(x, y) == teamId())
-						.limit(MatchConstants.random().nextInt(ESpellType.GIFTS_MAX_STACKS+1))
+						.limit(MatchConstants.random().nextInt(ESpellType.GIFTS_MAX_STACKS) + 1)
 						.forEach((x, y) -> {
 							ShortPoint2D at = new ShortPoint2D(x, y);
-							//TODO only give useful stuff
-							EMaterialType type = EMaterialType.values()[MatchConstants.random().nextInt(EMaterialType.values().length)];
-							int size = MatchConstants.random().nextInt(9);
-							for(int i = 0; i != size; i++) grid.dropMaterial(at, type, true, false);
+							EMaterialType[] materials = new EMaterialType[] { EMaterialType.BLADE, EMaterialType.BOW, EMaterialType.SPEAR, EMaterialType.COAL, EMaterialType.IRON, EMaterialType.GOLD, EMaterialType.STONE };
+							EMaterialType type = materials[MatchConstants.random().nextInt(materials.length)];
+							int size = MatchConstants.random().nextInt(21) + 10;
+							for(int i = 0; i != size; i++) grid.dropMaterial(at, type, true, true);
 							effectLocations.add(at);
 						});
 				duration = 1;
@@ -422,6 +423,14 @@ public class MageMovable extends AttackableHumanMovable implements IMageMovable 
 					grid.executeSearchType(this, new ShortPoint2D(x, y), ESearchType.PLANTABLE_TREE);
 				});
 				break;
+			case ROMAN_SEND_TROOPS:
+			case EGYPTIAN_SEND_TROOPS:
+			case ASIAN_SEND_TROOPS:
+			case AMAZON_SEND_TROOPS:
+				sort(spellRegion(currentTarget, Constants.SPELL_EFFECT_RADIUS))
+					.limit(ESpellType.SEND_TROOPS_MAX_SOLDIERS)
+					.forEach((x, y) -> { Movable.createMovable(EMovableType.SWORDSMAN_L3, getPlayer(), new ShortPoint2D(x,y), grid);});
+			break;
 		}
 
 		if(animation != -1) {

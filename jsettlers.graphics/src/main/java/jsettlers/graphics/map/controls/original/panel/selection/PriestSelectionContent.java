@@ -50,7 +50,7 @@ public class PriestSelectionContent extends AbstractSelectionContent {
 		for(ESpellType spell : ESpellType.values()) {
 			if(!spell.availableForCiv(selectionPlayer.getCivilisation())) continue;
 
-			float top = .95f-i*.1f;
+			float top = .95f-i*.1f * 0.5f;
 			panel.addChild(new SpellContent(spell), .1f, top-.1f, 1, top);
 
 			i++;
@@ -92,8 +92,8 @@ public class PriestSelectionContent extends AbstractSelectionContent {
 			askCastSpellAction = new AskCastSpellAction(spell);
 			spell_name = Labels.getName(spell);
 			spell_label = new Label("", EFontSize.SMALL);
-			addChild(spell_icon, 0, 0, 3/9f, 1);
-			addChild(spell_label, 3.5f/9, 0f, .9f, 1);
+			addChild(spell_icon, 0, 0.5f, 1/6f, 1);
+			addChild(spell_label, 3.5f/9, 0.5f, .45f, 1);
 
 		}
 
