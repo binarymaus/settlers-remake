@@ -573,6 +573,18 @@ public final class MainGrid implements Serializable {
 			markAsOpen(x, y);
 		}
 
+		public boolean isGeneralAt(int x, int y, Set<ESearchType> types, IPathCalculatable requester, IPlayer player) {
+			if(!fitsSearchType(x, y, types, requester)) {
+				return false;
+			}
+			ILogicMovable movable = movableGrid.getMovableAt(x, y);
+			if (movable == null) {
+				return false;
+			} else {
+				return movable.getPlayer() == player && movable.getMovableType().isGeneral();
+			}
+		}
+
 		@Override
 		public final boolean fitsSearchType(int x, int y, ESearchType searchType, IPathCalculatable pathCalculable) {
 			switch (searchType) {
@@ -702,6 +714,8 @@ public final class MainGrid implements Serializable {
 				}
 			}
 		}
+
+
 
 		private boolean isMarked(int x, int y) {
 			return flagsGrid.isMarked(x, y);

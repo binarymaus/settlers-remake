@@ -18,6 +18,7 @@ import java.util.Set;
 
 import jsettlers.algorithms.path.IPathCalculatable;
 import jsettlers.common.material.ESearchType;
+import jsettlers.common.player.IPlayer;
 
 public interface IDijkstraPathMap {
 
@@ -26,4 +27,6 @@ public interface IDijkstraPathMap {
 	boolean fitsSearchType(int x, int y, Set<ESearchType> types, IPathCalculatable requester);
 
 	void setDijkstraSearched(int x, int y);
+
+	boolean isGeneralAt(int x, int y, Set<ESearchType> types, IPathCalculatable requester, IPlayer player);
 }
