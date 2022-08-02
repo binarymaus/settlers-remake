@@ -21,6 +21,7 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Set;
 
+import jsettlers.algorithms.datastructures.TrackingArray2D;
 import jsettlers.algorithms.partitions.IBlockingProvider;
 import jsettlers.algorithms.partitions.PartitionCalculatorAlgorithm;
 import jsettlers.algorithms.previewimage.IPreviewImageDataSupplier;
@@ -74,7 +75,7 @@ public class MapData implements IMapData {
 
 	private final ELandscapeType[][]  landscapes;
 	private final byte[][]            heights;
-	private final ObjectContainer[][] objects;
+	private final TrackingArray2D<ObjectContainer> objects;
 
 	private final EResourceType[][] resources;
 	private final byte[][]          resourceAmount;
@@ -123,7 +124,7 @@ public class MapData implements IMapData {
 		this.heights = new byte[width][height];
 		this.resourceAmount = new byte[width][height];
 		this.resources = new EResourceType[width][height];
-		this.objects = new ObjectContainer[width][height];
+		this.objects = new TrackingArray2D<>(ObjectContainer[]::new, width, height, obj -> obj != null && (obj.getMapObject() instanceof BuildingMapDataObject));
 		this.blockedPartitions = new short[width][height];
 
 		for (int x = 0; x < width; x++) {
@@ -195,12 +196,13 @@ public class MapData implements IMapData {
 	private boolean setLandscape(int x, int y, ELandscapeType type) {
 		if(type == landscapes[x][y]) return true;
 
-		if (objects[x][y] != null) {
+		ObjectContainer object = getMapObjectContainer(x, y);
+		if (object != null) {
 			if (!landscapeAllowsObjects(type)) {
 				return false;
 			}
-			if (objects[x][y] instanceof LandscapeConstraint) {
-				LandscapeConstraint constraint = (LandscapeConstraint) objects[x][y];
+			if (object instanceof LandscapeConstraint) {
+				LandscapeConstraint constraint = (LandscapeConstraint) object;
 				if (!constraint.getAllowedLandscapes().contains(type)) {
 					return false;
 				}
@@ -265,7 +267,7 @@ public class MapData implements IMapData {
 		for (RelativePoint p : container.getProtectedArea()) {
 			ShortPoint2D abs = p.calculatePoint(start);
 			if (!contains(abs.x, abs.y)
-				|| objects[abs.x][abs.y] != null
+				|| objects.get(abs.x, abs.y) != null
 				|| (!isShip && !landscapeAllowsObjects(getLandscape(abs.x, abs.y)))
 				|| (landscapes != null && !landscapes.contains(getLandscape(abs.x, abs.y)))) {
 
@@ -275,10 +277,10 @@ public class MapData implements IMapData {
 
 		for (RelativePoint p : container.getProtectedArea()) {
 			ShortPoint2D abs = p.calculatePoint(start);
-			objects[abs.x][abs.y] = protector;
+			objects.set(abs.x, abs.y, protector);
 			undoDelta.removeObject(abs.x, abs.y);
 		}
-		objects[x][y] = container;
+		objects.set(x, y, container);
 		undoDelta.removeObject(x, y);
 	}
 
@@ -342,12 +344,17 @@ public class MapData implements IMapData {
 
 	@Override
 	public MapDataObject getMapObject(int x, int y) {
-		ObjectContainer container = objects[x][y];
+		ObjectContainer container = objects.get(x, y);
 		if (container != null) {
 			return container.getMapObject();
 		} else {
 			return null;
 		}
+	}
+
+	@Override
+	public boolean hasStartBuildings() {
+		return objects.getTrackedCount()!=0;
 	}
 
 	@Override
@@ -362,11 +369,11 @@ public class MapData implements IMapData {
 	}
 
 	public ObjectContainer getMapObjectContainer(int x, int y) {
-		return objects[x][y];
+		return objects.get(x, y);
 	}
 
 	public IGraphicsMovable getMovableContainer(int x, int y) {
-		ObjectContainer container = objects[x][y];
+		ObjectContainer container = objects.get(x, y);
 		if (container instanceof IGraphicsMovable) {
 			return (IGraphicsMovable) container;
 		} else {
@@ -411,15 +418,15 @@ public class MapData implements IMapData {
 		// objects
 		ObjectRemover remove = delta.getRemoveObjects();
 		while (remove != null) {
-			inverse.addObject(remove.x, remove.y, objects[remove.x][remove.y]);
-			objects[remove.x][remove.y] = null;
+			inverse.addObject(remove.x, remove.y, objects.get(remove.x, remove.y));
+			objects.set(remove.x, remove.y, null);
 			remove = remove.next;
 		}
 
 		ObjectAdder adder = delta.getAddObjects();
 		while (adder != null) {
 			inverse.removeObject(adder.x, adder.y);
-			objects[adder.x][adder.y] = adder.obj;
+			objects.set(adder.x, adder.y, adder.obj);
 			adder = adder.next;
 		}
 
@@ -504,20 +511,20 @@ public class MapData implements IMapData {
 	}
 
 	public void deleteObject(int x, int y) {
-		ObjectContainer obj = objects[x][y];
+		ObjectContainer obj = objects.get(x, y);
 		if (obj instanceof ProtectContainer) {
 
 		} else if (obj != null) {
 			undoDelta.addObject(x, y, obj);
-			objects[x][y] = null;
+			objects.set(x, y, null);
 			ShortPoint2D start = new ShortPoint2D(x, y);
 			RelativePoint[] area = obj.getProtectedArea();
 			for (RelativePoint point : area) {
 				ShortPoint2D pos = point.calculatePoint(start);
 
 				if (contains(pos.x, pos.y)) {
-					undoDelta.addObject(pos.x, pos.y, objects[pos.x][pos.y]);
-					objects[pos.x][pos.y] = null;
+					undoDelta.addObject(pos.x, pos.y, objects.get(pos.x, pos.y));
+					objects.set(pos.x, pos.y, null);
 				}
 			}
 		}

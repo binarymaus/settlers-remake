@@ -68,6 +68,7 @@ import jsettlers.main.swing.SwingManagedJSettlers;
 import jsettlers.main.swing.settings.SettingsManager;
 import jsettlers.mapcreator.data.MapData;
 import jsettlers.mapcreator.data.MapDataDelta;
+import jsettlers.mapcreator.data.symmetry.SymmetryConfig;
 import jsettlers.mapcreator.localization.EditorLabels;
 import jsettlers.mapcreator.main.action.AbortDrawingAction;
 import jsettlers.mapcreator.main.action.CombiningActionFirerer;
@@ -756,8 +757,9 @@ public class EditorControl extends EditorControlBase implements IMapInterfaceLis
 
 				// only getter call, no Swing calls
 				ShapeType shape = toolSidebar.getActiveShape();
+				SymmetryConfig symmetry = toolSidebar.getSymmetry();
 
-				tool.apply(mapData, shape, lineAction.getStart(), lineAction.getEnd(), lineAction.getUidy());
+				tool.apply(mapData, symmetry, shape, lineAction.getStart(), lineAction.getEnd(), lineAction.getUidy());
 
 				validator.reValidate();
 			}
@@ -792,9 +794,10 @@ public class EditorControl extends EditorControlBase implements IMapInterfaceLis
 					PointAction lineAction = (PointAction) action;
 
 					ShapeType shape = toolSidebar.getActiveShape();
+					SymmetryConfig symmetry = toolSidebar.getSymmetry();
 
 					tool.start(mapData, shape, lineAction.getPosition());
-					tool.apply(mapData, shape, lineAction.getPosition(), lineAction.getPosition(), 0);
+					tool.apply(mapData, symmetry, shape, lineAction.getPosition(), lineAction.getPosition(), 0);
 
 					undoRedo.endUseStep();
 					validator.reValidate();

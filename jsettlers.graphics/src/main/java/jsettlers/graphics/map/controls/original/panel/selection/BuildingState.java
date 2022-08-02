@@ -24,6 +24,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import java.util.Objects;
+import java.util.WeakHashMap;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.buildings.IBuildingMaterial;
@@ -33,8 +35,10 @@ import jsettlers.common.map.partition.IStockSettings;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.common.material.EPriority;
 import jsettlers.common.movable.ESoldierClass;
+import jsettlers.common.movable.ESoldierType;
 import jsettlers.common.movable.IGraphicsMovable;
 import jsettlers.graphics.localization.Labels;
+import jsettlers.graphics.map.draw.DrawConstants;
 
 /**
  * This class saves the state parts of the building that is displayed by the gui, to detect changes.
@@ -52,12 +56,38 @@ public class BuildingState {
 	 * An array: soldier class -> available places.
 	 */
 	private final Hashtable<ESoldierClass, ArrayList<OccupierState>> occupierStates;
+	private final Map<ESoldierType, Integer> availableSoldiers;
 	private final BitSet stockStates;
 	private final int[] tradingCounts;
 	private final boolean isSeaTrading;
 	private final boolean isDockyard;
 	private final boolean isWorkingDockyard;
 
+	private static final Map<IBuilding.IOccupied, AvailableSoldiersCache> AVAILABLE_SOLDIERS_CACHE = new WeakHashMap<>();
+
+
+	public static class AvailableSoldiersCache {
+		private final Map<ESoldierType, Integer> availableSoldiers;
+		private final long expireTime;
+
+		public AvailableSoldiersCache(Map<ESoldierType, Integer> availableSoldiers, long expireTime) {
+			this.availableSoldiers = availableSoldiers;
+			this.expireTime = expireTime;
+		}
+
+		private static AvailableSoldiersCache update(IBuilding.IOccupied building, AvailableSoldiersCache lastState) {
+			long currentTime = System.nanoTime();
+
+			if(lastState != null && lastState.expireTime > currentTime) return lastState;
+
+
+			return new AvailableSoldiersCache(building.calculateAvailableSoldiers(), currentTime + DrawConstants.AVAILABLE_SOLDIERS_EXPIRE_TIME);
+		}
+
+		public Map<ESoldierType, Integer> getAvailableSoldiers() {
+			return availableSoldiers;
+		}
+	}
 	/**
 	 * This is the state for a building stack.
 	 * 
@@ -198,6 +228,7 @@ public class BuildingState {
 		supportedPriorities = building.getSupportedPriorities();
 		construction = building.getStateProgress() < 1;
 		occupierStates = computeOccupierStates(building);
+		availableSoldiers = computeAvailableSoldiers(building);
 		stockStates = computeStockStates(building);
 		tradingCounts = computeTradingCounts(building);
 		for (IBuildingMaterial mat : building.getMaterials()) {
@@ -291,6 +322,16 @@ public class BuildingState {
 		return newStates;
 	}
 
+	private Map<ESoldierType, Integer> computeAvailableSoldiers(IBuilding building) {
+		if(building instanceof IBuilding.IOccupied && !construction) {
+			IBuilding.IOccupied occupied = (IBuilding.IOccupied) building;
+
+			return AVAILABLE_SOLDIERS_CACHE.compute(occupied, AvailableSoldiersCache::update).getAvailableSoldiers();
+		}
+
+		return null;
+	}
+
 	/**
 	 * Gets a list of priorities supported by this state.
 	 * 
@@ -326,6 +367,7 @@ public class BuildingState {
 				&& construction == (building.getStateProgress() < 1)
 				&& hasSameStacks(building)
 				&& hasSameOccupiers(building)
+				&& hasSameAvailableSoldiers(building)
 				&& hasSameStock(building)
 				&& hasSameTrading(building);
 	}
@@ -340,6 +382,10 @@ public class BuildingState {
 
 	private boolean hasSameOccupiers(IBuilding building) {
 		return isEqual(computeOccupierStates(building), occupierStates);
+	}
+
+	private boolean hasSameAvailableSoldiers(IBuilding building) {
+		return Objects.equals(availableSoldiers, computeAvailableSoldiers(building));
 	}
 
 	private static boolean isEqual(Object o1, Object o2) {
@@ -362,6 +408,10 @@ public class BuildingState {
 
 	public List<OccupierState> getOccupiers(ESoldierClass soldierClass) {
 		return Collections.unmodifiableList(occupierStates.get(soldierClass));
+	}
+
+	public Map<ESoldierType, Integer> getAvailableSoldiers() {
+		return Collections.unmodifiableMap(availableSoldiers);
 	}
 
 	public int getTradingCount(EMaterialType material) {

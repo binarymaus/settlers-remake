@@ -15,7 +15,6 @@
 package jsettlers.mapcreator.main.window.sidebar;
 
 import java.awt.BorderLayout;
-import java.util.stream.Stream;
 
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -33,11 +32,13 @@ import jsettlers.common.material.EMaterialType;
 import jsettlers.common.movable.EMovableType;
 import jsettlers.exceptionhandler.ExceptionHandler;
 import jsettlers.mapcreator.control.IPlayerSetter;
+import jsettlers.mapcreator.data.symmetry.SymmetryConfig;
 import jsettlers.mapcreator.localization.EditorLabels;
 import jsettlers.mapcreator.main.tools.PlaceStackToolbox;
 import jsettlers.mapcreator.main.tools.ToolTreeModel;
 import jsettlers.mapcreator.presetloader.PresetLoader;
 import jsettlers.mapcreator.tools.SetStartpointTool;
+import jsettlers.mapcreator.tools.SetSymmetrypointTool;
 import jsettlers.mapcreator.tools.Tool;
 import jsettlers.mapcreator.tools.ToolBox;
 import jsettlers.mapcreator.tools.ToolNode;
@@ -69,7 +70,7 @@ public abstract class ToolSidebar extends JPanel implements IPlayerSetter {
 	/**
 	 * Panel with the shape settings
 	 */
-	private final ShapeSelectionPanel shapeSettingsPanel = new ShapeSelectionPanel();
+	private final ToolSettingsPanel drawProperties = new ToolSettingsPanel();
 
 	/**
 	 * Presets, Templates: Loaded from .xml file
@@ -189,6 +190,7 @@ public abstract class ToolSidebar extends JPanel implements IPlayerSetter {
 							new PlaceStackToolbox(EMaterialType.FISH, 8),
 							new PlaceStackToolbox(EMaterialType.FLOUR, 8),
 							new PlaceStackToolbox(EMaterialType.PIG, 8),
+							new PlaceStackToolbox(EMaterialType.MEAT, 8),
 							new PlaceStackToolbox(EMaterialType.WATER, 8),
 							new PlaceStackToolbox(EMaterialType.RICE, 8),
 							new PlaceStackToolbox(EMaterialType.WINE, 8),
@@ -242,6 +244,7 @@ public abstract class ToolSidebar extends JPanel implements IPlayerSetter {
 			PRESETS,
 
 			new SetStartpointTool(this),
+			new SetSymmetrypointTool(drawProperties),
 			new DeleteObjectTool(),
 	});
 	// @formatter:on
@@ -278,7 +281,7 @@ public abstract class ToolSidebar extends JPanel implements IPlayerSetter {
 		toolshelf.setCellRenderer(new ToolRenderer());
 		toolshelf.setRootVisible(false);
 
-		add(shapeSettingsPanel, BorderLayout.NORTH);
+		add(drawProperties, BorderLayout.NORTH);
 	}
 
 	/**
@@ -298,7 +301,7 @@ public abstract class ToolSidebar extends JPanel implements IPlayerSetter {
 	 * @return The active shape
 	 */
 	public ShapeType getActiveShape() {
-		return shapeSettingsPanel.getActiveShape();
+		return drawProperties.getActiveShape();
 	}
 
 	protected abstract void changeTool(Tool lastPathComponent);
@@ -315,6 +318,10 @@ public abstract class ToolSidebar extends JPanel implements IPlayerSetter {
 	 *            Selected tool
 	 */
 	public void updateShapeSettings(Tool tool) {
-		shapeSettingsPanel.updateShapeSettings(tool);
+		drawProperties.updateShapeSettings(tool);
+	}
+
+	public SymmetryConfig getSymmetry() {
+		return drawProperties.getSymmetry();
 	}
 }

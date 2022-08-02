@@ -17,6 +17,7 @@ package jsettlers.logic.buildings.military.occupying;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,7 @@ import jsettlers.common.buildings.IBuildingOccupier;
 import jsettlers.common.buildings.OccupierPlace;
 import jsettlers.common.map.shapes.FreeMapArea;
 import jsettlers.common.map.shapes.MapCircle;
+import jsettlers.common.map.shapes.MapCircleIterator;
 import jsettlers.common.mapobject.EMapObjectType;
 import jsettlers.common.mapobject.IAttackableTowerMapObject;
 import jsettlers.common.movable.EMovableType;
@@ -47,6 +49,8 @@ import jsettlers.logic.buildings.Building;
 import jsettlers.logic.buildings.IBuildingsGrid;
 import jsettlers.logic.constants.Constants;
 import jsettlers.logic.constants.MatchConstants;
+import jsettlers.logic.map.grid.movable.MovableGrid;
+import jsettlers.logic.movable.interfaces.AbstractMovableGrid;
 import jsettlers.logic.movable.interfaces.IAttackable;
 import jsettlers.logic.movable.interfaces.IAttackableMovable;
 import jsettlers.logic.movable.interfaces.ILogicMovable;
@@ -418,6 +422,37 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 			}
 		}
 		return numberOfComingSoldiers;
+	}
+
+	@Override
+	public Map<ESoldierType, Integer> calculateAvailableSoldiers() {
+		Map<ESoldierType, Integer> types = new EnumMap<>(ESoldierType.class);
+		for(ESoldierType type : ESoldierType.VALUES) types.put(type, 0);
+
+		AbstractMovableGrid movGrid = grid.getMovableGrid();
+		MapCircleIterator iter = new MapCircleIterator(new MapCircle(pos, Constants.TOWER_SEARCH_SOLDIERS_RADIUS));
+
+		int width = grid.getWidth();
+		int height = grid.getHeight();
+
+		while(iter.hasNext()) {
+			int y = iter.nextY();
+			int x = iter.nextX();
+
+			if(x < 0 || y < 0 || x >= width || y >= height) continue;
+
+			ILogicMovable movable = movGrid.getMovableAt(x,y);
+			if(movable == null) continue;
+
+			if(!getPlayer().equals(movable.getPlayer())) continue;
+
+			ESoldierType type = movable.getMovableType().getSoldierType();
+			if(type == null) continue;
+
+
+			types.computeIfPresent(type, (k,v) -> v+1);
+		}
+		return types;
 	}
 
 	@Override

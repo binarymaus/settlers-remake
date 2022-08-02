@@ -25,6 +25,7 @@ import jsettlers.logic.map.grid.MainGrid;
 import jsettlers.logic.map.loading.EMapStartResources;
 import jsettlers.logic.map.loading.data.IMapData;
 import jsettlers.logic.map.loading.MapLoadException;
+import jsettlers.logic.map.loading.data.IMutableMapData;
 import jsettlers.logic.map.loading.list.IListedMap;
 import jsettlers.logic.map.loading.original.OriginalMultiPlayerWinLoseHandler;
 import jsettlers.logic.player.PlayerSetting;
@@ -45,36 +46,28 @@ public class FreshMapLoader extends RemakeMapLoader {
 	@Override
 	public MainGridWithUiSettings loadMainGrid(PlayerSetting[] playerSettings, EMapStartResources startResources) throws MapLoadException {
 		MilliStopWatch watch = new MilliStopWatch();
-		IMapData mapData = getMapData();
+		IMutableMapData mapData = loadMapData();
 		watch.stop("Loading map data required");
 
-		byte numberOfPlayers = (byte) getMaxPlayers();
-
-		if (playerSettings == null || CommonConstants.ACTIVATE_ALL_PLAYERS) {
-			playerSettings = new PlayerSetting[numberOfPlayers];
-			for (int i = 0; i < numberOfPlayers; i++) {
-				playerSettings[i] = new PlayerSetting((byte) i);
-			}
-		}
+		playerSettings = setupStartConditions(playerSettings, startResources, mapData);
 
 		MainGrid mainGrid = new MainGrid(getMapId(), getMapName(), mapData, playerSettings);
 
 		new OriginalMultiPlayerWinLoseHandler(mainGrid).schedule();
 
-		PlayerState[] playerStates = new PlayerState[numberOfPlayers];
-		for (byte playerId = 0; playerId < numberOfPlayers; playerId++) {
-			playerStates[playerId] = new PlayerState(playerId, new UIState(mapData.getStartPoint(playerId)));
-		}
-
-		return new MainGridWithUiSettings(mainGrid, playerStates);
+		return new MainGridWithUiSettings(mainGrid, PlayerSetting.getStates(playerSettings, mapData));
 	}
 
 	@Override
-	public IMapData getMapData() throws MapLoadException {
-		if (data != null) {
-			return data;
+	public IMutableMapData getMapData() throws MapLoadException {
+		if (data == null) {
+			data = loadMapData();
 		}
 
+		return data;
+	}
+
+	private FreshMapData loadMapData() throws MapLoadException {
 		try (InputStream stream = super.getMapDataStream()) {
 			data = new FreshMapData();
 			FreshMapSerializer.deserialize(data, stream);

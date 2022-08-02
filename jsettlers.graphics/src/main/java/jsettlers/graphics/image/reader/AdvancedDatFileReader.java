@@ -494,6 +494,7 @@ public class AdvancedDatFileReader implements DatFileReader {
 				try {
 					loadSettlers(index, file_name);
 				} catch (Exception e) {
+					e.printStackTrace();
 				}
 			}
 			return settlerSequences[index];

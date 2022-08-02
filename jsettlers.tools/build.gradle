@@ -22,3 +22,5 @@ jar {
         attributes 'Class-Path' : 'JSettlers.jar'
     }
 }
+
+tasks.run.workingDir = rootProject.projectDir

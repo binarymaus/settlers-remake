@@ -27,6 +27,10 @@ public class IndexingDatFileMapping implements DatFileMapping {
 	}
 
 	public int mapSettlersSequence(int sequenceIndex) {
+		if(sequenceIndex == -1) {
+			return -1;
+		}
+
 		return settlersMapping[sequenceIndex];
 	}
 

@@ -14,8 +14,10 @@
  *******************************************************************************/
 package jsettlers.logic.map.loading;
 
+import jsettlers.common.CommonConstants;
 import jsettlers.common.menu.IMapDefinition;
 import jsettlers.logic.map.loading.data.IMapData;
+import jsettlers.logic.map.loading.data.IMutableMapData;
 import jsettlers.logic.map.loading.original.OriginalMapLoader;
 import jsettlers.logic.map.loading.list.IListedMap;
 import jsettlers.logic.map.loading.newmap.MapFileHeader;
@@ -23,6 +25,7 @@ import jsettlers.logic.map.loading.newmap.MapFileHeader.MapType;
 import jsettlers.logic.map.loading.newmap.FreshMapLoader;
 import jsettlers.logic.map.loading.newmap.RemakeMapLoader;
 import jsettlers.logic.map.loading.savegame.SavegameLoader;
+import jsettlers.logic.player.PlayerSetting;
 
 import java.util.Locale;
 
@@ -87,6 +90,19 @@ public abstract class MapLoader implements IGameCreator, Comparable<MapLoader>, 
 		} else {
 			return this.getMapName().compareToIgnoreCase(other.getMapName()); // order by name ascending
 		}
+	}
+
+	protected PlayerSetting[] setupStartConditions(PlayerSetting[] playerSettings, EMapStartResources startResources, IMutableMapData mapData) {
+		byte numberOfPlayers = (byte) getMaxPlayers();
+		if (playerSettings == null || CommonConstants.ACTIVATE_ALL_PLAYERS) {
+			playerSettings = new PlayerSetting[numberOfPlayers];
+			for (int i = 0; i < numberOfPlayers; i++) {
+				playerSettings[i] = new PlayerSetting((byte) i);
+			}
+		}
+
+		startResources.addStartTowerMaterialsAndSettlers(playerSettings, mapData);
+		return playerSettings;
 	}
 
 	public abstract IListedMap getListedMap();

@@ -17,6 +17,7 @@ package jsettlers.mapcreator.data.objects;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import jsettlers.common.buildings.BuildingVariant;
@@ -28,6 +29,7 @@ import jsettlers.common.mapobject.EMapObjectType;
 import jsettlers.common.mapobject.IMapObject;
 import jsettlers.common.material.EPriority;
 import jsettlers.common.movable.ESoldierClass;
+import jsettlers.common.movable.ESoldierType;
 import jsettlers.common.player.ECivilisation;
 import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.RelativePoint;
@@ -154,6 +156,11 @@ public class BuildingContainer implements ObjectContainer, IBuilding, LandscapeC
 	@Override
 	public int getComingSoldiers(ESoldierClass type) {
 		return 0;
+	}
+
+	@Override
+	public Map<ESoldierType, Integer> calculateAvailableSoldiers() {
+		return Map.of();
 	}
 
 	@Override

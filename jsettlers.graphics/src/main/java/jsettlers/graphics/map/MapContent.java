@@ -14,6 +14,10 @@
  *******************************************************************************/
 package jsettlers.graphics.map;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.BitSet;
 
 import go.graphics.EPrimitiveType;
@@ -366,7 +370,39 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 		} catch (Throwable t) {
 			System.err.println("Main draw handler cought throwable:");
 			t.printStackTrace();
+
+			try {
+				showError(gl, t);
+			} catch (Throwable t2) {
+				System.err.println("Error while handling exception:");
+				t2.printStackTrace();
+			}
 		}
+	}
+
+	private Throwable lastException;
+
+	private void showError(GLDrawContext gl, Throwable t) {
+		gl.clearDepthBuffer();
+		gl.setGlobalAttributes(0, 0, 0, 1, 1, 1);
+		float posX = 0;
+
+		float posY = windowHeight/3f*2f;
+		if(textDrawPosition == ETextDrawPosition.DESKTOP) {
+			posX = windowWidth/4f;
+		}
+
+		if(t.getStackTrace().length != 0) {
+			lastException = t;
+		}
+
+		StringWriter out = new StringWriter();
+		PrintWriter writer = new PrintWriter(out);
+		if(lastException != null) {
+			lastException.printStackTrace(writer);
+		}
+		String errorMessage = out.toString();
+		gl.getTextDrawer(EFontSize.HEADLINE).drawString(posX, posY, Labels.getString("error-rendering", errorMessage));
 	}
 
 	private void drawGotoMarker() {

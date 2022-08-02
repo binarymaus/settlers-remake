@@ -4,7 +4,7 @@ apply plugin: 'java'
 ext {
 
     androidAnnotationsVersion = '4.8.0'
-    androidSupportLibraryVersion = '27.1.0'
+    androidSupportLibraryVersion = '28.0.0'
 
     androidBuildToolsVersion = '30.0.3'
     androidCompileSdkVersion = 30
@@ -31,7 +31,9 @@ allprojects {
     repositories {
         mavenCentral()
         google()
-        maven { url "https://raw.github.com/laenger/maven-releases/master/releases" }
+        jcenter()
+        // fallback for vbps
+        //maven { url "https://raw.github.com/laenger/maven-releases/master/releases" }
         maven { url "https://maven.google.com" }
         maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
     }
@@ -112,6 +114,7 @@ task run(dependsOn: ':jsettlers.main.swing:run') {
 }
 tasks.getByPath(":jsettlers.mapcreator:run").onlyIf { !gradle.taskGraph.hasTask(":run") }
 tasks.getByPath(":jsettlers.network:run").onlyIf { !gradle.taskGraph.hasTask(":run") }
+tasks.getByPath(":jsettlers.tools:run").onlyIf { !gradle.taskGraph.hasTask(":run") }
 
 task runMapCreator(dependsOn: ':jsettlers.mapcreator:run') {}
 

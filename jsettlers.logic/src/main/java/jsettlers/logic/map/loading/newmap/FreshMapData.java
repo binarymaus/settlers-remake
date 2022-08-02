@@ -14,9 +14,12 @@
  *******************************************************************************/
 package jsettlers.logic.map.loading.newmap;
 
+import jsettlers.algorithms.datastructures.TrackingArray2D;
 import jsettlers.common.landscape.ELandscapeType;
 import jsettlers.common.landscape.EResourceType;
 import jsettlers.logic.map.loading.data.IMapData;
+import jsettlers.logic.map.loading.data.IMutableMapData;
+import jsettlers.logic.map.loading.data.objects.BuildingMapDataObject;
 import jsettlers.logic.map.loading.data.objects.MapDataObject;
 import jsettlers.common.position.ShortPoint2D;
 
@@ -25,7 +28,7 @@ import jsettlers.common.position.ShortPoint2D;
  * 
  * @author michael
  */
-public class FreshMapData implements FreshMapSerializer.IMapDataReceiver, IMapData {
+public class FreshMapData implements FreshMapSerializer.IMapDataReceiver, IMutableMapData {
 
 	private int width;
 	private int height;
@@ -35,7 +38,7 @@ public class FreshMapData implements FreshMapSerializer.IMapDataReceiver, IMapDa
 
 	private byte[][] heights;
 	private ELandscapeType[][] landscapes;
-	private MapDataObject[][] mapObjects;
+	private TrackingArray2D<MapDataObject> mapObjects;
 	private EResourceType[][] resourceTypes;
 	private byte[][] resourceAmount;
 	private short[][] blockedPartitions;
@@ -48,7 +51,7 @@ public class FreshMapData implements FreshMapSerializer.IMapDataReceiver, IMapDa
 		this.playerStarts = new ShortPoint2D[playerCount];
 		this.heights = new byte[width][height];
 		this.landscapes = new ELandscapeType[width][height];
-		this.mapObjects = new MapDataObject[width][height];
+		this.mapObjects = new TrackingArray2D<>(MapDataObject[]::new, width, height, obj -> obj instanceof BuildingMapDataObject);
 		this.resourceTypes = new EResourceType[width][height];
 		this.resourceAmount = new byte[width][height];
 		this.blockedPartitions = new short[width][height];
@@ -71,7 +74,7 @@ public class FreshMapData implements FreshMapSerializer.IMapDataReceiver, IMapDa
 
 	@Override
 	public void setMapObject(int x, int y, MapDataObject object) {
-		mapObjects[x][y] = object;
+		mapObjects.set(x, y, object);
 	}
 
 	/* - - - - - - IMapData interface - - - - - - - */
@@ -93,7 +96,12 @@ public class FreshMapData implements FreshMapSerializer.IMapDataReceiver, IMapDa
 
 	@Override
 	public MapDataObject getMapObject(int x, int y) {
-		return mapObjects[x][y];
+		return mapObjects.get(x, y);
+	}
+
+	@Override
+	public boolean hasStartBuildings() {
+		return mapObjects.getTrackedCount()!=0;
 	}
 
 	@Override

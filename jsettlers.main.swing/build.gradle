@@ -6,6 +6,7 @@ plugins {
 /*add music dependencies
  * ogg libraries: vorbisspi1.0.2.jar, tritonus_share.jar, jorbis-0.0.15.jar, jogg-0.0.7.jar
  * mp3 libraries: jl1.0.1.jar, tritonus_share.jar, mp3spi1.9.5.jar
+ * jaxb (map editor only)
  */
 String[] lgplDependencies = new String[] {
 		"javazoom:jlayer:1.0.1",
@@ -14,6 +15,9 @@ String[] lgplDependencies = new String[] {
 		"com.googlecode.soundlibs:vorbisspi:1.0.3.3",
 		"org.jcraft:jorbis:0.0.17",
 		"de.jarnbjo:j-ogg-all:1.0.0",
+		"javax.xml.bind:jaxb-api:2.3.1",
+		"com.sun.xml.bind:jaxb-impl:2.3.2",
+		"com.sun.xml.bind:jaxb-core:2.3.0.1",
 }
 
 configurations {

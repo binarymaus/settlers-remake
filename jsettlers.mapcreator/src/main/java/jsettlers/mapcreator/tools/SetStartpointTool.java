@@ -17,6 +17,7 @@ package jsettlers.mapcreator.tools;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.mapcreator.control.IPlayerSetter;
 import jsettlers.mapcreator.data.MapData;
+import jsettlers.mapcreator.data.symmetry.SymmetryConfig;
 import jsettlers.mapcreator.tools.shapes.EShapeType;
 import jsettlers.mapcreator.tools.shapes.ShapeType;
 
@@ -49,5 +50,10 @@ public class SetStartpointTool extends AbstractTool {
 	public void apply(MapData map, ShapeType shape, ShortPoint2D start,
 			ShortPoint2D end, double uidx) {
 		map.setStartPoint(player.getActivePlayer(), end);
+	}
+
+	@Override
+	public void apply(MapData map, SymmetryConfig symmetry, ShapeType shapeType, ShortPoint2D start, ShortPoint2D end, double uidx) {
+		apply(map, shapeType, start, end, uidx);
 	}
 }

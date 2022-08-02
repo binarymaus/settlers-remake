@@ -14,49 +14,47 @@
  *******************************************************************************/
 package jsettlers.mapcreator.tools;
 
-import java.util.Set;
-
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.mapcreator.data.MapData;
 import jsettlers.mapcreator.data.symmetry.SymmetryConfig;
+import jsettlers.mapcreator.main.window.sidebar.ToolSettingsPanel;
 import jsettlers.mapcreator.tools.shapes.EShapeType;
 import jsettlers.mapcreator.tools.shapes.ShapeType;
 
 /**
- * Interface for all tools, displayed in the tree
- * 
+ * Set the startup position of a player
+ *
  * @author Andreas Butti
  *
  */
-public interface Tool extends ToolNode {
+public class SetSymmetrypointTool extends AbstractTool {
 
 	/**
-	 * Return a Set with all supported shape types
-	 * 
-	 * @return Read only list
+	 * Interface to get the currently selected player
 	 */
-	Set<EShapeType> getSupportedShapes();
+	private final ToolSettingsPanel settings;
 
 	/**
-	 * Editing
-	 * 
-	 * @param map
-	 * @param shape
-	 * @param start
-	 * @param end
-	 * @param uidx
+	 * Constructor
+	 *
+	 * @param settings The toolbar that manages the symmetry settings
 	 */
-	void apply(MapData map, ShapeType shape, ShortPoint2D start, ShortPoint2D end, double uidx);
+	public SetSymmetrypointTool(ToolSettingsPanel settings) {
+		super("sympoint");
+		this.settings = settings;
+		shapeTypes.add(EShapeType.POINT);
+	}
 
+	@Override
+	public void start(MapData data, ShapeType shape, ShortPoint2D pos) {
+		settings.setSymmetryPoint(pos);
+	}
 
-	void apply(MapData map, SymmetryConfig symmetry, ShapeType shapeType, ShortPoint2D start, ShortPoint2D end, double uidx);
+	@Override
+	public void apply(MapData map, ShapeType shapeType, ShortPoint2D start, ShortPoint2D end, double uidx) {
+	}
 
-	/**
-	 * Start the editing
-	 * 
-	 * @param data
-	 * @param shape
-	 * @param pos
-	 */
-	void start(MapData data, ShapeType shape, ShortPoint2D pos);
+	@Override
+	public void apply(MapData map, SymmetryConfig symmetry, ShapeType shapeType, ShortPoint2D start, ShortPoint2D end, double uidx) {
+	}
 }

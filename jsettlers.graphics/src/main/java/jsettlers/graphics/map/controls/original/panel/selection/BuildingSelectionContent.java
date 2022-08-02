@@ -103,7 +103,19 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 	 *
 	 * @author Michael Zangl
 	 */
-	public static class SoldierCount extends Label {
+	public static class SoldierCount extends Label implements StateDependingElement {
+
+
+		private final ESoldierType type;
+
+		@Override
+		public void setState(BuildingState state) {
+			Integer count = state.getAvailableSoldiers().get(type);
+
+			if(count != null) {
+				setText(count.toString());
+			}
+		}
 
 		/**
 		 * Creates a new soldier count field.
@@ -113,6 +125,8 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 		 */
 		public SoldierCount(ESoldierType type) {
 			super("?", EFontSize.NORMAL);
+
+			this.type = type;
 		}
 	}
 
@@ -444,8 +458,8 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 		/**
 		 * Sets the type of the building to display.
 		 *
-		 * @param type
-		 *            The type.
+		 * @param variant
+		 *            The building type
 		 * @param workplace
 		 *            <code>true</code> if it is currently under construction.
 		 */
@@ -525,6 +539,10 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 		layout.nameText.setType(building.getBuildingVariant(), false);
 		addOccupyerPlaces(layout.infantry_places, layout.infantry_missing, state.getOccupiers(ESoldierClass.INFANTRY));
 		addOccupyerPlaces(layout.bowman_places, layout.bowman_missing, state.getOccupiers(ESoldierClass.BOWMAN));
+
+		for (StateDependingElement i : layout.getAll(StateDependingElement.class)) {
+			i.setState(state);
+		}
 		return layout._root;
 	}
 

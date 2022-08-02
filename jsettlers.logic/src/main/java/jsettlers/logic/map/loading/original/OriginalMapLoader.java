@@ -172,23 +172,14 @@ public class OriginalMapLoader extends MapLoader {
 	public MainGridWithUiSettings loadMainGrid(PlayerSetting[] playerSettings, EMapStartResources startResources) throws MapLoadException {
 		MilliStopWatch watch = new MilliStopWatch();
 
-		loadMapContent(startResources, playerSettings);
+		loadMapData();
+
+		playerSettings = setupStartConditions(playerSettings, startResources, mapContent.mapData);
 
 		OriginalMapFileContent mapData = mapContent.mapData;
 		mapData.calculateBlockedPartitions();
 
 		watch.stop("Loading original map data required");
-
-		byte numberOfPlayers = (byte) getMaxPlayers();
-
-		if (playerSettings == null || CommonConstants.ACTIVATE_ALL_PLAYERS) {
-			playerSettings = new PlayerSetting[numberOfPlayers];
-
-			for (int i = 0; i < numberOfPlayers; i++) {
-				playerSettings[i] = new PlayerSetting((byte) i);
-			}
-		}
-
 		MainGrid mainGrid = new MainGrid(getMapId(), getMapName(), mapData, playerSettings);
 
 		if(mapContent.isSinglePlayerMap()) {
@@ -197,18 +188,12 @@ public class OriginalMapLoader extends MapLoader {
 			new OriginalMultiPlayerWinLoseHandler(mainGrid).schedule();
 		}
 
-		PlayerState[] playerStates = new PlayerState[numberOfPlayers];
-
-		for (byte playerId = 0; playerId < numberOfPlayers; playerId++) {
-			playerStates[playerId] = new PlayerState(playerId, new UIState(mapData.getStartPoint(playerId)));
-		}
-
-		return new MainGridWithUiSettings(mainGrid, playerStates);
+		return new MainGridWithUiSettings(mainGrid, PlayerSetting.getStates(playerSettings, mapData));
 	}
 
 	@Override
 	public IMapData getMapData() throws MapLoadException {
-		loadMapContent(EMapStartResources.HIGH_GOODS, null);
+		loadMapData();
 
 		OriginalMapFileContent mapData = mapContent.mapData;
 		mapData.calculateBlockedPartitions();
@@ -216,7 +201,7 @@ public class OriginalMapLoader extends MapLoader {
 		return mapData;
 	}
 
-	private void loadMapContent(EMapStartResources startResources, PlayerSetting[] playerSettings) throws MapLoadException {
+	private void loadMapData() throws MapLoadException {
 		try {
 			// - the map buffer of the class may is closed and need to reopen!
 			mapContent.reOpen(this.listedMap.getInputStream());
@@ -236,7 +221,5 @@ public class OriginalMapLoader extends MapLoader {
 		mapContent.readSettlers();
 		// - read the buildings
 		mapContent.readBuildings();
-		// - add player resources
-		mapContent.addStartTowerMaterialsAndSettlers(startResources, playerSettings);
 	}
 }

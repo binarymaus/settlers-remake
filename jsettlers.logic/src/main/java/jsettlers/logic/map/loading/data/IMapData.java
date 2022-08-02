@@ -30,6 +30,8 @@ public interface IMapData {
 
 	MapDataObject getMapObject(int x, int y);
 
+	boolean hasStartBuildings();
+
 	/**
 	 *
 	 * @param x

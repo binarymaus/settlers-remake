@@ -18,25 +18,20 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 import java.util.EnumMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import jsettlers.common.Color;
 import java.util.Optional;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.material.EMaterialType;
-import jsettlers.common.player.ECivilisation;
-import jsettlers.common.position.RelativePoint;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.logic.map.grid.MainGrid;
 import jsettlers.logic.map.loading.EMapStartResources;
 import jsettlers.logic.map.loading.MapLoadException;
-import jsettlers.logic.map.loading.data.objects.BuildingMapDataObject;
-import jsettlers.logic.map.loading.data.objects.MapDataObject;
 import jsettlers.logic.map.loading.original.data.EOriginalMapBuildingType;
 import jsettlers.logic.map.loading.original.data.EOriginalMapFilePartType;
 import jsettlers.logic.map.loading.original.data.EOriginalMapFileVersion;
@@ -44,7 +39,6 @@ import jsettlers.logic.map.loading.original.data.EOriginalMapStackType;
 import jsettlers.logic.map.loading.original.data.OriginalDestroyBuildingsWinCondition;
 import jsettlers.logic.map.loading.original.data.OriginalProduceGoodsWinCondition;
 import jsettlers.logic.map.loading.original.data.OriginalSurviveDurationWinCondition;
-import jsettlers.logic.player.PlayerSetting;
 
 /**
  * @author Thomas Zeugner
@@ -125,7 +119,6 @@ class OriginalMapFileContentReader {
 	private int fileChecksum = 0;
 	int widthHeight;
 	private boolean singlePlayerMap = false;
-	private boolean hasBuildings = false;
 
 	private byte[] mapContent;
 	@SuppressWarnings("unused")
@@ -143,7 +136,7 @@ class OriginalMapFileContentReader {
 	/**
 	 * Charset of read strings
 	 */
-	private static final Charset TEXT_CHARSET = Charset.forName("ISO-8859-1");
+	private static final Charset TEXT_CHARSET = StandardCharsets.ISO_8859_1;
 
 	OriginalMapFileContentReader(InputStream originalMapFile) throws IOException {
 		// - init players
@@ -364,7 +357,6 @@ class OriginalMapFileContentReader {
 		// - Reset
 		fileChecksum = 0;
 		widthHeight = 0;
-		hasBuildings = false;
 
 		// - safety checks
 		if (mapContent == null || mapContent.length < 100) {
@@ -546,8 +538,6 @@ class OriginalMapFileContentReader {
 
 	// - read buildings from the map-file
 	void readBuildings() throws MapLoadException {
-		hasBuildings = false;
-
 		Optional<MapResourceInfo> filePartOptional = findAndDecryptFilePart(EOriginalMapFilePartType.BUILDINGS);
 
 		if (filePartOptional.isPresent()) {
@@ -563,8 +553,6 @@ class OriginalMapFileContentReader {
 			if ((buildingsCount * 12 > filePart.size) || (buildingsCount < 0)) {
 				throw new MapLoadException("wrong number of buildings in map File: " + buildingsCount);
 			}
-
-			hasBuildings = true;
 
 			// - read all Buildings
 			for (int i = 0; i < buildingsCount; i++) {
@@ -814,77 +802,6 @@ class OriginalMapFileContentReader {
 
 			mapData.setResources(i, readHighNibbleFrom(pos), readLowNibbleFrom(pos));
 			pos++;
-		}
-	}
-
-	public void addStartTowerMaterialsAndSettlers(EMapStartResources startResources, PlayerSetting[] playerSettings) {
-		// - only if there are no buildings
-		if (hasBuildings) {
-			return;
-		}
-
-		int playerCount = mapData.getPlayerCount();
-
-		for (byte playerId = 0; playerId < playerCount; playerId++) {
-			if (playerSettings != null && !playerSettings[playerId].isAvailable())
-				continue;
-			ShortPoint2D startPoint = mapData.getStartPoint(playerId);
-
-			// - add the start Tower for this player
-			mapData.setMapObject(startPoint.x, startPoint.y, new BuildingMapDataObject(EBuildingType.TOWER, playerId));
-
-			// - list of all objects that have to be added for this player
-			List<MapDataObject> mapObjects = EMapStartResources.generateStackObjects(startResources);
-			mapObjects.addAll(EMapStartResources.generateMovableObjects(startResources, playerId));
-
-			// - blocking area of the tower
-			ECivilisation playerCiv = playerSettings!=null?playerSettings[playerId].getCivilisation():ECivilisation.REPLACE_ME;
-			List<RelativePoint> towerTiles = Arrays.asList(EBuildingType.TOWER.getVariant(playerCiv).getProtectedTiles());
-
-			RelativePoint relativeMapObjectPoint = new RelativePoint(-3, 3);
-
-			for (MapDataObject currentMapObject : mapObjects) {
-				do {
-					// - get next point
-					relativeMapObjectPoint = nextPointOnSpiral(relativeMapObjectPoint);
-
-					// - don't put things under the tower
-					if (towerTiles.contains(relativeMapObjectPoint)) {
-						continue;
-					}
-
-					// - get absolute position
-					int x = relativeMapObjectPoint.calculateX(startPoint.x);
-					int y = relativeMapObjectPoint.calculateY(startPoint.y);
-
-					// - is this place free?
-					if (mapData.getMapObject(x, y) == null) {
-						// - add Object
-						mapData.setMapObject(x, y, currentMapObject);
-						// - break DO: next object...
-						break;
-					}
-				} while (true);
-			}
-		}
-	}
-
-	private RelativePoint nextPointOnSpiral(RelativePoint previousPoint) {
-		short previousX = previousPoint.getDx();
-		short previousY = previousPoint.getDy();
-
-		short basis = (short) Math.max(Math.abs(previousX), Math.abs(previousY));
-
-		if (previousX == basis && previousY > -basis) {
-			return new RelativePoint(previousX, previousY - 1);
-		} else if (previousX == -basis && previousY <= basis) {
-			return new RelativePoint(previousX, previousY + 1);
-		} else if (previousX < basis && previousY == basis) {
-			return new RelativePoint(previousX + 1, previousY);
-		} else if (previousX > -basis && previousY == -basis) {
-			return new RelativePoint(previousX - 1, previousY);
-		} else {
-			return null;
 		}
 	}
 
