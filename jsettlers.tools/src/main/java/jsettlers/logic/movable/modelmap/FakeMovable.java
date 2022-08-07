@@ -42,6 +42,16 @@ public class FakeMovable implements IGraphicsMovable, IGraphicsBuildingWorker, I
 		this.map = map;
 		setPosition(position);
 	}
+	
+	@Override
+	public void setUnitGroup(int unitGroup) {
+		
+	}
+
+	@Override
+	public int getUnitGroup() {
+		return 0;
+	}
 
 	@Override
 	public EMovableType getMovableType() {

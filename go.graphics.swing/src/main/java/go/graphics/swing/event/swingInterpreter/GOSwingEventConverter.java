@@ -15,8 +15,6 @@
 package go.graphics.swing.event.swingInterpreter;
 
 import java.awt.Component;
-import java.awt.GraphicsConfiguration;
-import java.awt.GraphicsDevice;
 import java.awt.Window;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
@@ -31,7 +29,6 @@ import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.geom.AffineTransform;
-import java.lang.reflect.Field;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -161,7 +158,7 @@ public class GOSwingEventConverter extends AbstractEventConverter
 	public void keyPressed(KeyEvent e) {
 		updateModifiers(e);
 		String text = getKeyName(e);
-		startKeyEvent(text);
+		startKeyEvent(text, getCurrentModifiers());
 		/*
 		 * if (ongoingKeyEvent == null) { if (e.getKeyCode() == KeyEvent.VK_ESCAPE) { ongoingKeyEvent.setHandler(getCancelHandler()); } else if
 		 * (e.getKeyCode() == KeyEvent.VK_UP) { ongoingKeyEvent.setHandler(getPanHandler(0, -KEYPAN)); } else if (e.getKeyCode() == KeyEvent.VK_DOWN)
@@ -179,6 +176,21 @@ public class GOSwingEventConverter extends AbstractEventConverter
 		String text = KeyEvent.getKeyText(e.getKeyCode());
 		if (text == null || text.length() != 1) {
 			switch (e.getKeyCode()) {
+			case KeyEvent.VK_1:
+				text = "1";
+				break;
+			case KeyEvent.VK_2:
+				text = "2";
+				break;
+			case KeyEvent.VK_3:
+				text = "3";
+				break;
+			case KeyEvent.VK_4:
+				text = "4";
+				break;
+			case KeyEvent.VK_5:
+				text = "5";
+				break;
 			case KeyEvent.VK_LEFT:
 				text = "LEFT";
 				break;
@@ -251,6 +263,9 @@ public class GOSwingEventConverter extends AbstractEventConverter
 			case KeyEvent.VK_TAB:
 				text = "TAB";
 				break;
+			case KeyEvent.VK_CONTROL:
+				text = "CTRL";
+				break;
 			default:
 				text = "" + e.getKeyChar();
 			}
@@ -310,19 +325,19 @@ public class GOSwingEventConverter extends AbstractEventConverter
 	}
 
 	private void updateModifiers(InputEvent e) {
-		modifiers = e.getModifiers();
+		modifiers = e.getModifiersEx();
 	}
 	
 	@Override
 	protected Set<EModifier> getCurrentModifiers() {
 		EnumSet<EModifier> set = EnumSet.noneOf(EModifier.class);
-		if ((modifiers & (InputEvent.CTRL_DOWN_MASK | InputEvent.CTRL_MASK)) != 0) {
+		if ((modifiers & (InputEvent.CTRL_DOWN_MASK)) != 0) {
 			set.add(EModifier.CTRL);
 		}
-		if ((modifiers & (InputEvent.ALT_DOWN_MASK | InputEvent.ALT_MASK)) != 0) {
+		if ((modifiers & (InputEvent.ALT_DOWN_MASK)) != 0) {
 			set.add(EModifier.ALT);
 		}
-		if ((modifiers & (InputEvent.SHIFT_DOWN_MASK | InputEvent.SHIFT_MASK)) != 0) {
+		if ((modifiers & (InputEvent.SHIFT_DOWN_MASK)) != 0) {
 			set.add(EModifier.SHIFT);
 		}
 		return set;

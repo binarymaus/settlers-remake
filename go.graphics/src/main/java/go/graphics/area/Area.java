@@ -22,6 +22,7 @@ import go.graphics.RedrawListener;
 import go.graphics.UIPoint;
 import go.graphics.event.GOEvent;
 import go.graphics.event.GOEventHandlerProvider;
+import go.graphics.event.GOGroupEvent;
 import go.graphics.event.GOKeyEvent;
 import go.graphics.event.command.GOCommandEvent;
 import go.graphics.event.interpreter.AbstractMouseEvent;
@@ -163,7 +164,9 @@ public class Area implements RedrawListener, GOEventHandlerProvider {
 				if(drawmodeListener != null) drawmodeListener.changeDrawMode();
 			}
 		}
-
+		if(event instanceof GOGroupEvent) {
+			region.handleEvent(event);
+		}
 		if (event instanceof GOCommandEvent) {
 			handleCommandEvent((GOCommandEvent) event);
 		} else if (event instanceof GOPanEvent) {
