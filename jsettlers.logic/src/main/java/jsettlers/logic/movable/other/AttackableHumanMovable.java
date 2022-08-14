@@ -21,6 +21,7 @@ public class AttackableHumanMovable extends AttackableMovable implements IAttack
 
 	// the following data only for ship passengers
 	protected IFerryMovable ferryToEnter = null;
+	public boolean isStopped = false;
 
 	public AttackableHumanMovable(AbstractMovableGrid grid, EMovableType movableType, ShortPoint2D position, Player player, Movable movable) {
 		super(grid, movableType, position, player, movable);
@@ -41,6 +42,7 @@ public class AttackableHumanMovable extends AttackableMovable implements IAttack
 		nextTarget = targetPosition;
 		nextMoveToType = moveToType;
 		goingToHealer = false;
+		isStopped = false;
 	}
 
 	@Override

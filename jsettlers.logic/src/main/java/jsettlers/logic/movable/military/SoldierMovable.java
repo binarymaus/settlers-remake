@@ -3,6 +3,7 @@ package jsettlers.logic.movable.military;
 import jsettlers.algorithms.path.Path;
 import jsettlers.algorithms.simplebehaviortree.Node;
 import jsettlers.algorithms.simplebehaviortree.Root;
+import jsettlers.common.action.EMoveToType;
 import jsettlers.common.buildings.OccupierPlace;
 import jsettlers.common.movable.EDirection;
 import jsettlers.common.movable.EEffectType;
@@ -56,6 +57,16 @@ public abstract class SoldierMovable extends AttackableHumanMovable implements I
 		for(EMovableType type : EMovableType.SOLDIERS) {
 			MovableManager.registerBehaviour(type, behaviour);
 		}
+	}
+
+	@Override
+	public void stopOrStartWorking(boolean stop) {
+		if(!playerControlled) return;
+
+		nextTarget = position;
+		nextMoveToType = stop? EMoveToType.FORCED : EMoveToType.DEFAULT;
+		goingToHealer = false;
+		isStopped = true;
 	}
 
 	private static Node<SoldierMovable> createSoldierBehaviour() {
@@ -143,7 +154,7 @@ public abstract class SoldierMovable extends AttackableHumanMovable implements I
 					)
 				),
 				// attack enemy
-				guard(mov -> mov.enemyNearby && !mov.isInTower,
+				guard(mov -> !mov.isStopped && mov.enemyNearby && !mov.isInTower,
 					selector(
 						sequence(
 							// handle potential enemy
