@@ -56,6 +56,7 @@ import jsettlers.graphics.ui.layout.DockyardSelectionLayout;
 import jsettlers.graphics.ui.layout.OccupiableSelectionLayout;
 import jsettlers.graphics.ui.layout.StockSelectionLayout;
 import jsettlers.graphics.ui.layout.TradingSelectionLayout;
+import jsettlers.common.IHaveDiggProgress;
 
 /**
  * This is the selection content that is used for displaying a selected building.
@@ -375,7 +376,7 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 			layout.background.removeChild(layout.buttonWorkRadius);
 		}
 
-		layout.nameText.setType(building.getBuildingVariant(), state.isConstruction());
+		layout.nameText.setType(building, state.isConstruction());
 
 		String text = "";
 		if (state.isConstruction()) {
@@ -463,10 +464,12 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 		 * @param workplace
 		 *            <code>true</code> if it is currently under construction.
 		 */
-		public void setType(BuildingVariant variant, boolean workplace) {
+		public void setType(IBuilding building, boolean workplace) {
+			var variant = building.getBuildingVariant();
+			var diggProgress = ((IHaveDiggProgress)building).getDiggProgress();
 			String text = Labels.getName(variant.getType());
 			if (workplace) {
-				text = Labels.getString("building-build-in-progress", text);
+				text = Labels.getString("building-build-in-progress", text) + " (" + Math.round(diggProgress * 100) + "% planiert)";
 			}
 			setText(text);
 		}
@@ -536,7 +539,7 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 
 	private BuildingBackgroundPanel createOccupiedBuildingContent(BuildingState state) {
 		OccupiableSelectionLayout layout = new OccupiableSelectionLayout();
-		layout.nameText.setType(building.getBuildingVariant(), false);
+		layout.nameText.setType(building, false);
 		addOccupyerPlaces(layout.infantry_places, layout.infantry_missing, state.getOccupiers(ESoldierClass.INFANTRY));
 		addOccupyerPlaces(layout.bowman_places, layout.bowman_missing, state.getOccupiers(ESoldierClass.BOWMAN));
 
@@ -573,7 +576,7 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 
 	private BuildingBackgroundPanel createStockBuildingContent(BuildingState state) {
 		StockSelectionLayout layout = new StockSelectionLayout();
-		layout.nameText.setType(building.getBuildingVariant(), false);
+		layout.nameText.setType(building, false);
 		selectionManager.setButtons(layout.getAll(StockControlButton.class));
 		for (StateDependingElement i : layout.getAll(StateDependingElement.class)) {
 			i.setState(state);
@@ -587,7 +590,7 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 
 	private BuildingBackgroundPanel createTradingBuildingContent(BuildingState state) {
 		TradingSelectionLayout layout = new TradingSelectionLayout();
-		layout.nameText.setType(building.getBuildingVariant(), false);
+		layout.nameText.setType(building, false);
 		selectionManager.setButtons(layout.getAll(SelectionManagedMaterialButton.class));
 		EPriority[] supported = state.getSupportedPriorities();
 		if (supported.length < 2) {
@@ -623,7 +626,7 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 	private BuildingBackgroundPanel createDockyardBuildingContent(BuildingState state) {
 		DockyardSelectionLayout layout = new DockyardSelectionLayout(null, building.getPlayer().getCivilisation());
 		loadPriorityButton(layout.background, layout.priority, state);
-		layout.nameText.setType(building.getBuildingVariant(), state.isConstruction());
+		layout.nameText.setType(building, state.isConstruction());
 
 		if (state.isWorkingDockyard()) {
 			layout.materialText.setText(Labels.getString("materials_required"));

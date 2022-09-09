@@ -1726,6 +1726,11 @@ public final class MainGrid implements Serializable {
 		}
 
 		@Override
+		public final LandscapeGrid getLandscapeGrid() {
+			return landscapeGrid;
+		}
+
+		@Override
 		public final void pushMaterialsTo(ShortPoint2D position, EMaterialType type, byte numberOf) {
 			for (int i = 0; i < numberOf; i++) {
 				movablePathfinderGrid.dropMaterial(position, type, true, true);
@@ -1874,6 +1879,10 @@ public final class MainGrid implements Serializable {
 		@Override
 		public final void requestDiggers(IDiggerRequester requester, byte amount) {
 			partitionsGrid.getPartitionAt(requester).requestDiggers(requester, amount);
+		}
+
+		public final void sortDiggerRequests(IDiggerRequester requester) {
+			partitionsGrid.getPartitionAt(requester).sortDiggerRequests();
 		}
 
 		@Override

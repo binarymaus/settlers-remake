@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 import jsettlers.common.material.EMaterialType;
+import jsettlers.common.material.EPriority;
 import jsettlers.common.movable.EDirection;
 import jsettlers.common.movable.EMovableType;
 import jsettlers.common.player.IPlayer;
@@ -154,6 +155,18 @@ public abstract class PartitionManager implements IScheduledTimerable, Serializa
 
 	public void requestDiggers(IDiggerRequester requester, byte amount) {
 		diggerRequests.offer(new DiggerRequest(requester, amount));
+		
+		sortDiggerRequests();
+	}
+
+	public void sortDiggerRequests() {
+		// Sort request by priority
+		for(DiggerRequest curr : diggerRequests) {
+			if(curr.requester.getPriority() == EPriority.HIGH) {
+				diggerRequests.remove(diggerRequests.indexOf(curr));
+				diggerRequests.addFirst(curr);
+			}
+		}
 	}
 
 	public void requestBricklayer(Building building, ShortPoint2D bricklayerTargetPos, EDirection direction) {

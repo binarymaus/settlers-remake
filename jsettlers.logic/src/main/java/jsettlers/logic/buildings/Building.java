@@ -26,6 +26,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import jsettlers.algorithms.fogofwar.FogOfWar;
+import jsettlers.common.IHaveDiggProgress;
 import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.buildings.IBuilding;
@@ -33,6 +34,7 @@ import jsettlers.common.buildings.IBuildingMaterial;
 import jsettlers.common.buildings.RelativeDirectionPoint;
 import jsettlers.common.buildings.stacks.ConstructionStack;
 import jsettlers.common.buildings.stacks.RelativeStack;
+import jsettlers.common.landscape.ELandscapeType;
 import jsettlers.common.map.shapes.FreeMapArea;
 import jsettlers.common.mapobject.EMapObjectType;
 import jsettlers.common.material.EPriority;
@@ -71,7 +73,7 @@ import jsettlers.logic.timer.IScheduledTimerable;
 import jsettlers.logic.timer.RescheduleTimer;
 
 public abstract class Building extends AbstractHexMapObject implements IConstructableBuilding, IPlayerable, IBuilding, IScheduledTimerable,
-		IDebugable, IDiggerRequester {
+		IDebugable, IDiggerRequester, IHaveDiggProgress {
 	private static final long serialVersionUID = 4379555028512391595L;
 
 	private static final float BUILDING_DESTRUCTION_SMOKE_DURATION = 1.2f;
@@ -280,6 +282,40 @@ public abstract class Building extends AbstractHexMapObject implements IConstruc
 		} else {
 			grid.getMapObjectsManager().removeMapObjectType(flagPosition.x, flagPosition.y, getFlagType());
 		}
+	}
+
+	@Override
+	public double getDiggProgress() {
+		var protectedTiles = getFlattenTiles();
+		var max = protectedTiles.length;
+		var current = 0.0f;
+		for (RelativePoint curr : protectedTiles) {
+			ShortPoint2D currPos = curr.calculatePoint(this.pos);
+			if(!needsToBeWorkedOn(currPos))
+			{
+				current+= 1.0f;
+			};
+		}
+		return current / max;
+	}
+
+	private boolean needsToBeWorkedOn(ShortPoint2D pos) {
+		return needsToChangeHeight(pos) || isNotFlattened(pos);
+	}
+
+	private boolean isNotFlattened(ShortPoint2D pos) {
+		// some places can't be flattened
+		if(!grid.getLandscapeGrid().canChangeLandscapeTo(pos.x, pos.y, ELandscapeType.FLATTENED) &&
+				!grid.getLandscapeGrid().canChangeLandscapeTo(pos.x, pos.y, ELandscapeType.FLATTENED_DESERT)) return false;
+
+
+		ELandscapeType currentLandscape = grid.getLandscapeGrid().getLandscapeTypeAt(pos.x, pos.y);
+
+		return currentLandscape != ELandscapeType.FLATTENED && currentLandscape != ELandscapeType.FLATTENED_DESERT;
+	}
+
+	private boolean needsToChangeHeight(ShortPoint2D pos) {
+		return grid.getHeightAt(pos) != this.getAverageHeight();
 	}
 
 	private void requestDiggers() {
@@ -677,6 +713,7 @@ public abstract class Building extends AbstractHexMapObject implements IConstruc
 
 	public void setPriority(EPriority newPriority) {
 		this.priority = newPriority;
+		this.grid.sortDiggerRequests(this);
 		if (stacks != null) {
 			for (IRequestStack curr : stacks) {
 				curr.setPriority(newPriority);

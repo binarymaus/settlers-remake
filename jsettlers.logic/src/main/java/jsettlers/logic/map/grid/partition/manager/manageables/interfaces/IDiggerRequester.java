@@ -15,6 +15,7 @@
 package jsettlers.logic.map.grid.partition.manager.manageables.interfaces;
 
 import jsettlers.common.buildings.BuildingVariant;
+import jsettlers.common.material.EPriority;
 import jsettlers.common.position.ILocatable;
 
 /**
@@ -45,4 +46,6 @@ public interface IDiggerRequester extends ILocatable {
 	byte getAverageHeight();
 
 	void diggerRequestFailed();
+
+	EPriority getPriority();
 }
