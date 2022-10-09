@@ -24,14 +24,14 @@ public class Debug<T> extends Decorator<T> {
 	@Override
 	public NodeStatus onTick(Tick<T> tick) {
 		if (CommonConstants.DEBUG_BEHAVIOR_TREES) {
-			System.out.println(indent(tick, message));
+			//System.out.println(indent(tick, message));
 		}
 
 		if (child != null) {
 			NodeStatus result = child.execute(tick);
 
 			if (CommonConstants.DEBUG_BEHAVIOR_TREES) {
-				System.out.println(indent(tick, message + ": " + result));
+				//System.out.println(indent(tick, message + ": " + result));
 			}
 
 			return result;

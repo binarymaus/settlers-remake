@@ -891,7 +891,7 @@ public class Background implements IGraphicsBackgroundListener {
 			buffer.asShortBuffer().put(data);
 			texture = context.generateTexture(TEXTURE_SIZE, TEXTURE_SIZE, buffer.asShortBuffer(), "background");
 
-			System.out.println("Background texture generated in " + (System.currentTimeMillis() - startTime) + "ms");
+			//System.out.println("Background texture generated in " + (System.currentTimeMillis() - startTime) + "ms");
 		}
 		return texture;
 	}

@@ -89,6 +89,8 @@ public interface IBuildingsGrid {
 
 	void sortDiggerRequests(IDiggerRequester requester);
 
+	void sortBricklayerRequests(IDiggerRequester requester);
+
 	void requestBricklayer(Building building, ShortPoint2D position, EDirection direction);
 
 	IRequestsStackGrid getRequestStackGrid();

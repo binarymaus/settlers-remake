@@ -108,4 +108,6 @@ public abstract class AbstractMovableGrid extends AbstractStrategyGrid {
 	public abstract int getHeight();
 
 	public abstract boolean isWater(int x, int y);
+
+	public abstract void playHealAnimation(ShortPoint2D point, int sound, int animation, float duration, Player player);
 }

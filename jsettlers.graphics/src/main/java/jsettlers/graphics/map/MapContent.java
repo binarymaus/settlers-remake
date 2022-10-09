@@ -376,7 +376,7 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 			long uiTime = System.nanoTime() - start;
 
 			if (CommonConstants.ENABLE_GRAPHICS_TIMES_DEBUG_OUTPUT) {
-				System.out.println("Background: " + backgroundDuration/1000 + "µs, Foreground: " + foregroundDuration/1000 + "µs, UI: " + uiTime/1000 + "µs");
+				//System.out.println("Background: " + backgroundDuration/1000 + "µs, Foreground: " + foregroundDuration/1000 + "µs, UI: " + uiTime/1000 + "µs");
 			}
 		} catch (Throwable t) {
 			System.err.println("Main draw handler cought throwable:");
@@ -1077,7 +1077,7 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 		switch (action.getActionType()) {
 		case TOGGLE_DEBUG:
 			debugColorMode = EDebugColorModes.getNextMode(debugColorMode);
-			System.out.println("Current debugColorMode: " + debugColorMode);
+			//System.out.println("Current debugColorMode: " + debugColorMode);
 			break;
 		case TOGGLE_ORIGINAL_GRAPHICS:
 			context.ENABLE_ORIGINAL = !context.ENABLE_ORIGINAL;

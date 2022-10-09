@@ -5,18 +5,27 @@ import jsettlers.algorithms.simplebehaviortree.Root;
 import jsettlers.common.map.shapes.MapCircle;
 import jsettlers.common.map.shapes.MapCircleIterator;
 import jsettlers.common.movable.EDirection;
+import jsettlers.common.movable.EEffectType;
 import jsettlers.common.movable.EMovableAction;
 import jsettlers.common.movable.EMovableType;
+import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.ShortPoint2D;
+import jsettlers.common.utils.coordinates.CoordinateStream;
+import jsettlers.logic.constants.Constants;
 import jsettlers.logic.movable.Movable;
 import jsettlers.logic.movable.MovableManager;
 import jsettlers.logic.movable.interfaces.AbstractMovableGrid;
 import jsettlers.logic.movable.interfaces.IAttackableHumanMovable;
 import jsettlers.logic.movable.interfaces.IHealerMovable;
 import jsettlers.logic.movable.interfaces.ILogicMovable;
+import jsettlers.logic.movable.military.MageMovable;
+import jsettlers.logic.movable.other.AttackableHumanMovable;
 import jsettlers.logic.player.Player;
 
 import static jsettlers.algorithms.simplebehaviortree.BehaviorTreeHelper.*;
+
+import java.util.Comparator;
+import java.util.List;
 
 public class HealerMovable extends BuildingWorkerMovable implements IHealerMovable {
 
@@ -39,17 +48,26 @@ public class HealerMovable extends BuildingWorkerMovable implements IHealerMovab
 				sequence(
 					waitFor(
 						sequence(
-							isAllowedToWork(),
-							action(HealerMovable::callWounded),
-							condition(HealerMovable::canHeal)
+							isAllowedToWork()
+							//condition(HealerMovable::canHeal)
 						)
 					),
 					show(),
 					ignoreFailure(
 						sequence(
-							condition(HealerMovable::heal),
-							setDirectionNode(mov -> EDirection.getApproxDirection(mov.getPosition(), mov.nextPatient.getPosition())),
-							playAction(EMovableAction.ACTION1, (short)1000)
+							action(mov -> {
+								mov
+								.sort(mov.spellRegion())
+								.map(mov::getMovableAt)
+								.filter(lm -> lm!=null&&lm.isAlive()&&lm.getMovableType().isSoldier())
+								.filter(lm -> lm.getPlayer().getTeamId() == mov.getPlayer().getTeamId())
+								.filter(lm -> ((AttackableHumanMovable)lm).needsTreatment())
+								.forEach(movable -> {
+									var attackable = (AttackableHumanMovable)movable;
+									mov.playHealAnimation(attackable.getPosition());
+									attackable.healPercentage(20f);
+								});
+							})
 						)
 					),
 					hide(),
@@ -57,6 +75,29 @@ public class HealerMovable extends BuildingWorkerMovable implements IHealerMovab
 				)
 		);
 	}
+
+	private void playHealAnimation(ShortPoint2D position) {
+		grid.playHealAnimation(position, 78, 115, 1, player);
+	}
+
+	private CoordinateStream sort(CoordinateStream stream) {
+
+		List<ShortPoint2D> points = stream.toList();
+		points.sort(Comparator.comparingInt(pt -> pt.getOnGridDistTo(position)));
+		return CoordinateStream.fromList(points);
+	}
+
+	private ILogicMovable getMovableAt(int x, int y) {
+		if(!grid.isInBounds(x, y)) {
+			return null;
+		}
+		return grid.getMovableAt(x, y);
+	}
+
+	private CoordinateStream spellRegion() {
+		return new MapCircle(building.getWorkAreaCenter(), building.getBuildingVariant().getWorkRadius()).stream();
+	}
+
 
 	private boolean canHeal(ShortPoint2D pos, boolean leave) {
 		ILogicMovable movable = grid.getMovableAt(pos.x, pos.y);

@@ -369,7 +369,12 @@ public final class SettlerImageMap {
 	 * @return The item of the map at the given position. Is not null.
 	 */
 	private SettlerImageMapItem getMapItem(ECivilisation civilisation, EMovableType movableType, EMovableAction action, EMaterialType material, EDirection direction) {
-		SettlerImageMapItem item = this.map[civilisation.ordinal()][movableType.ordinal()][action.ordinal()][material.ordinal][direction.ordinal];
+		SettlerImageMapItem item = null;
+		try {
+			item = this.map[civilisation.ordinal()][movableType.ordinal()][action.ordinal()][material.ordinal][direction.ordinal];
+		} catch (Exception ex) {
+
+		}
 		if (item == null) {
 			if(civilisation != ECivilisation.ROMAN) {
 				return getMapItem(ECivilisation.ROMAN, movableType, action, material, direction);

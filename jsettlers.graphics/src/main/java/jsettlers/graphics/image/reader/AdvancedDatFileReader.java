@@ -13,16 +13,21 @@
  * DEALINGS IN THE SOFTWARE.
  */
 package jsettlers.graphics.image.reader;
-
+import java.awt.image.DataBufferByte;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-
+import java.nio.ShortBuffer;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.imageio.ImageIO;
+
 import jsettlers.graphics.image.SingleImage;
+import jsettlers.common.Color;
 import jsettlers.graphics.image.Image;
 import jsettlers.graphics.image.NullImage;
 import jsettlers.graphics.image.SettlerImage;
@@ -39,6 +44,9 @@ import jsettlers.graphics.image.reader.versions.DefaultGfxFolderMapping.DefaultD
 import jsettlers.graphics.image.sequence.ArraySequence;
 import jsettlers.graphics.image.sequence.Sequence;
 import jsettlers.graphics.image.sequence.SequenceList;
+import java.awt.image.DataBufferUShort;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 
 import static jsettlers.graphics.image.reader.versions.GfxFolderMapping.DatFileMapping;
 
@@ -242,6 +250,13 @@ public class AdvancedDatFileReader implements DatFileReader {
 	private final DatFileType type;
 	private final String file_name;
 
+	public static void main(String[] args) {
+		var file = new File("Siedler3_12.f8007e01f.dat");
+		var reader = new AdvancedDatFileReader(file, DatFileType.getForPath(file), "bla");
+		var list = reader.getSettlers();
+		var image = list.get(15);
+	}
+
 	public AdvancedDatFileReader(File file, DatFileType type, String file_name) {
 		this(file, type, new DefaultDatFileMapping(), new IdentityShadowMapping(), file_name);
 	}
@@ -298,7 +313,7 @@ public class AdvancedDatFileReader implements DatFileReader {
 				} catch (IOException ex) { /* nothing to do */ }
 				reader = null;
 			}
-			System.out.println("Could not read dat file " + file + " due to: " + e.getMessage());
+			//System.out.println("Could not read dat file " + file + " due to: " + e.getMessage());
 		}
 		initializeNullFile();
 
@@ -529,7 +544,6 @@ public class AdvancedDatFileReader implements DatFileReader {
 
 	private synchronized void loadSettlers(int goldIndex, String name) throws IOException {
 		initializeIfNeeded();
-
 		int realSettlerIndex = mapping.mapSettlersSequence(goldIndex);
 		int realShadowIndex = mapping.mapSettlersSequence(shadowMapping.getShadowIndex(goldIndex));
 
@@ -537,14 +551,39 @@ public class AdvancedDatFileReader implements DatFileReader {
 		long[] framePositions = readSequenceHeader(position);
 
 		SettlerImage[] images = new SettlerImage[framePositions.length];
+		
 		for (int i = 0; i < framePositions.length; i++) {
 			images[i] = DatBitmapReader.getImage(settlerTranslator, this, framePositions[i], name + "-S" + goldIndex + ":" + i);
-		}
+			if(goldIndex == 15 && i >= 12 && i <= 23) {
+				Path path = Paths.get("img/image " + 15 + "_"+ 16 + "_fake.png");
+				var fakeImage = ImageIO.read(path.toFile());
+				BufferedImage bufferedImage = new BufferedImage(fakeImage.getWidth(), fakeImage.getHeight(), BufferedImage.TYPE_USHORT_555_RGB);
+				var pixels = ((DataBufferUShort)bufferedImage.getData().getDataBuffer()).getData();
+				for(var m = 0; m < pixels.length; m++) {
+					pixels[m] = (short)Color.convert555to4444(pixels[m]);
+					if(pixels[m] == 15) {
+						pixels[m] = 0;
+					}
+				}
+				var metadata = images[i].getMetadata();
+				metadata.height = 31;
+				metadata.width = 45;
 
+				var image = settlerTranslator.createImage(metadata, () -> {
+					return ShortBuffer.wrap(pixels);
+				}, name);
+				
+				images[i] = image;
+			}
+		}
+				
 		int torsoPosition = torsoStarts[realSettlerIndex];
 		if (torsoPosition >= 0) {
 			long[] torsoPositions = readSequenceHeader(torsoPosition);
 			for (int i = 0; i < torsoPositions.length && i < framePositions.length; i++) {
+				if(goldIndex == 15 && i >= 12 && i <= 23) {
+					continue;
+				}
 				SingleImage torso = DatBitmapReader.getImage(torsoTranslator, this, torsoPositions[i], name + "-T" + goldIndex + ":" + i);
 				images[i].setTorso(torso);
 			}
@@ -553,14 +592,32 @@ public class AdvancedDatFileReader implements DatFileReader {
 		int shadowPosition = realShadowIndex != -1 ? shadowStarts[realShadowIndex] : -1;
 		if (shadowPosition >= 0) {
 			long[] shadowPositions = readSequenceHeader(shadowPosition);
-			for (int i = 0; i < shadowPositions.length
-				&& i < framePositions.length; i++) {
+			for (int i = 0; i < shadowPositions.length && i < framePositions.length; i++) {
+				if(goldIndex == 15 && i >= 12 && i <= 23) {
+					continue;
+				}
 				SingleImage shadow = DatBitmapReader.getImage(shadowTranslator, this, shadowPositions[i], name + "-SH" + goldIndex + ":" + i);
 				images[i].setShadow(shadow);
 			}
 		}
 
+		
 		settlerSequences[goldIndex] = new ArraySequence<>(images);
+	}
+
+	public static BufferedImage resize(BufferedImage img, int newW, int newH) { 
+		java.awt.Image tmp = img.getScaledInstance(newW, newH, java.awt.Image.SCALE_SMOOTH);
+		BufferedImage dimg = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_ARGB);
+	
+		Graphics2D g2d = dimg.createGraphics();
+		g2d.drawImage(tmp, 0, 0, null);
+		g2d.dispose();
+	
+		return dimg;
+	}  
+
+	byte[] getPixels(BufferedImage image) {
+		return ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
 	}
 
 	private long[] readSequenceHeader(int position) throws IOException {

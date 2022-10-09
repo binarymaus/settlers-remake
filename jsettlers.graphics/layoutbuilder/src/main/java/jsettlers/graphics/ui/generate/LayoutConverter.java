@@ -97,7 +97,7 @@ public class LayoutConverter {
 		try (FileWriter writer = new FileWriter(genFile)) {
 			sourceGenerator.writeSourceTo(writer);
 		}
-		System.out.println("Converted " + xmlFile + " -> " + genFile);
+		//System.out.println("Converted " + xmlFile + " -> " + genFile);
 	}
 
 	public static void main(String[] args) throws IOException {

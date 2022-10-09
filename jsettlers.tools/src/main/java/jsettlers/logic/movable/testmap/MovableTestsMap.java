@@ -490,6 +490,12 @@ public class MovableTestsMap implements IGraphicsGrid, IAStarPathMap {
 		public boolean trySummonFish(ShortPoint2D position) {
 			return false;
 		}
+
+		@Override
+		public void playHealAnimation(ShortPoint2D point, int sound, int animation, float duration, Player player) {
+			// TODO Auto-generated method stub
+			
+		}
 	};
 
 	public AbstractMovableGrid getMovableGrid() {

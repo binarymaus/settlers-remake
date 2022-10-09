@@ -225,6 +225,9 @@ public enum EDirection {
 	 * @return
 	 */
 	public ShortPoint2D getNextHexPoint(ShortPoint2D pos) {
+		if(pos == null) {
+			return null;
+		}
 		return getNextHexPoint(pos.x, pos.y);
 	}
 

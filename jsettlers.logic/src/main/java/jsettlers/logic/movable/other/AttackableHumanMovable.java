@@ -115,4 +115,9 @@ public class AttackableHumanMovable extends AttackableMovable implements IAttack
 		}
 		ferryToEnter = null;
 	}
+
+    public void healPercentage(float percent) {
+		var max = getMovableType().getHealth();
+		this.health = Math.min(this.health + max / percent, max);
+    }
 }

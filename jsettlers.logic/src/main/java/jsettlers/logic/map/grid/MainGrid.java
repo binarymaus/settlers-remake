@@ -129,6 +129,7 @@ import jsettlers.logic.movable.interfaces.IAttackable;
 import jsettlers.logic.movable.interfaces.IAttackableMovable;
 import jsettlers.logic.movable.interfaces.IFerryMovable;
 import jsettlers.logic.movable.interfaces.ILogicMovable;
+import jsettlers.logic.movable.interfaces.INotAttackableHumanMovable;
 import jsettlers.logic.movable.interfaces.ISoldierMovable;
 import jsettlers.logic.objects.arrow.ArrowObject;
 import jsettlers.logic.objects.stack.StackMapObject;
@@ -1523,6 +1524,11 @@ public final class MainGrid implements Serializable {
 		}
 
 		@Override
+		public  void playHealAnimation(ShortPoint2D point, int sound, int animation, float duration, Player player) {
+			mapObjectsManager.playHealAnimation(point, sound, animation, duration, player);
+		}
+
+		@Override
 		public void addSelfDeletingMapObject(ShortPoint2D point, int sound, int animation, float duration, Player player) {
 			mapObjectsManager.addSelfDeletingMapObject(point, sound, animation, duration, player);
 		}
@@ -1592,9 +1598,10 @@ public final class MainGrid implements Serializable {
 
 				if(includeTowers && !isBowman && currMovable == null) {
 					attackable = (IAttackable) objectsGrid.getMapObjectAt(x, y, EMapObjectType.ATTACKABLE_TOWER);
-				} else if(currMovable instanceof IAttackableMovable) {
+				} else if(currMovable instanceof IAttackableMovable && !(currMovable instanceof INotAttackableHumanMovable)) {
 					attackable = (IAttackable) currMovable;
 				}
+				
 
 				if(attackable == null || !MovableGrid.isEnemy(searchingPlayer, attackable)) {
 					continue;
@@ -1883,6 +1890,10 @@ public final class MainGrid implements Serializable {
 
 		public final void sortDiggerRequests(IDiggerRequester requester) {
 			partitionsGrid.getPartitionAt(requester).sortDiggerRequests();
+		}
+
+		public final void sortBricklayerRequests(IDiggerRequester requester) {
+			partitionsGrid.getPartitionAt(requester).sortBricklayerRequests();
 		}
 
 		@Override
@@ -2199,10 +2210,10 @@ public final class MainGrid implements Serializable {
 
 		@Override
 		public void positionClicked(int x, int y) {
-			System.out.println("clicked pos (" + x + "|" + y + "):  player: " + partitionsGrid.getPlayerIdAt(x, y) + "  partition: "
-				+ partitionsGrid.getPartitionIdAt(x, y) + "  real partition: " + partitionsGrid.getRealPartitionIdAt(x, y) + "  towerCount: "
-				+ partitionsGrid.getTowerCountAt(x, y) + " blocked partition: " + landscapeGrid.getBlockedPartitionAt(x, y) + " landscapeType: "
-				+ landscapeGrid.getLandscapeTypeAt(x, y));
+			// //System.out.println("clicked pos (" + x + "|" + y + "):  player: " + partitionsGrid.getPlayerIdAt(x, y) + "  partition: "
+			// 	+ partitionsGrid.getPartitionIdAt(x, y) + "  real partition: " + partitionsGrid.getRealPartitionIdAt(x, y) + "  towerCount: "
+			// 	+ partitionsGrid.getTowerCountAt(x, y) + " blocked partition: " + landscapeGrid.getBlockedPartitionAt(x, y) + " landscapeType: "
+			// 	+ landscapeGrid.getLandscapeTypeAt(x, y));
 		}
 
 		@Override

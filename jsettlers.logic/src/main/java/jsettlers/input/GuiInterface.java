@@ -161,7 +161,7 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 	@Override
 	public void action(IAction action) {
 		if (action.getActionType() != EActionType.SCREEN_CHANGE) {
-			System.out.println("action(Action): " + action.getActionType() + "   at game time: " + MatchConstants.clock().getTime());
+			//System.out.println("action(Action): " + action.getActionType() + "   at game time: " + MatchConstants.clock().getTime());
 		}
 
 		switch (action.getActionType()) {
@@ -440,7 +440,7 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 		}
 
 		scheduleTask(new ConstructBuildingTask(EGuiAction.BUILD, playerId, buildPos, buildingType));
-		System.out.println("build " + buildingType + " at " + buildPos);
+		//System.out.println("build " + buildingType + " at " + buildPos);
 	}
 
 	private void requestSoldiers(EChangeTowerSoldierTaskType taskType, ESoldierType soldierType) {
@@ -586,7 +586,7 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 				count++;
 			}
 		}
-		System.out.println("locatable: " + count);
+		//System.out.println("locatable: " + count);
 		if (count > 0) {
 			final ShortPoint2D point = new ShortPoint2D(x / count, y / count);
 			connector.scrollTo(point, false);

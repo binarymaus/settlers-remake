@@ -217,7 +217,7 @@ public class SoundManager {
 			int[] alternatives = soundStarts[soundId];
 			if (alternatives != null && alternatives.length > 0) {
 				int rand = random.nextInt(alternatives.length);
-				soundPlayer.playSound(alternatives[rand], volume, volume);
+				soundPlayer.playSound(alternatives[rand], volume * 2f, volume * 2f);
 			}
 		}
 	}
@@ -272,6 +272,9 @@ public class SoundManager {
 					leftVolume = 0;
 					rightVolume = 0;
 				}
+				var left = rightVolume;
+				rightVolume = leftVolume;
+				leftVolume = left;
 
 				float distanceVolume = Z_STEPS_FOR_MAX_VOLUME;
 				if (b < 0) { // volume depending on position up or down

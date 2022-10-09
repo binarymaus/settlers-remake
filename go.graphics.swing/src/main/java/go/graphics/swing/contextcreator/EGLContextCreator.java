@@ -114,13 +114,13 @@ public class EGLContextCreator extends JAWTContextCreator {
 							String command_str = EGLDebugMessageKHRCallback.getCommand(command);
 							String message_str = EGLDebugMessageKHRCallback.getMessage(message);
 
-							System.out.println("[EGL] Debug Message");
-							System.out.println("    error: " + error);
-							System.out.println("    command: " + command_str);
-							System.out.println("    messageType: " + messageType);
-							System.out.println("    threadLabel: " + threadLabel);
-							System.out.println("    objectLabel: " + objectLabel);
-							System.out.println("    message: " + message_str);
+							//System.out.println("[EGL] Debug Message");
+							//System.out.println("    error: " + error);
+							//System.out.println("    command: " + command_str);
+							//System.out.println("    messageType: " + messageType);
+							//System.out.println("    threadLabel: " + threadLabel);
+							//System.out.println("    objectLabel: " + objectLabel);
+							//System.out.println("    message: " + message_str);
 						}, bfr);
 			} catch(Throwable thrown) {}
 		}

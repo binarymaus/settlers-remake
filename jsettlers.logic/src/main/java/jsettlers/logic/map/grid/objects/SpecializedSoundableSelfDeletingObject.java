@@ -12,11 +12,23 @@ class SpecializedSoundableSelfDeletingObject extends SoundableSelfDeletingObject
 	private static final long serialVersionUID = 5929232729004964265L;
 	private int sound;
 	private int animation;
+	private float areaOfEffect;
+	private float volume;
 
 	public SpecializedSoundableSelfDeletingObject(ShortPoint2D point, int sound, int animation, float duration, Player player) {
 		super(point, EMapObjectType.SPELL_EFFECT, duration, player);
 		this.animation = animation;
 		this.sound = sound;
+		this.areaOfEffect = 100f;
+		this.volume = 2.0f;
+	}
+
+	public float getVolume() {
+		return volume;
+	}
+
+	public float getAreaOfEffect() {
+		return areaOfEffect;
 	}
 
 	public int getSound() {

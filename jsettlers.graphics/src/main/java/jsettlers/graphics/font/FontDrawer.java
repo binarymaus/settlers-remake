@@ -78,7 +78,7 @@ public class FontDrawer implements TextDrawer {
 			cursorX += image.getWidth();
 		}
 
-		System.out.println("Drawed " + string + " chars");
+		//System.out.println("Drawed " + string + " chars");
 	}
 
 	private float getWidth(int charIndex) {

@@ -1,0 +1,217 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Launch AdvancedDatFileReader",
+            "request": "launch",
+            "mainClass": "jsettlers.graphics.image.reader.AdvancedDatFileReader",
+            "projectName": "jsettlers.graphics"
+        },
+        {
+            "type": "java",
+            "name": "Launch Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "Launch ReplayToolApp",
+            "request": "launch",
+            "mainClass": "jsettlers.main.replay.ReplayToolApp",
+            "projectName": "jsettlers.main.swing"
+        },
+        {
+            "type": "java",
+            "name": "Launch SwingManagedJSettlers",
+            "request": "launch",
+            "mainClass": "jsettlers.main.swing.SwingManagedJSettlers",
+            "projectName": "jsettlers.main.swing"
+        },
+        {
+            "type": "java",
+            "name": "Launch SelectSettlersFolderDialog",
+            "request": "launch",
+            "mainClass": "jsettlers.main.swing.foldertree.SelectSettlersFolderDialog",
+            "projectName": "jsettlers.main.swing"
+        },
+        {
+            "type": "java",
+            "name": "Launch MapCreatorApp",
+            "request": "launch",
+            "mainClass": "jsettlers.mapcreator.main.MapCreatorApp",
+            "projectName": "jsettlers.mapcreator"
+        },
+        {
+            "type": "java",
+            "name": "Launch PlayProcess",
+            "request": "launch",
+            "mainClass": "jsettlers.mapcreator.main.PlayProcess",
+            "projectName": "jsettlers.mapcreator"
+        },
+        {
+            "type": "java",
+            "name": "Launch DevelopmentGenerateJaxbSchema",
+            "request": "launch",
+            "mainClass": "jsettlers.mapcreator.presetloader.jaxb.DevelopmentGenerateJaxbSchema",
+            "projectName": "jsettlers.mapcreator"
+        },
+        {
+            "type": "java",
+            "name": "Launch DedicatedServerApp",
+            "request": "launch",
+            "mainClass": "jsettlers.network.server.DedicatedServerApp",
+            "projectName": "jsettlers.network"
+        },
+        {
+            "type": "java",
+            "name": "Launch LwjglTest",
+            "request": "launch",
+            "mainClass": "go.graphics.swing.test.LwjglTest",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch CharacterExtractor",
+            "request": "launch",
+            "mainClass": "jsettlers.CharacterExtractor",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch ProductionStatisticsConverter",
+            "request": "launch",
+            "mainClass": "jsettlers.ProductionStatisticsConverter",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch ToolsMain",
+            "request": "launch",
+            "mainClass": "jsettlers.ToolsMain",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch LandmarksThreadTester",
+            "request": "launch",
+            "mainClass": "jsettlers.algorithms.LandmarksThreadTester",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch SimpleDijkstraTester",
+            "request": "launch",
+            "mainClass": "jsettlers.algorithms.SimpleDijkstraTester",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch BuildingCreatorApp",
+            "request": "launch",
+            "mainClass": "jsettlers.buildingcreator.editor.BuildingCreatorApp",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch ConvertPropertiesToStandardEncoding",
+            "request": "launch",
+            "mainClass": "jsettlers.dev.helper.translation.ConvertPropertiesToStandardEncoding",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch ConvertPropertiesToUtf8",
+            "request": "launch",
+            "mainClass": "jsettlers.dev.helper.translation.ConvertPropertiesToUtf8",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch DatFileMappingComparator",
+            "request": "launch",
+            "mainClass": "jsettlers.graphics.debug.DatFileMappingComparator",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch DatFileTester",
+            "request": "launch",
+            "mainClass": "jsettlers.graphics.debug.DatFileTester",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch DatFileViewer",
+            "request": "launch",
+            "mainClass": "jsettlers.graphics.debug.DatFileViewer",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch ExtractSounds",
+            "request": "launch",
+            "mainClass": "jsettlers.graphics.debug.ExtractSounds",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch ImageDisplay",
+            "request": "launch",
+            "mainClass": "jsettlers.graphics.debug.ImageDisplay",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch WindowTest",
+            "request": "launch",
+            "mainClass": "jsettlers.graphics.test.WindowTest",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch RegenerateAutoReplayITReferences",
+            "request": "launch",
+            "mainClass": "jsettlers.integration.replay.RegenerateAutoReplayITReferences",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch TestExecutionWithDebugDisplay",
+            "request": "launch",
+            "mainClass": "jsettlers.logic.map.grid.TestExecutionWithDebugDisplay",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch PartitionsGridTestingWnd",
+            "request": "launch",
+            "mainClass": "jsettlers.logic.map.grid.partition.PartitionsGridTestingWnd",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch MovableModelWindow",
+            "request": "launch",
+            "mainClass": "jsettlers.logic.movable.MovableModelWindow",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch MovableTestWindow",
+            "request": "launch",
+            "mainClass": "jsettlers.logic.movable.MovableTestWindow",
+            "projectName": "jsettlers.tools"
+        },
+        {
+            "type": "java",
+            "name": "Launch LayoutConverter",
+            "request": "launch",
+            "mainClass": "jsettlers.graphics.ui.generate.LayoutConverter",
+            "projectName": "layoutbuilder"
+        }
+    ]
+}

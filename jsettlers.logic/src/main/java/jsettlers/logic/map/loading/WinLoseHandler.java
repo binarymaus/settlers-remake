@@ -21,12 +21,13 @@ import java.util.stream.Stream;
 
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.player.EWinState;
+import jsettlers.logic.buildings.Building;
 import jsettlers.logic.map.grid.MainGrid;
 import jsettlers.logic.map.grid.partition.data.BuildingCounts;
+import jsettlers.logic.movable.MovableManager;
 import jsettlers.logic.player.Player;
 import jsettlers.logic.timer.IScheduledTimerable;
 import jsettlers.logic.timer.RescheduleTimer;
-
 import static java.util.Arrays.stream;
 
 public abstract class WinLoseHandler implements IScheduledTimerable, Serializable {
@@ -76,6 +77,16 @@ public abstract class WinLoseHandler implements IScheduledTimerable, Serializabl
 		playerStream().filter(this::isPlayerDead).forEach(player -> {
 			player.setWinState(EWinState.LOST);
 			System.out.println(player + " was defeated");
+			MovableManager.getAllMovables().stream()
+				.filter(mov -> mov.getPlayer().equals(player))
+				.forEach(mov -> {
+					mov.kill();
+				});
+			Building.getAllBuildings().stream()
+				.filter(building -> building.getPlayer().equals(player))
+				.forEach(building -> {
+					building.kill();
+				});
 		});
 	}
 }

@@ -103,7 +103,7 @@ public class BackgroundSound implements Runnable {
 				}
 			}
 		} catch (Throwable e) {
-			System.out.println("Sound thread died because of an exception.");
+			//System.out.println("Sound thread died because of an exception.");
 			e.printStackTrace();
 		}
 	}

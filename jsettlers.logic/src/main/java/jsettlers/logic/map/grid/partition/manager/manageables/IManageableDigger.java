@@ -27,5 +27,9 @@ public interface IManageableDigger extends IManageable {
 	 */
 	boolean setDiggerJob(IDiggerRequester requester);
 
+	void setRequester(IDiggerRequester requester);
+
+	IDiggerRequester getRequester();
+
 	void convertToBearer();
 }

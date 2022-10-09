@@ -24,7 +24,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
+import jsettlers.common.movable.EMovableType;
 import jsettlers.algorithms.fogofwar.FogOfWar;
 import jsettlers.common.IHaveDiggProgress;
 import jsettlers.common.buildings.BuildingVariant;
@@ -67,6 +67,8 @@ import jsettlers.logic.constants.MatchConstants;
 import jsettlers.logic.map.grid.objects.AbstractHexMapObject;
 import jsettlers.logic.map.grid.partition.manager.manageables.interfaces.IConstructableBuilding;
 import jsettlers.logic.map.grid.partition.manager.manageables.interfaces.IDiggerRequester;
+import jsettlers.logic.movable.MovableManager;
+import jsettlers.logic.movable.civilian.DiggerMovable;
 import jsettlers.logic.movable.interfaces.IDebugable;
 import jsettlers.logic.player.Player;
 import jsettlers.logic.timer.IScheduledTimerable;
@@ -713,7 +715,25 @@ public abstract class Building extends AbstractHexMapObject implements IConstruc
 
 	public void setPriority(EPriority newPriority) {
 		this.priority = newPriority;
-		this.grid.sortDiggerRequests(this);
+		
+		if(newPriority == EPriority.HIGH) {
+			// Make diggers go to this building
+			this.grid.sortDiggerRequests(this);
+			this.grid.sortBricklayerRequests(this);
+			// MovableManager.getAllMovables().stream()
+			// 	.filter(mov -> mov.getPlayer().equals(player))
+			// 	.filter(mov -> mov.getMovableType() == EMovableType.DIGGER)
+			// 	.forEach(mov -> {
+			// 		var digger = (DiggerMovable)mov;
+			// 		var requester = digger.getRequester();
+			// 		if(requester.getPriority() == EPriority.HIGH) return;
+			// 		if(requester != null && requester != this) {
+			// 			digger.abortJob();
+			// 		}
+			// 		digger.setDiggerJob(this);
+			// });
+		}
+
 		if (stacks != null) {
 			for (IRequestStack curr : stacks) {
 				curr.setPriority(newPriority);

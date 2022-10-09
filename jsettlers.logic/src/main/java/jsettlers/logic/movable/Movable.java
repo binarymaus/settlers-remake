@@ -41,7 +41,6 @@ import jsettlers.common.selectable.ESelectionType;
 import jsettlers.logic.constants.Constants;
 import jsettlers.logic.constants.MatchConstants;
 import jsettlers.logic.movable.cargo.CargoShipMovable;
-import jsettlers.logic.movable.cargo.DonkeyMovable;
 import jsettlers.logic.movable.civilian.AlchemistMovable;
 import jsettlers.logic.movable.civilian.BakerMovable;
 import jsettlers.logic.movable.civilian.BearerMovable;
@@ -617,7 +616,7 @@ public abstract class Movable implements ILogicMovable, FoWTask {
 
 			ShortPoint2D neighbor = dir.getNextHexPoint(position);
 
-			if(grid.isFreePosition(neighbor.x, neighbor.y)) {
+			if(neighbor != null && grid.isFreePosition(neighbor.x, neighbor.y)) {
 				setDirection(dir);
 				return true;
 			}
@@ -1083,7 +1082,7 @@ public abstract class Movable implements ILogicMovable, FoWTask {
 
 			case WHITEFLAGGED_DONKEY:
 			case DONKEY:
-				return new DonkeyMovable(grid, movableType, position, player, movable);
+				return new BearerMovable(grid, position, player, movable);
 
 			case FISHERMAN:
 			case STONECUTTER:

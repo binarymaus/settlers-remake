@@ -14,11 +14,13 @@
  *******************************************************************************/
 package jsettlers.graphics.map.draw;
 
+import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 
+import jsettlers.graphics.image.Image;
 import go.graphics.GLDrawContext;
 import jsettlers.common.Color;
 import jsettlers.common.CommonConstants;
@@ -59,6 +61,7 @@ import jsettlers.common.sound.ISoundable;
 import jsettlers.graphics.image.Image;
 import jsettlers.graphics.image.SettlerImage;
 import jsettlers.graphics.image.SingleImage;
+import jsettlers.graphics.image.reader.ImageMetadata;
 import jsettlers.graphics.image.sequence.Sequence;
 import jsettlers.graphics.localization.Labels;
 import jsettlers.graphics.map.MapDrawContext;
@@ -525,7 +528,7 @@ public class MapObjectDrawer {
 			case SPELL_EFFECT:
 				ISpecializedMapObject smo = (ISpecializedMapObject) object;
 				drawPlayerableByProgress(x, y, object, color, imageProvider.getSettlerSequence(1, smo.getAnimation()));
-				playSound(object, smo.getSound(), x, y);
+				playSound(object, smo.getSound(), x, y, smo.getVolume());
 				break;
 
 			case BUILDING_DECONSTRUCTION_SMOKE:
@@ -941,7 +944,13 @@ public class MapObjectDrawer {
 			viewX = context.getConverter().getViewX(x, y, height);
 			viewY = context.getConverter().getViewY(x, y, height);
 		}
-
+		// Bitmap bitmap = Bitmap.decodeFile(filePath);
+		// short[] data = new short[55200];
+		// var meta = new ImageMetadata();
+		// meta.height = 184;
+		// meta.width = 300;
+		
+		// image = new SingleImage(meta, data, "Test");
 		image = this.imageMap.getImageForSettler(movable, moveProgress, isUndercover?movablePlayer.getCivilisation():null);
 		image.drawAt(context.getGl(), viewX, viewY, getZ(0, y), color, shade);
 
@@ -986,6 +995,10 @@ public class MapObjectDrawer {
 	}
 
 	private void playSound(IMapObject object, int soundId, int x, int y) {
+		playSound(object, soundId, x, y, 1.0f);
+	}
+
+	private void playSound(IMapObject object, int soundId, int x, int y, float volume) {
 		if(soundId == -1) return;
 
 		if (object instanceof IBuilding.ISoundRequestable) {
@@ -993,7 +1006,7 @@ public class MapObjectDrawer {
 		} else if (object instanceof ISoundable) {
 			ISoundable soundable = (ISoundable) object;
 			if (!soundable.isSoundPlayed()) {
-				sound.playSound(soundId, 1, x, y);
+				sound.playSound(soundId, volume, x, y);
 				soundable.setSoundPlayed();
 			}
 		}
@@ -1254,9 +1267,12 @@ public class MapObjectDrawer {
 		if(context.getGl() != lastDC) {
 			lastDC = context.getGl();
 
-			context.getGl().setShadowDepthOffset(shadow_offset);
-			SettlerImage.shadow_offset = shadow_offset;
-
+			try {
+				context.getGl().setShadowDepthOffset(shadow_offset);
+				SettlerImage.shadow_offset = shadow_offset;
+			} catch (Exception ex)  {
+				
+			}
 		}
 	}
 

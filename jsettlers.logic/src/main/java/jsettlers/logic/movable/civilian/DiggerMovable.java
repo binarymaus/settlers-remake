@@ -33,6 +33,16 @@ public class DiggerMovable extends CivilianMovable implements IManageableDigger 
 		MovableManager.registerBehaviour(EMovableType.DIGGER, new Root<>(createDiggerBehaviour()));
 	}
 
+	@Override
+	public void setRequester(IDiggerRequester requester) {
+		this.requester = requester;
+	}
+
+	@Override
+	public IDiggerRequester getRequester() {
+		return this.requester;
+	}
+
 	private static Node<DiggerMovable> createDiggerBehaviour() {
 		return guardSelector(
 				fleeIfNecessary(),
@@ -145,7 +155,7 @@ public class DiggerMovable extends CivilianMovable implements IManageableDigger 
 	}
 
 	@Override
-	protected void abortJob() {
+	public void abortJob() {
 		if(requester != null) {
 			requester.diggerRequestFailed();
 			requester = null;

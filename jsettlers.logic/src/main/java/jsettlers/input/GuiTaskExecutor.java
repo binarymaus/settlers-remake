@@ -101,7 +101,7 @@ class GuiTaskExecutor implements ITaskExecutor {
 			return;
 		}
 
-		System.out.println("executeTask(GuiTask): " + guiTask.getGuiAction());
+		//System.out.println("executeTask(GuiTask): " + guiTask.getGuiAction());
 		switch (guiTask.getGuiAction()) {
 			case SET_WORK_AREA: {
 				setWorkArea((WorkAreaGuiTask) guiTask);

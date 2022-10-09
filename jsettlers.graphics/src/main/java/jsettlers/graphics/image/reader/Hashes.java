@@ -32,7 +32,7 @@ public final class Hashes {
 			int i2 = i1 < other.hashes.size()
 				&& h1.equals(other.hashes.get(i1)) ? i1 : other.hashes.indexOf(h1);
 			mapping[i1] = i2;
-			System.out.println(i1 + " -> " + i2);
+			//System.out.println(i1 + " -> " + i2);
 		}
 
 		return mapping;

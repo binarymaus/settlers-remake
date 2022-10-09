@@ -12,13 +12,14 @@ import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.utils.mutables.MutableDouble;
 import jsettlers.logic.movable.MovableManager;
 import jsettlers.logic.movable.other.AttackableHumanMovable;
+import jsettlers.logic.movable.other.NotAttackableHumanMovable;
 import jsettlers.logic.movable.Movable;
 import jsettlers.logic.movable.interfaces.AbstractMovableGrid;
 import jsettlers.logic.player.Player;
 
 import static jsettlers.algorithms.simplebehaviortree.BehaviorTreeHelper.*;
 
-public class GeologistMovable extends AttackableHumanMovable {
+public class GeologistMovable extends NotAttackableHumanMovable {
 
 	private static final long serialVersionUID = 1L;
 
@@ -52,15 +53,6 @@ public class GeologistMovable extends AttackableHumanMovable {
 						}
 						mov.nextTarget = null;
 					})
-				),
-				guard(mov -> mov.goToTarget != null,
-					sequence(
-						goToPos(mov -> mov.goToTarget),
-						action(mov -> {
-							mov.enterFerry();
-							mov.goToTarget = null;
-						})
-					)
 				),
 				guard(mov -> mov.currentTarget != null,
 					sequence(

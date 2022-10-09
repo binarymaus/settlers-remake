@@ -51,6 +51,15 @@ public class SettlerImage extends SingleImage {
 		super(metadata, data, name);
 	}
 
+	public ImageMetadata getMetadata() {
+		var meta = new ImageMetadata();
+		meta.height = height;
+		meta.width = width;
+		meta.offsetX = offsetX;
+		meta.offsetY = offsetY;
+		return meta;
+	}
+
 	@Override
 	public void drawAt(GLDrawContext gl, float x, float y, float z, Color torsoColor, float fow) {
 		checkHandles(gl);
@@ -170,6 +179,7 @@ public class SettlerImage extends SingleImage {
 		ShortBuffer data = getData();
 
 		for(int y = 0;y != height;y++) {
+			//System.out.println("Trying to read position " + y*width);
 			data.position(y*width);
 			data.get(temp, 0, width);
 

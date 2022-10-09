@@ -30,6 +30,10 @@ public class BricklayerMovable extends CivilianMovable implements IManageableBri
 		super(grid, EMovableType.BRICKLAYER, position, player, movable);
 	}
 
+	public IConstructableBuilding getConstructionSite()  {
+		return constructionSite;
+	}
+
 	static {
 		MovableManager.registerBehaviour(EMovableType.BRICKLAYER, new Root<>(createBricklayerBehaviour()));
 	}

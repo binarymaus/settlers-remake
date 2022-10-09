@@ -935,7 +935,7 @@ public class VulkanDrawContext extends GLDrawContext implements VkDrawContext {
 				int error = vkQueueSubmit(queueManager.getGraphicsQueue(), graphSubmitInfo, VK_NULL_HANDLE);
 				if(error != VK_SUCCESS) {
 					// whatever
-					System.out.println("Could not submit CommandBuffers: " + error);
+					//System.out.println("Could not submit CommandBuffers: " + error);
 				} else {
 					cmdBfrSend = true;
 				}

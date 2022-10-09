@@ -159,14 +159,18 @@ public abstract class PartitionManager implements IScheduledTimerable, Serializa
 		sortDiggerRequests();
 	}
 
+	public LinkedList<BricklayerRequest> getBricklayerRequests() {
+		return bricklayerRequests;
+	}
+
+	public void sortBricklayerRequests() {
+		// Sort request by priority
+		bricklayerRequests.sort((a, b) -> a.building.getPriority().ordinal - b.building.getPriority().ordinal);
+	}
+
 	public void sortDiggerRequests() {
 		// Sort request by priority
-		for(DiggerRequest curr : diggerRequests) {
-			if(curr.requester.getPriority() == EPriority.HIGH) {
-				diggerRequests.remove(diggerRequests.indexOf(curr));
-				diggerRequests.addFirst(curr);
-			}
-		}
+		diggerRequests.sort((a, b) -> a.requester.getPriority().ordinal - b.requester.getPriority().ordinal);
 	}
 
 	public void requestBricklayer(Building building, ShortPoint2D bricklayerTargetPos, EDirection direction) {
