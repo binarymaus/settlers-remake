@@ -21,8 +21,6 @@ import java.awt.GridBagLayout;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.Locale;
 
 import javax.imageio.ImageIO;
@@ -44,40 +42,44 @@ import javax.swing.WindowConstants;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import go.graphics.EGeometryFormatType;
-import go.graphics.EGeometryType;
+import go.graphics.EPrimitiveType;
 import go.graphics.GLDrawContext;
-import go.graphics.GeometryHandle;
-import go.graphics.IllegalBufferException;
 import go.graphics.UIPoint;
+import go.graphics.UnifiedDrawHandle;
 import go.graphics.event.GOEvent;
 import go.graphics.event.GOEventHandlerProvider;
 import go.graphics.event.GOKeyEvent;
 import go.graphics.event.GOModalEventHandler;
 import go.graphics.event.mouse.GODrawEvent;
 import go.graphics.event.mouse.GOZoomEvent;
-import go.graphics.swing.GLContainer;
-import go.graphics.swing.contextcreator.EBackendType;
+import go.graphics.swing.ContextContainer;
+import go.graphics.swing.contextcreator.ContextException;
 import go.graphics.text.EFontSize;
 import go.graphics.text.TextDrawer;
 import jsettlers.common.Color;
+import jsettlers.common.resources.SettlersFolderChecker;
 import jsettlers.common.utils.FileUtils;
 import jsettlers.graphics.image.SingleImage;
 import jsettlers.graphics.image.Image;
-import jsettlers.graphics.image.SingleImage;
 import jsettlers.graphics.image.SettlerImage;
 import jsettlers.graphics.image.reader.AdvancedDatFileReader;
+import jsettlers.graphics.image.reader.DatFileReader;
 import jsettlers.graphics.image.reader.DatFileType;
 import jsettlers.graphics.image.sequence.Sequence;
 import jsettlers.graphics.image.sequence.SequenceList;
+import jsettlers.graphics.map.draw.ImageProvider;
+import jsettlers.main.swing.SwingManagedJSettlers;
+import jsettlers.main.swing.settings.SettingsManager;
 
 public class DatFileViewer extends JFrame implements ListSelectionListener {
 	private JLabel                   lblDatType;
 	private JLabel                   lblNumUiSeqs;
 	private JLabel                   lblNumSettlerSeqs;
 	private JLabel                   lblNumLandscapeSeqs;
+	private JLabel                   directoryLabel;
 	private JList                    listView;
 	private Surface                  glCanvas;
+	private File                     defaultDirectory;
 	private File                     gfxDirectory;
 	private DefaultListModel<String> listItems;
 	private AdvancedDatFileReader    reader;
@@ -90,6 +92,7 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 
 	public static void main(String[] args) {
 		try {
+			SwingManagedJSettlers.setupResources(false, args);
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 			new DatFileViewer();
 		} catch (Exception ex) {
@@ -99,6 +102,8 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 
 	private DatFileViewer() {
 		glCanvas = new Surface();
+
+		defaultDirectory = SettlersFolderChecker.checkSettlersFolder(SettingsManager.getInstance().getSettlersFolder()).gfxFolder;
 
 		JPanel infoField = new JPanel();
 		infoField.setLayout(new BoxLayout(infoField, BoxLayout.PAGE_AXIS));
@@ -117,8 +122,13 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 		listView = new JList<>(listItems);
 		listView.getSelectionModel().addListSelectionListener(this);
 
+		JSplitPane filePane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+		filePane.setDividerSize(0);
+		filePane.setTopComponent(directoryLabel = new JLabel());
+		filePane.setBottomComponent(new JScrollPane(listView));
+
 		JSplitPane splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-		splitPane2.setTopComponent(new JScrollPane(listView));
+		splitPane2.setTopComponent(filePane);
 		splitPane2.setBottomComponent(infoField);
 		splitPane2.setResizeWeight(0.5);
 		splitPane2.setEnabled(false);
@@ -127,6 +137,8 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 		splitPane.setLeftComponent(splitPane2);
 		splitPane.setRightComponent(glCanvas);
 		splitPane.setResizeWeight(0.10);
+
+		updateDirectory(defaultDirectory);
 
 		this.setTitle("DatFileViewer");
 		this.setJMenuBar(createMenu());
@@ -140,6 +152,12 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 		JMenu openMenu = new JMenu("Open");
 		JMenuItem openDirItem = new JMenuItem("GFX Folder");
 		openMenu.add(openDirItem);
+
+		JMenuItem openDefaultItem = null;
+
+		if(defaultDirectory != null) {
+			openMenu.add(openDefaultItem = new JMenuItem("Default Folder"));
+		}
 
 		JMenu exportMenu = new JMenu("Export Images");
 		JMenuItem exportThis = new JMenuItem("from this file");
@@ -159,16 +177,15 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 			JFileChooser openDirDlg = new JFileChooser();
 			openDirDlg.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 			if (openDirDlg.showDialog(null, null) == JFileChooser.APPROVE_OPTION) {
-				gfxDirectory = new File(openDirDlg.getSelectedFile().getAbsolutePath());
-
-				FileUtils.iterateChildren(gfxDirectory, (currentFile) -> {
-					String fileName = currentFile.getName();
-					if (currentFile.isFile() && fileName.endsWith(".dat")) {
-						listItems.addElement(currentFile.getName());
-					}
-				});
+				updateDirectory(new File(openDirDlg.getSelectedFile().getAbsolutePath()));
 			}
 		});
+
+		if(openDefaultItem != null) {
+			openDefaultItem.addActionListener((e) -> {
+				updateDirectory(defaultDirectory);
+			});
+		}
 
 		exportThis.addActionListener((e) -> onExportSelectedFile());
 		exportAll.addActionListener((e) -> onExportAllFiles());
@@ -193,6 +210,19 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 		bar.add(exportMenu);
 		bar.add(showMenu);
 		return bar;
+	}
+
+	private void updateDirectory(File dir) {
+		gfxDirectory = dir;
+		directoryLabel.setText(gfxDirectory.getAbsolutePath());
+		ImageProvider.setLookupPath(gfxDirectory, "");
+		listItems.clear();
+		FileUtils.iterateChildren(gfxDirectory, (currentFile) -> {
+			String fileName = currentFile.getName();
+			if (currentFile.isFile() && fileName.endsWith(".dat")) {
+				listItems.addElement(currentFile.getName());
+			}
+		});
 	}
 
 	@Override
@@ -237,18 +267,14 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 		openDirDlg.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 		if (openDirDlg.showDialog(null, null) == JFileChooser.APPROVE_OPTION) {
 			File exportDir = openDirDlg.getSelectedFile();
-			FileUtils.iterateChildren(gfxDirectory, (File currentFile) -> {
-				String fileName = currentFile.getName();
-				if (currentFile.isFile() && fileName.endsWith(".dat")) {
-					DatFileType type;
-					if (currentFile.getName().contains(DatFileType.RGB555.getFileSuffix())) {
-						type = DatFileType.RGB555;
-					} else { type = DatFileType.RGB565; }
-
-					AdvancedDatFileReader file = new AdvancedDatFileReader(new File(gfxDirectory, fileName), type, null);
-					exportFile(exportDir, file);
+			for(int i = 0; i < 100; i++) {
+				DatFileReader reader = ImageProvider.getInstance().getFileReader(i);
+				if(reader != ImageProvider.EMPTY_DAT_FILE) {
+					File fileDir = new File(exportDir, String.format(Locale.ENGLISH, "%02d", i));
+					fileDir.mkdirs();
+					exportFile(fileDir, reader);
 				}
-			});
+			}
 
 			JOptionPane.showMessageDialog(null, "Export completed!", "DatFileViewer - Export", JOptionPane.INFORMATION_MESSAGE);
 		}
@@ -276,29 +302,28 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 
 	// region Export
 
-	private void exportFile(File dir, AdvancedDatFileReader reader) {
+	private void exportFile(File dir, DatFileReader reader) {
 		exportSequences(new File(dir, "settlers"), reader.getSettlers());
 
 		Sequence<SingleImage> guis = reader.getGuis();
 		if (guis.length() > 0) {
-			exportSequence(new File(dir, "gui"), 0, guis);
+			exportSequence(new File(dir, "gui"), guis);
 		}
 
 		Sequence<SingleImage> landscapes = reader.getLandscapes();
 		if (landscapes.length() > 0) {
-			exportSequence(new File(dir, "landscape"), 1, landscapes);
+			exportSequence(new File(dir, "landscape"), landscapes);
 		}
 	}
 
 	private <T extends Image> void exportSequences(File dir, SequenceList<T> sequences) {
 		for (int index = 0; index < sequences.size(); index++) {
 			Sequence<T> seq = sequences.get(index);
-			exportSequence(dir, index, seq);
+			exportSequence(new File(dir, String.format(Locale.ENGLISH, "%03d", index)), seq);
 		}
 	}
 
-	private <T extends Image> void exportSequence(File dir, int index, Sequence<T> seq) {
-		File seqdir = new File(dir, index + "");
+	private <T extends Image> void exportSequence(File seqdir, Sequence<T> seq) {
 		if (!seqdir.exists()) {
 			if (!seqdir.mkdirs()) {
 				JOptionPane.showMessageDialog(null, "Can't create path: " + seqdir.toString(), "DatFileViewer - Export", JOptionPane.ERROR_MESSAGE);
@@ -308,8 +333,16 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 		for (int j = 0; j < seq.length(); j++) {
 			T image = seq.getImage(j, null);
 			exportSingleImage((SingleImage) image, new File(seqdir, j + ".png"));
-			if (image instanceof SettlerImage && ((SettlerImage) image).getTorso() != null) {
-				exportSingleImage((SingleImage) ((SettlerImage) image).getTorso(), new File(seqdir, j + "_torso.png"));
+
+			if(image instanceof SettlerImage) {
+				SettlerImage settlerImage = (SettlerImage) image;
+
+				if (settlerImage.getTorso() != null) {
+					exportSingleImage(settlerImage.getTorso(), new File(seqdir, j + "_torso.png"));
+				}
+				if (settlerImage.getShadow() != null) {
+					exportSingleImage(settlerImage.getShadow(), new File(seqdir, j + "_shadow.png"));
+				}
 			}
 		}
 	}
@@ -330,7 +363,7 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 
 	// endregion
 
-	private class Surface extends GLContainer implements GOModalEventHandler, GOEventHandlerProvider {
+	private class Surface extends ContextContainer implements GOModalEventHandler, GOEventHandlerProvider {
 		private Color[] colors = new Color[] { Color.WHITE };
 		private float zoom = 1.0f;
 		private int offsetY = 0;
@@ -338,7 +371,7 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 		ImageSet currentSet;
 
 		Surface() {
-			super(EBackendType.DEFAULT, new GridBagLayout(), false);
+			super(SettingsManager.getInstance().getBackend(), new GridBagLayout(), false);
 			currentSet = ImageSet.SETTLERS;
 			resetOffset();
 		}
@@ -350,7 +383,7 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 		}
 
 		@Override
-		public void draw() {
+		public void draw() throws ContextException {
 			super.draw();
 			redraw(context, getWidth(), getHeight());
 		}
@@ -383,7 +416,7 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 			txtRenderer.drawString(0.0f, height - 30.f, String.format(Locale.ENGLISH, "Offset: %d, %d", offsetX, offsetY));
 			txtRenderer.drawString(0.0f, height - 45.f, String.format(Locale.ENGLISH, "Zoom: %f", zoom));
 
-			gl2.setGlobalAttributes(width/2f+(-width/2f+offsetX)*zoom, height/2f+(-height/2f+offsetY)*zoom, 0, zoom, zoom, 0);
+			gl2.setGlobalAttributes(width/2f+offsetX+(-width/2f)*zoom, height/2f+offsetY+(-height/2f)*zoom, 0, zoom, zoom, 0);
 
 			// Render
 			int yPos = height - 100;
@@ -408,7 +441,6 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 
 				int maxHeight = drawSingleSequence(gl2, y, 20, seq);
 
-				drawer.setColor(Color.WHITE);
 				drawer.drawString(-20, y + 20, seqIndex + ":");
 
 				seqIndex++;
@@ -430,22 +462,13 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 			return maxHeight;
 		}
 
-		private GeometryHandle lineGeometry = null;
-		private ByteBuffer lineBfr = ByteBuffer.allocateDirect(3*4).order(ByteOrder.nativeOrder());
+		private UnifiedDrawHandle lineGeometry = null;
 
 		private void drawImage(GLDrawContext gl2, int x, int y, int index, SingleImage image) {
 			image.drawAt(gl2, x - image.getOffsetX(), y + image.getHeight() + image.getOffsetY(), 0, colors[index % colors.length], 1);
 
-			if(lineGeometry == null) lineGeometry = gl2.generateGeometry(3, EGeometryFormatType.VertexOnly2D, true, null);
-
-			try {
-				lineBfr.asFloatBuffer().put(new float[] {image.getHeight() + image.getOffsetY(), -image.getOffsetX(), image.getHeight() + image.getOffsetY()}, 0, 3);
-				gl2.updateGeometryAt(lineGeometry, 3*4, lineBfr);
-
-				gl2.draw2D(lineGeometry, null, EGeometryType.LineStrip, 0, 3, x, y, 0, 1, 1, 1, Color.RED, 1);
-			} catch (IllegalBufferException e) {
-				e.printStackTrace();
-			}
+			if(lineGeometry == null) lineGeometry = gl2.createUnifiedDrawCall(3, null, null, new float[] {0, 0, 0, 1, 1, 1});
+			lineGeometry.drawSimple(EPrimitiveType.LineStrip, x, y, 0, -image.getOffsetX(), image.getHeight() + image.getOffsetY(), Color.RED, 1);
 		}
 
 		// endregion

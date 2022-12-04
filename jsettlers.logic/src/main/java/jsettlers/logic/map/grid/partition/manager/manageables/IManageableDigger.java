@@ -26,4 +26,10 @@ public interface IManageableDigger extends IManageable {
 	 * @return true if the job can be handled by this digger, false if another digger needs to be asked.
 	 */
 	boolean setDiggerJob(IDiggerRequester requester);
+
+	void setRequester(IDiggerRequester requester);
+
+	IDiggerRequester getRequester();
+
+	void convertToBearer();
 }

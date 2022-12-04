@@ -17,15 +17,14 @@ package go.graphics.android;
 import android.content.Context;
 import android.opengl.EGL14;
 import android.opengl.EGLExt;
-import android.opengl.GLES10;
 import android.opengl.GLSurfaceView;
-import android.os.Vibrator;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 
-import java.lang.reflect.Method;
+import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
@@ -39,38 +38,29 @@ import go.graphics.UIPoint;
 import go.graphics.area.Area;
 import go.graphics.event.GOEvent;
 import go.graphics.event.GOEventHandlerProvider;
+import go.graphics.event.command.EModifier;
 import go.graphics.event.interpreter.AbstractEventConverter;
 
 public class GOSurfaceView extends GLSurfaceView implements RedrawListener, GOEventHandlerProvider {
 
 	private final Area area;
 
-	private final ActionAdapter actionAdapter = new ActionAdapter(getContext(), this);
+	private final ActionAdapter actionAdapter;
 
-	private GLES11DrawContext drawcontext;
+	private GLESDrawContext drawcontext;
 
 	private IContextDestroyedListener contextDestroyedListener = null;
 
-	public GOSurfaceView(Context context, Area area) {
+	public GOSurfaceView(Context context, Area area, Supplier<Set<EModifier>> modifiers) {
 		super(context);
 		this.area = area;
+		actionAdapter = new ActionAdapter(getContext(), this, modifiers);
 
 		setEGLContextFactory(new Factory());
 		setRenderer(new Renderer(context));
 		setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
-		tryEnableContextPreservation();
+		setPreserveEGLContextOnPause(true);
 		area.addRedrawListener(this);
-	}
-
-	private void tryEnableContextPreservation() {
-		// api level 11 :-(
-		// super.setPreserveEGLContextOnPause(true);
-		try {
-			Method m = GLSurfaceView.class.getMethod("setPreserveEGLContextOnPause", Boolean.TYPE);
-			m.invoke(this, true);
-		} catch (Throwable t) {
-			Log.d("gl", "Could not enable context preservation");
-		}
 	}
 
 	@Override
@@ -93,18 +83,22 @@ public class GOSurfaceView extends GLSurfaceView implements RedrawListener, GOEv
 
 	private class ActionAdapter extends AbstractEventConverter {
 
-		protected ActionAdapter(Context context, GOEventHandlerProvider provider) {
+		private final Supplier<Set<EModifier>> modifiers;
+
+		protected ActionAdapter(Context context, GOEventHandlerProvider provider, Supplier<Set<EModifier>> modifiers) {
 			super(provider);
 			gestureDetector = new GestureDetector(context, gestureListener);
 			longPressDetector = new GestureDetector(context, longPressListener);
 			scaleGestureDetector = new ScaleGestureDetector(context, scaleGestureListener);
+			this.modifiers = modifiers;
 
 			gestureDetector.setIsLongpressEnabled(false);
-
-			vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
 		}
 
-		private final Vibrator vibrator;
+		@Override
+		protected Set<EModifier> getCurrentModifiers() {
+			return modifiers.get();
+		}
 
 		/**
 		 * The pan start center, in GO space
@@ -115,8 +109,6 @@ public class GOSurfaceView extends GLSurfaceView implements RedrawListener, GOEv
 		private final GestureDetector.SimpleOnGestureListener longPressListener = new GestureDetector.SimpleOnGestureListener() {
 			@Override
 			public void onLongPress(MotionEvent e) {
-				vibrator.vibrate(25);
-
 				endPan(currentPoint(e));
 				startDraw(currentPoint(e));
 			}
@@ -226,26 +218,33 @@ public class GOSurfaceView extends GLSurfaceView implements RedrawListener, GOEv
 
 		@Override
 		public void onDrawFrame(GL10 gl) {
-			GLES10.glClear(GLES10.GL_DEPTH_BUFFER_BIT | GLES10.GL_COLOR_BUFFER_BIT);
+			drawcontext.startFrame();
 			area.drawArea(drawcontext);
+			drawcontext.finishFrame();
 		}
 
 		@Override
 		public void onSurfaceChanged(GL10 gl, int width, int height) {
 			area.setWidth(width);
 			area.setHeight(height);
-			drawcontext.reinit(width, height);
+			drawcontext.resize(width, height);
+		}
+
+		private GLESDrawContext createContext(GL10 gl) {
+			String version = gl.glGetString(GL10.GL_VERSION).split(" ")[2];
+			int major = version.charAt(0)-'0';
+			int minor = version.charAt(2)-'0';
+
+			if(major >= 2) {
+				return new GLESDrawContext(ctx, major >= 3);
+			} else {
+				throw new Error("wrong Opengl ES version: " + version);
+			}
 		}
 
 		@Override
 		public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-			String version = gl.glGetString(GL10.GL_VERSION);
-			int major = version.split(" ")[2].charAt(0)-'0';
-			if(major == 1) {
-				drawcontext = new GLES11DrawContext(ctx);
-			} else {
-				drawcontext = new GLES20DrawContext(ctx, major >= 3);
-			}
+			drawcontext = createContext(gl);
 		}
 	}
 
@@ -260,9 +259,6 @@ public class GOSurfaceView extends GLSurfaceView implements RedrawListener, GOEv
 					{EGLExt.EGL_CONTEXT_MAJOR_VERSION_KHR, 3, EGLExt.EGL_CONTEXT_MINOR_VERSION_KHR, 1, EGL10.EGL_NONE}, //3.1
 					{EGLExt.EGL_CONTEXT_MAJOR_VERSION_KHR, 3, EGLExt.EGL_CONTEXT_MINOR_VERSION_KHR, 0, EGL10.EGL_NONE}, //3.0
 					{EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL10.EGL_NONE}, // highest available version
-					{EGLExt.EGL_CONTEXT_MAJOR_VERSION_KHR, 1, EGLExt.EGL_CONTEXT_MINOR_VERSION_KHR, 1, EGL10.EGL_NONE}, // 1.1
-					{EGL14.EGL_CONTEXT_CLIENT_VERSION, 1, EGL10.EGL_NONE}, // 1.x
-					{EGL10.EGL_NONE}, // lowest available version
 			};
 
 			while(newCtx == null && attrs.length >= i) {
@@ -279,8 +275,7 @@ public class GOSurfaceView extends GLSurfaceView implements RedrawListener, GOEv
 		@Override
 		public void destroyContext(EGL10 arg0, EGLDisplay arg1, EGLContext arg2) {
 			Log.w("gl", "Invalidating texture context");
-			if(drawcontext != null) drawcontext.invalidateContext();
-			AndroidTextDrawer.invalidateTextures();
+			if(drawcontext != null) drawcontext.invalidate();
 			IContextDestroyedListener listener = contextDestroyedListener;
 			if (listener != null) {
 				listener.glContextDestroyed();

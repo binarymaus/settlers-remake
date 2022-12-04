@@ -14,6 +14,51 @@
  */
 
 apply plugin: 'java'
+
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
+import org.gradle.nativeplatform.platform.internal.ArchitectureInternal
+
+repositories {
+	mavenCentral()
+}
+
 dependencies {
-    compile gradleApi()
+	implementation gradleApi()
+
+
+	implementation "org.lwjgl:lwjgl:3.3.0"
+	implementation "org.lwjgl:lwjgl-shaderc:3.3.0"
+
+	OperatingSystem os = DefaultNativePlatform.getCurrentOperatingSystem();
+	ArchitectureInternal arch = DefaultNativePlatform.getCurrentArchitecture();
+
+	String natives;
+
+	if(os.isWindows()) {
+		if(arch.isAmd64()) {
+			natives = "natives-windows"
+		} else if(arch.isI386()) {
+			natives = "natives-windows-x86"
+		} else {
+			natives = "natives-windows-arm64"
+		}
+	} else if(os.isMacOsX()) {
+		if(arch.isAmd64() || arch.isI386()) {
+			natives = "natives-macos"
+		} else {
+			natives = "natives-macos-arm64"
+		}
+	} else {
+		if(arch.isAmd64()) {
+			natives = "natives-linux"
+		} else if(arch.isArm()) {
+			natives = "natives-linux-arm32"
+		} else {
+			natives = "natives-linux-arm64"
+		}
+	}
+
+	runtimeOnly "org.lwjgl:lwjgl:3.2.3:" + natives
+	runtimeOnly "org.lwjgl:lwjgl-shaderc:3.2.3:" + natives
+
 }

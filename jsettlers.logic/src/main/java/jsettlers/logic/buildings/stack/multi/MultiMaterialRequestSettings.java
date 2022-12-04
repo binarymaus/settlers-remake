@@ -20,6 +20,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 
 public class MultiMaterialRequestSettings implements IMultiMaterialRequestSettings, Serializable {
+	private static final long serialVersionUID = 5278340143466525981L;
 	private final short[] requestedMaterials;
 
 	public MultiMaterialRequestSettings(short[] requestedMaterials) {

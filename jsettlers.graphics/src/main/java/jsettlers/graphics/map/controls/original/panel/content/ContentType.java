@@ -14,12 +14,14 @@
  *******************************************************************************/
 package jsettlers.graphics.map.controls.original.panel.content;
 
+import jsettlers.common.player.IInGamePlayer;
 import jsettlers.graphics.map.controls.original.panel.content.buildings.BuildingBuildContent;
 import jsettlers.graphics.map.controls.original.panel.content.buildings.EBuildingsCategory;
 import jsettlers.graphics.map.controls.original.panel.content.material.distribution.DistributionPanel;
 import jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel;
 import jsettlers.graphics.map.controls.original.panel.content.material.priorities.MaterialPriorityContent;
 import jsettlers.graphics.map.controls.original.panel.content.material.production.MaterialsProductionPanel;
+import jsettlers.graphics.map.controls.original.panel.content.settlers.profession.ProfessionPanel;
 import jsettlers.graphics.map.controls.original.panel.content.settlers.statistics.SettlersStatisticsPanel;
 import jsettlers.graphics.map.controls.original.panel.content.settlers.warriors.WarriorsPanel;
 import jsettlers.graphics.ui.UIPanel;
@@ -43,21 +45,36 @@ public final class ContentType {
 		}
 	};
 
-	public static final AbstractContentProvider BUILD_NORMAL = new BuildingBuildContent(EBuildingsCategory.BUILDINGS_CATEGORY_NORMAL);
-	public static final AbstractContentProvider BUILD_FOOD = new BuildingBuildContent(EBuildingsCategory.BUILDINGS_CATEGORY_FOOD);
-	public static final AbstractContentProvider BUILD_MILITARY = new BuildingBuildContent(EBuildingsCategory.BUILDINGS_CATEGORY_MILITARY);
-	public static final AbstractContentProvider BUILD_SOCIAL = new BuildingBuildContent(EBuildingsCategory.BUILDINGS_CATEGORY_SOCIAL);
+	public static final BuildingBuildContent BUILD_NORMAL = new BuildingBuildContent(EBuildingsCategory.BUILDINGS_CATEGORY_NORMAL);
+	public static final BuildingBuildContent BUILD_FOOD = new BuildingBuildContent(EBuildingsCategory.BUILDINGS_CATEGORY_FOOD);
+	public static final BuildingBuildContent BUILD_MILITARY = new BuildingBuildContent(EBuildingsCategory.BUILDINGS_CATEGORY_MILITARY);
+	public static final BuildingBuildContent BUILD_SOCIAL = new BuildingBuildContent(EBuildingsCategory.BUILDINGS_CATEGORY_SOCIAL);
 
-	public static final AbstractContentProvider STOCK = new InventoryPanel();
-	public static final AbstractContentProvider TOOLS = new MaterialsProductionPanel();
-	public static final AbstractContentProvider GOODS_SPREAD = new DistributionPanel();
-	public static final AbstractContentProvider GOODS_TRANSPORT = new MaterialPriorityContent();
+	public static final InventoryPanel STOCK = new InventoryPanel();
+	public static final MaterialsProductionPanel TOOLS = new MaterialsProductionPanel();
+	public static final DistributionPanel GOODS_SPREAD = new DistributionPanel();
+	public static final MaterialPriorityContent GOODS_TRANSPORT = new MaterialPriorityContent();
 
 	public static final SettlersStatisticsPanel SETTLER_STATISTIC = new SettlersStatisticsPanel();
-	public static final AbstractContentProvider PROFESSION = EMPTY;
+	public static final ProfessionPanel PROFESSION = new ProfessionPanel();
 	public static final WarriorsPanel WARRIORS = new WarriorsPanel();
 	public static final AbstractContentProvider PRODUCTION = EMPTY;
 
 	private ContentType() {
+	}
+
+	public static void setPlayer(IInGamePlayer player) {
+		BUILD_NORMAL.setPlayer(player);
+		BUILD_FOOD.setPlayer(player);
+		BUILD_MILITARY.setPlayer(player);
+		BUILD_SOCIAL.setPlayer(player);
+
+		STOCK.setPlayer(player);
+		TOOLS.setPlayer(player);
+		GOODS_SPREAD.setPlayer(player);
+
+		SETTLER_STATISTIC.setPlayer(player);
+		PROFESSION.setPlayer(player);
+		WARRIORS.setPlayer(player);
 	}
 }

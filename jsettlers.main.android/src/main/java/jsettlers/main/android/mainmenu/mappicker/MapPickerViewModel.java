@@ -1,7 +1,5 @@
 package jsettlers.main.android.mainmenu.mappicker;
 
-import static java8.util.stream.StreamSupport.stream;
-
 import java.util.List;
 
 import android.arch.lifecycle.LiveData;
@@ -69,7 +67,7 @@ public abstract class MapPickerViewModel extends ViewModel {
 		}
 
 		private MapLoader[] sortedMaps(List<? extends MapLoader> items) {
-			return stream(items)
+			return items.stream()
 					.sorted((o1, o2) -> o1.getMapName().compareToIgnoreCase(o2.getMapName()))
 					.toArray(MapLoader[]::new);
 		}

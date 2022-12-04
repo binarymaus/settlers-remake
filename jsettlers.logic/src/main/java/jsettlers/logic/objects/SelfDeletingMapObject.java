@@ -26,6 +26,7 @@ import jsettlers.common.position.ShortPoint2D;
  * 
  */
 public class SelfDeletingMapObject extends ProgressingObject implements IPlayerable {
+	private static final long serialVersionUID = -5072006223561369525L;
 	private final EMapObjectType type;
 	private final IPlayer player;
 

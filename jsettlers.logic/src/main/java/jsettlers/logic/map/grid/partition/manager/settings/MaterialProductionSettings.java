@@ -23,6 +23,7 @@ import jsettlers.logic.map.grid.partition.manager.settings.RelativeSettings.Ordi
 public class MaterialProductionSettings implements IMaterialProductionSettings, Serializable {
 	private static final int MAXIMUM_ABSOLUTE_REQUEST_VALUE = 99;
 	private static final OrdinalToTypeMapper<EMaterialType> ordinalToTypeMapper = ordinal -> EMaterialType.VALUES[ordinal];
+	private static final long serialVersionUID = -7092550888968763911L;
 
 	private final RelativeSettings<EMaterialType> relativeWeaponRequests = new RelativeSettings<>(EMaterialType.NUMBER_OF_MATERIALS, ordinalToTypeMapper, false);
 	private final RelativeSettings<EMaterialType> relativeToolRequests = new RelativeSettings<>(EMaterialType.NUMBER_OF_MATERIALS, ordinalToTypeMapper, false);
@@ -31,9 +32,9 @@ public class MaterialProductionSettings implements IMaterialProductionSettings, 
 	private final RelativeSettings<EMaterialType> absoluteToolRequests = new RelativeSettings<>(EMaterialType.NUMBER_OF_MATERIALS, ordinalToTypeMapper, true, 0, MAXIMUM_ABSOLUTE_REQUEST_VALUE);
 
 	public MaterialProductionSettings() {
-		relativeWeaponRequests.setUserValue(EMaterialType.SWORD, 1f);
-		relativeWeaponRequests.setUserValue(EMaterialType.BOW, 0.7f);
-		relativeWeaponRequests.setUserValue(EMaterialType.SPEAR, 0.3f);
+		relativeWeaponRequests.setUserValue(EMaterialType.SWORD, 0.1f);
+		relativeWeaponRequests.setUserValue(EMaterialType.BOW, 0.8f);
+		relativeWeaponRequests.setUserValue(EMaterialType.SPEAR, 0.1f);
 	}
 
 	private RelativeSettings<EMaterialType> getRelativeSettingsForType(EMaterialType type) {

@@ -14,6 +14,8 @@
  *******************************************************************************/
 package jsettlers.common.menu;
 
+import jsettlers.common.ai.EPlayerType;
+import jsettlers.common.player.ECivilisation;
 import jsettlers.common.utils.collections.ChangingList;
 
 /**
@@ -44,12 +46,24 @@ public interface IJoinPhaseMultiplayerGameConnector {
 	 */
 	ChangingList<IMultiplayerPlayer> getPlayers();
 
+	ChangingList<IMultiplayerSlot> getSlots();
+
 	/**
 	 * Sets the ready state of the current user.
 	 * 
 	 * @param ready
 	 */
 	void setReady(boolean ready);
+
+	void setCivilisation(byte slot, ECivilisation civilisation);
+
+	void setType(byte slot, EPlayerType playerType);
+
+	void setPosition(byte slot, byte position);
+
+	void setTeam(byte slot, byte team);
+
+	void setPlayerCount(int playerCount);
 
 	/**
 	 * Starts the game if all players are currently ready. Calls the game listener as soon as it is starting.
@@ -62,4 +76,5 @@ public interface IJoinPhaseMultiplayerGameConnector {
 	 * Called when the user exits the screen, to abort the multiplayer game. This method does not need to call the abort() method of the {@link IMultiplayerListener}.
 	 */
 	void abort();
+
 }

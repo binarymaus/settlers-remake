@@ -19,6 +19,9 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 
+import java.util.Set;
+
+import go.graphics.event.command.EModifier;
 import jsettlers.common.selectable.ISelectionSet;
 import jsettlers.input.SelectionSet;
 import jsettlers.main.android.core.controls.ControlsResolver;
@@ -44,6 +47,10 @@ public abstract class SelectionFragment extends Fragment {
 			menuNavigator.removeSelectionMenu();
 			menuNavigator.dismissMenu();
 		}
+	}
+
+	public Set<EModifier> getModifiers() {
+		return Set.of();
 	}
 
 	@Override

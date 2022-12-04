@@ -15,16 +15,16 @@
 
 package jsettlers.main.android.gameplay.controlsmenu.selection.features;
 
-import static java8.util.J8Arrays.stream;
+import static java.util.Arrays.stream;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import android.app.Activity;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.ImageView;
 
-import java8.util.stream.Collectors;
 import jsettlers.common.action.SetAcceptedStockMaterialAction;
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.map.partition.IStockSettings;

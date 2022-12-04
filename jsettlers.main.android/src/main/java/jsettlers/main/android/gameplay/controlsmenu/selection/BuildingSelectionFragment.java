@@ -15,8 +15,6 @@
 
 package jsettlers.main.android.gameplay.controlsmenu.selection;
 
-import static java8.util.stream.StreamSupport.stream;
-
 import java.util.LinkedList;
 
 import org.androidannotations.annotations.EFragment;
@@ -104,7 +102,7 @@ public class BuildingSelectionFragment extends SelectionFragment {
 			layoutInflater.inflate(R.layout.menu_selection_building_trading, rootView, true);
 			features.add(new TradingFeature(getActivity(), getView(), building, menuNavigator, drawControls, actionControls));
 
-		} else if (building.getBuildingType() == EBuildingType.DOCKYARD) {
+		} else if (building.getBuildingVariant().isVariantOf(EBuildingType.DOCKYARD)) {
 			layoutInflater.inflate(R.layout.menu_selection_building_dock, rootView, true);
 			features.add(new DockFeature(getView(), building, menuNavigator, drawControls, actionControls, taskControls));
 
@@ -120,7 +118,7 @@ public class BuildingSelectionFragment extends SelectionFragment {
 			features.add(new PriorityFeature(getView(), building, menuNavigator, actionControls, drawControls));
 		}
 
-		if (building.getBuildingType().getWorkRadius() > 0) {
+		if (building.getBuildingVariant().getWorkRadius() > 0) {
 			features.add(new WorkAreaFeature(getView(), building, menuNavigator, actionControls, taskControls));
 		}
 
@@ -132,6 +130,6 @@ public class BuildingSelectionFragment extends SelectionFragment {
 	@Override
 	public void onDestroyView() {
 		super.onDestroyView();
-		stream(features).forEach(SelectionFeature::finish);
+		features.forEach(SelectionFeature::finish);
 	}
 }

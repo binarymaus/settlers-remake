@@ -20,7 +20,8 @@ import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.map.IGraphicsGrid;
 import jsettlers.common.mapobject.EMapObjectType;
 import jsettlers.common.mapobject.IMapObject;
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.movable.IGraphicsMovable;
+import jsettlers.common.player.IPlayer;
 import jsettlers.graphics.map.MapDrawContext;
 import jsettlers.graphics.map.minimap.MinimapMode.OccupiedAreaMode;
 import jsettlers.graphics.map.minimap.MinimapMode.SettlersMode;
@@ -166,7 +167,7 @@ public abstract class AbstractLineLoader implements Runnable {
 
 			if (visibleStatus > CommonConstants.FOG_OF_WAR_EXPLORED || landscape[currentline][x] == TRANSPARENT) {
 				float basecolor = ((float) visibleStatus) / CommonConstants.FOG_OF_WAR_VISIBLE;
-				int dheight = map.getHeightAt(centerX, mapMinY) - map.getHeightAt(centerX, Math.min(mapMinY + mapLineHeight, mapHeight - 1));
+				int dheight = map.getVisibleHeightAt(centerX, mapMinY) - map.getVisibleHeightAt(centerX, Math.min(mapMinY + mapLineHeight, mapHeight - 1));
 				basecolor *= 1 + .15f * dheight;
 
 				short landscapeColor;
@@ -194,7 +195,7 @@ public abstract class AbstractLineLoader implements Runnable {
 		int centerx = (mapmaxX + mapminX) / 2;
 		int centery = (mapmaxY + mapminY) / 2;
 
-		return map.getLandscapeTypeAt(centerx, centery).color;
+		return map.getVisibleLandscapeTypeAt(centerx, centery).color;
 	}
 
 	private short getSettlerForArea(IGraphicsGrid map, MapDrawContext context, int mapminX, int mapminY, int mapmaxX, int mapmaxY) {
@@ -211,19 +212,19 @@ public abstract class AbstractLineLoader implements Runnable {
 					&& (displayOccupied != OccupiedAreaMode.NONE || displayBuildings || displaySettlers != SettlersMode.NONE); x++) {
 				boolean visible = map.getVisibleStatus(x, y) > CommonConstants.FOG_OF_WAR_EXPLORED;
 				if (visible && displaySettlers != SettlersMode.NONE) {
-					IMovable settler = map.getMovableAt(x, y);
+					IGraphicsMovable settler = map.getMovableAt(x, y);
 					if (settler != null && (displaySettlers == SettlersMode.ALL || settler.getMovableType().isPlayerControllable())) {
-						settlerColor = context.getPlayerColor(settler.getPlayer().getPlayerId()).toShortColor(1);
+						settlerColor = MapDrawContext.getPlayerColor(settler.getPlayer().getPlayerId()).toShortColor(1);
 						// don't search any more.
 						displaySettlers = SettlersMode.NONE;
 					} else if (displaySettlers != SettlersMode.NONE) {
-						IMapObject object = map.getMapObjectsAt(x, y);
+						IMapObject object = map.getVisibleMapObjectsAt(x, y);
 						IBuilding building = (object != null) ? (IBuilding) object.getMapObject(EMapObjectType.BUILDING) : null;
 
 						if (building instanceof IBuilding.IOccupied) {
 							IBuilding.IOccupied occupyed = (IBuilding.IOccupied) building;
 							if (occupyed.isOccupied()) {
-								settlerColor = context.getPlayerColor(occupyed.getPlayer().getPlayerId()).toShortColor(1);
+								settlerColor = MapDrawContext.getPlayerColor(occupyed.getPlayer().getPlayerId()).toShortColor(1);
 							}
 						}
 					}
@@ -231,16 +232,16 @@ public abstract class AbstractLineLoader implements Runnable {
 
 				if (visible && displayOccupied == OccupiedAreaMode.BORDERS) {
 					if (map.isBorder(x, y)) {
-						byte player = map.getPlayerIdAt(x, y);
-						Color playerColor = context.getPlayerColor(player);
+						IPlayer player = map.getPlayerAt(x, y);
+						Color playerColor = MapDrawContext.getPlayerColor(player.getPlayerId());
 						occupiedColor = playerColor.toShortColor(1);
 						displayOccupied = OccupiedAreaMode.NONE;
 					}
 
 				} else if (visible && displayOccupied == OccupiedAreaMode.AREA) {
-					byte player = map.getPlayerIdAt(x, y);
-					if (player >= 0 && !map.getLandscapeTypeAt(x, y).isBlocking) {
-						Color playerColor = context.getPlayerColor(player);
+					IPlayer player = map.getPlayerAt(x, y);
+					if (player != null && !map.getVisibleLandscapeTypeAt(x, y).isBlocking) {
+						Color playerColor = MapDrawContext.getPlayerColor(player.getPlayerId());
 						// Now add a landscape below that....
 						Color landscape = getColorForArea(map, mapminX, mapminY, mapmaxX, mapmaxY);
 						playerColor = landscape.toGreyScale().multiply(playerColor);

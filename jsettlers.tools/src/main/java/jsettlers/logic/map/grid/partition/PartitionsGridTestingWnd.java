@@ -17,9 +17,11 @@ package jsettlers.logic.map.grid.partition;
 import java.io.IOException;
 import java.util.BitSet;
 
+import java.util.Objects;
 import jsettlers.TestToolUtils;
 import jsettlers.common.Color;
 import jsettlers.common.CommonConstants;
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.landscape.ELandscapeType;
 import jsettlers.common.logging.MilliStopWatch;
@@ -34,7 +36,9 @@ import jsettlers.common.mapobject.IMapObject;
 import jsettlers.common.menu.IMapInterfaceConnector;
 import jsettlers.common.action.EActionType;
 import jsettlers.common.movable.EDirection;
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.movable.IGraphicsMovable;
+import jsettlers.common.player.ECivilisation;
+import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.action.Action;
 import jsettlers.logic.player.PlayerSetting;
@@ -72,10 +76,13 @@ public class PartitionsGridTestingWnd {
 	}
 
 	private final PartitionsGrid grid;
+	private final BuildingVariant testTower;
 
 	private PartitionsGridTestingWnd() {
 		this.grid = new PartitionsGrid(WIDTH, HEIGHT, PlayerSetting.createDefaultSettings((byte) 0, (byte) 10),
 				(x, y) -> blockedGrid.get(x + y * WIDTH));
+
+		testTower = EBuildingType.TOWER.getVariant(ECivilisation.ROMAN);
 	}
 
 	private void startTest() {
@@ -131,7 +138,7 @@ public class PartitionsGridTestingWnd {
 	}
 
 	private FreeMapArea getGroundArea(ShortPoint2D pos) {
-		return new FreeMapArea(pos, EBuildingType.TOWER.getProtectedTiles());
+		return new FreeMapArea(pos, testTower.getProtectedTiles());
 	}
 
 	private void addTower(int playerId, int x, int y, int radius) {
@@ -140,7 +147,7 @@ public class PartitionsGridTestingWnd {
 	}
 
 	private IMapArea getTowerBlockArea(int x, int y) {
-		return new FreeMapArea(new ShortPoint2D(x, y), EBuildingType.TOWER.getBlockedTiles());
+		return new FreeMapArea(new ShortPoint2D(x, y), testTower.getBlockedTiles());
 	}
 
 	private void blockArea(IMapArea area, boolean block) {
@@ -157,11 +164,11 @@ public class PartitionsGridTestingWnd {
 
 			@Override
 			public boolean isBorder(int x, int y) {
-				byte playerAtPos = getPlayerIdAt(x, y);
+				IPlayer playerAtPos = getPlayerAt(x, y);
 				for (EDirection dir : EDirection.VALUES) {
 					int currX = x + dir.gridDeltaX;
 					int currY = y + dir.gridDeltaY;
-					if (currX >= 0 && currY >= 0 && currX < WIDTH && currY < HEIGHT && playerAtPos != getPlayerIdAt(currX, currY)) {
+					if (currX >= 0 && currY >= 0 && currX < WIDTH && currY < HEIGHT && !Objects.equals(playerAtPos, getPlayerAt(currX, currY))) {
 						return true;
 					}
 				}
@@ -179,27 +186,27 @@ public class PartitionsGridTestingWnd {
 			}
 
 			@Override
-			public byte getPlayerIdAt(int x, int y) {
-				return grid.getPlayerIdAt(x, y);
+			public IPlayer getPlayerAt(int x, int y) {
+				return grid.getPlayerAt(x, y);
 			}
 
 			@Override
-			public IMovable getMovableAt(int x, int y) {
+			public IGraphicsMovable getMovableAt(int x, int y) {
 				return null;
 			}
 
 			@Override
-			public IMapObject getMapObjectsAt(int x, int y) {
+			public IMapObject getVisibleMapObjectsAt(int x, int y) {
 				return null;
 			}
 
 			@Override
-			public ELandscapeType getLandscapeTypeAt(int x, int y) {
+			public ELandscapeType getVisibleLandscapeTypeAt(int x, int y) {
 				return ELandscapeType.GRASS;
 			}
 
 			@Override
-			public byte getHeightAt(int x, int y) {
+			public byte getVisibleHeightAt(int x, int y) {
 				return 0;
 			}
 

@@ -18,29 +18,27 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.ShortBuffer;
 
-import go.graphics.EGeometryFormatType;
-import go.graphics.EGeometryType;
+import go.graphics.EPrimitiveType;
 import go.graphics.GLDrawContext;
-import go.graphics.GeometryHandle;
-import go.graphics.IllegalBufferException;
-import go.graphics.SharedGeometry;
-import go.graphics.TextureHandle;
+import go.graphics.ManagedUnifiedDrawHandle;
 
 import java.awt.image.BufferedImage;
 
+import go.graphics.UnifiedDrawHandle;
 import jsettlers.common.Color;
 import jsettlers.graphics.image.reader.ImageMetadata;
+import jsettlers.graphics.image.reader.translator.ImageDataProducer;
 
 /**
  * This is the base for all images that are directly loaded from the image file.
  * <p>
- * This class interprets the image data in 5-5-5-1-Format. To change the interpretation, it is possible to subclass this class.
+ * This class interprets the image data in 4-4-4-4-Format. To change the interpretation, it is possible to subclass this class.
  *
  * @author Michael Zangl
  */
 public class SingleImage extends Image implements ImageDataPrivider {
 
-	protected ShortBuffer data, tdata;
+	protected final ImageDataProducer data;
 	protected final int width;
 	protected final int height;
 	protected int twidth, theight, toffsetX, toffsetY;
@@ -48,8 +46,7 @@ public class SingleImage extends Image implements ImageDataPrivider {
 	protected final int offsetY;
 	protected String name;
 
-	protected TextureHandle texture = null;
-	protected SharedGeometry.SharedGeometryHandle geometryIndex = null;
+	protected ManagedUnifiedDrawHandle geometryIndex = null;
 
 	/**
 	 * Creates a new image by the given buffer.
@@ -65,14 +62,19 @@ public class SingleImage extends Image implements ImageDataPrivider {
 	 * @param offsetY
 	 * 		The y offset of the image.
 	 */
-	protected SingleImage(ShortBuffer data, int width, int height, int offsetX,
+	protected SingleImage(ImageDataProducer data, int width, int height, int offsetX,
 			int offsetY, String name) {
-		this.data = tdata = data;
+		this.data = data;
 		this.width = twidth = width;
 		this.height = theight = height;
 		this.offsetX = toffsetX = offsetX;
 		this.offsetY = toffsetY = offsetY;
 		this.name = name;
+	}
+
+	protected SingleImage(ShortBuffer data, int width, int height, int offsetX,
+						  int offsetY, String name) {
+		this(() -> data, width, height, offsetX, offsetY, name);
 	}
 
 	/**
@@ -84,7 +86,27 @@ public class SingleImage extends Image implements ImageDataPrivider {
 	 * 		The data to use.
 	 */
 	public SingleImage(ImageMetadata metadata, short[] data, String name) {
-		this(ShortBuffer.wrap(data), metadata.width, metadata.height, metadata.offsetX, metadata.offsetY, name);
+		this(wrap(data), metadata.width, metadata.height, metadata.offsetX, metadata.offsetY, name);
+	}
+
+
+	/**
+	 * Creates a new image by linking this images data to the data of the provider.
+	 *
+	 * @param metadata
+	 * 		The mata data to use.
+	 * @param data
+	 * 		The data to use.
+	 */
+	public SingleImage(ImageMetadata metadata, ImageDataProducer data, String name) {
+		this(data, metadata.width, metadata.height, metadata.offsetX, metadata.offsetY, name);
+	}
+
+	private static ShortBuffer wrap(short[] data) {
+		ShortBuffer bfr = ByteBuffer.allocateDirect(data.length*2).order(ByteOrder.nativeOrder()).asShortBuffer();
+		bfr.put(data);
+		bfr.rewind();
+		return bfr;
 	}
 
 	@Override
@@ -108,119 +130,69 @@ public class SingleImage extends Image implements ImageDataPrivider {
 	}
 
 	@Override
-	public void drawImageAtRect(GLDrawContext gl, float x, float y, float width, float height) {
-		try {
-			checkStaticHandles(gl);
-			gl.draw2D(rectHandle.geometry, texture, EGeometryType.Quad, rectHandle.index, 4, x, y, 0, twidth/this.width*width, theight/this.height*height, 0, null, 1);
-		} catch (IllegalBufferException e) {
-			handleIllegalBufferException(e);
-		}
+	public void drawImageAtRect(GLDrawContext gl, float x, float y, float width, float height, float intensity) {
+		checkStaticHandles(gl);
+
+		// dark magic
+		float sx = width/(float)twidth;
+		float sy = height/(float)theight;
+		float tx = x - offsetX*sx;
+		float ty = y + height + offsetY*sy;
+		geometryIndex.drawSimple(EPrimitiveType.Quad, tx, ty, 0, sx, sy, null, intensity);
 	}
 
 	@Override
 	public ShortBuffer getData() {
-		return this.data;
+		return this.data.produceData();
 	}
 
 	@Override
 	public void drawOnlyImageAt(GLDrawContext gl, float x, float y, float z, Color torsoColor, float fow) {
-		try {
-			checkHandles(gl);
-			gl.draw2D(geometryIndex.geometry, texture, EGeometryType.Quad, geometryIndex.index, 4, x, y, z, 1, 1, 1, null, 1);
-		} catch (IllegalBufferException e) {
-			handleIllegalBufferException(e);
-		}
-	}
-
-	protected void checkHandles(GLDrawContext gl) throws IllegalBufferException {
-		if (texture == null || !texture.isValid()) {
-			texture = gl.generateTexture(twidth, theight, tdata, name);
-		}
-
-		if(geometryIndex == null || SharedGeometry.isInvalid(gl, geometryIndex)) {
-			geometryIndex = SharedGeometry.addGeometry(gl, getGeometry());
-		}
-	}
-
-	private void checkStaticHandles(GLDrawContext gl) throws IllegalBufferException {
 		checkHandles(gl);
-		if(buildHandle == null || !buildHandle.isValid()) {
-			buildHandle = gl.generateGeometry(3, EGeometryFormatType.Texture2D, true, "building-progress");
-		}
-		if(rectHandle == null || SharedGeometry.isInvalid(gl, rectHandle)) {
-			rectHandle = SharedGeometry.addGeometry(gl, SharedGeometry.createQuadGeometry(0, 1, 1, 0, 0, 0, 1, 1));
+		geometryIndex.drawSimple(EPrimitiveType.Quad, x, y, z, 1, 1, null, fow);
+	}
+
+	protected void checkHandles(GLDrawContext gl) {
+		if(geometryIndex == null || !geometryIndex.isValid()) {
+			ShortBuffer textureBuffer = generateTextureData();
+			geometryIndex = gl.createManagedUnifiedDrawCall(textureBuffer, toffsetX, toffsetY, twidth, theight);
 		}
 	}
 
-	protected float[] getGeometry() {
-		return SharedGeometry.createQuadGeometry(toffsetX, -toffsetY, toffsetX + twidth, -toffsetY - theight, 0, 0, 1, 1);
+	protected ShortBuffer generateTextureData() {
+		return getData();
 	}
 
-	protected void setGeometry(SharedGeometry.SharedGeometryHandle geometry) {
-		geometryIndex = geometry;
-	}
+	private void checkStaticHandles(GLDrawContext gl) {
+		checkHandles(gl);
 
-	private static GeometryHandle buildHandle = null;
-	private static SharedGeometry.SharedGeometryHandle rectHandle = null;
-	private static final ByteBuffer buildBfr = ByteBuffer.allocateDirect(4*4*3).order(ByteOrder.nativeOrder());
-
-	/**
-	 * Draws a triangle part of this image on the image buffer.
-	 *
-	 * @param gl
-	 * 		The context to use
-	 * @param viewX
-	 * 		Image center x coordinate
-	 * @param viewY
-	 * 		Image center y coordinate
-	 * @param u1
-	 * @param v1
-	 * @param u2
-	 * @param v2
-	 * @param u3
-	 * @param v3
-	 * @param color
-	 */
-	public void drawTriangle(GLDrawContext gl, float viewX,
-			float viewY, float u1, float v1, float u2, float v2, float u3, float v3, float color) {
-		try {
-			checkStaticHandles(gl);
-			float left = toffsetX + viewX;
-			float top = -toffsetY + viewY;
-			// In the draw process sub-integer coordinates can be rounded in unexpected ways that is particularly noticeable when redrawing the
-			// growing
-			// image of a building in the construction phase. By aligning to the nearest integer images can be placed in a more predictable and
-			// controlled
-			// manner.
-			u1 = (float) Math.round(u1 * twidth) / twidth;
-			u2 = (float) Math.round(u2 * twidth) / twidth;
-			u3 = (float) Math.round(u3 * twidth) / twidth;
-			v1 = (float) Math.round(v1 * theight) / theight;
-			v2 = (float) Math.round(v2 * theight) / theight;
-			v3 = (float) Math.round(v3 * theight) / theight;
-
-			buildBfr.asFloatBuffer().put(new float[] {
-					u1 * twidth,
-					-v1 * theight,
-					u1,
-					v1,
-
-					u2 * twidth,
-					-v2 * theight,
-					u2,
-					v2,
-
-					u3 * twidth,
-					-v3 * theight,
-					u3,
-					v3,
-
-			});
-			gl.updateGeometryAt(buildHandle, 0, buildBfr);
-			gl.draw2D(buildHandle, texture, EGeometryType.Triangle, 0, 3, left, top, 0, 1, 1, 1, null, color);
-		} catch (IllegalBufferException e) {
-			handleIllegalBufferException(e);
+		if(progressHandle == null || !progressHandle.isValid()) {
+			progressHandle = gl.createUnifiedDrawCall(4, "building-progress-quad", geometryIndex.texture, GLDrawContext.createQuadGeometry(0, 0, 1, 1, 0, 0, 1, 1));
+			progressHandle.forceNoCache();
 		}
+
+		if(triProgressHandle == null || !triProgressHandle.isValid()) {
+			triProgressHandle = gl.createUnifiedDrawCall(3, "building-progress-tri", geometryIndex.texture, new float[] {0, 0, 0, 0, 0.5f, 1, 0.5f, 1, 1, 0, 1, 0});
+			triProgressHandle.forceNoCache();
+		}
+	}
+
+	private static UnifiedDrawHandle progressHandle = null;
+	private static UnifiedDrawHandle triProgressHandle = null;
+
+
+	public void drawOnlyImageWithProgressAt(GLDrawContext gl, float x, float y, float z, float u1, float v1, float u2, float v2, float fow, boolean triangle) {
+		checkStaticHandles(gl);
+
+		float nu1 = geometryIndex.texX+u1*(geometryIndex.texWidth-geometryIndex.texX);
+		float nu2 = geometryIndex.texX+u2*(geometryIndex.texWidth-geometryIndex.texX);
+
+		float nv1 = geometryIndex.texY+v1*(geometryIndex.texHeight-geometryIndex.texY);
+		float nv2 = geometryIndex.texY+v2*(geometryIndex.texHeight-geometryIndex.texY);
+
+		UnifiedDrawHandle dh = triangle?triProgressHandle:progressHandle;
+		dh.texture = geometryIndex.texture;
+		dh.drawProgress(triangle?EPrimitiveType.Triangle:EPrimitiveType.Quad, x+toffsetX+twidth*u1, y-toffsetY-theight*v1, z, twidth*(u2-u1), -theight*(v2-v1), new Color(nu1, nv1, nu2, nv2), fow);
 	}
 
 	public BufferedImage convertToBufferedImage() {
@@ -243,6 +215,8 @@ public class SingleImage extends Image implements ImageDataPrivider {
 	}
 
 	public Long hash() {
+		ShortBuffer data = getData();
+		data.rewind();
 		long hashCode = 1L;
 		long multiplier = 1L;
 		while (data.hasRemaining()) {

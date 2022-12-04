@@ -15,14 +15,18 @@
 package go.graphics.swing.contextcreator;
 
 import java.awt.Component;
+import java.awt.GraphicsConfiguration;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
+import java.awt.geom.AffineTransform;
 
-import go.graphics.swing.GLContainer;
+import javax.swing.SwingUtilities;
 
-public abstract class ContextCreator implements ComponentListener{
+import go.graphics.swing.ContextContainer;
 
-	public ContextCreator(GLContainer ac, boolean debug) {
+public abstract class ContextCreator<T extends Component> implements ComponentListener{
+
+	public ContextCreator(ContextContainer ac, boolean debug) {
 		parent = ac;
 		this.debug = debug;
 	}
@@ -32,18 +36,28 @@ public abstract class ContextCreator implements ComponentListener{
 	protected boolean change_res = true;
 	protected final Object wnd_lock = new Object();
 	protected boolean first_draw = true;
-	protected Component canvas;
-	protected GLContainer parent;
+	protected int fpsLimit = 0;
+	protected T canvas;
+	protected ContextContainer parent;
 	protected boolean debug;
 
 
 	public abstract void stop();
 	public abstract void initSpecific();
 
-	public abstract void repaint();
+	public void repaint() {
+		canvas.repaint();
+	}
 
-	public abstract void requestFocus();
+	public void requestFocus() {
+		canvas.requestFocus();
+	}
 
+
+	protected void error(String message) throws ContextException {
+		parent.fatal(message);
+		throw new ContextException();
+	}
 
 	public void init() {
 		initSpecific();
@@ -55,10 +69,19 @@ public abstract class ContextCreator implements ComponentListener{
 
 	@Override
 	public void componentResized(ComponentEvent componentEvent) {
-		Component cmp = componentEvent.getComponent();
+		if(!SwingUtilities.windowForComponent(canvas).isFocused()) return;
+
 		synchronized (wnd_lock) {
-			new_width = cmp.getWidth();
-			new_height = cmp.getHeight();
+			AffineTransform scaleInfo = canvas.getGraphicsConfiguration().getDefaultTransform();
+
+			double scaleX = 1;
+			double scaleY = 1;
+			if(scaleInfo != null) {
+				scaleX = scaleInfo.getScaleX();
+				scaleY = scaleInfo.getScaleX();
+			}
+			new_width = (int) (canvas.getWidth()*scaleX);
+			new_height = (int) (canvas.getHeight()*scaleY);
 			change_res = true;
 
 			if(new_width == 0) new_width = 1;
@@ -74,4 +97,8 @@ public abstract class ContextCreator implements ComponentListener{
 
 	@Override
 	public void componentShown(ComponentEvent componentEvent) {}
+
+	public void updateFPSLimit(int fpsLimit) {
+		this.fpsLimit = fpsLimit;
+	}
 }

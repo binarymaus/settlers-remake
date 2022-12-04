@@ -59,6 +59,16 @@ public interface IServerManager {
 
 	void setReadyStateForPlayer(Player player, boolean ready);
 
+	void setCivilisationForSlot(Player player, byte slot, byte civilisation);
+
+	void setPlayerTypeForSlot(Player player, byte slot, byte playerType);
+
+	void setPositionForSlot(Player player, byte slot, byte position);
+
+	void setTeamForSlot(Player player, byte slot, byte team);
+
+	void setPlayerCount(Player player, int playerCount);
+
 	void sendMatchesToPlayer(Player player);
 
 	void setStartFinished(Player player, boolean startFinished);

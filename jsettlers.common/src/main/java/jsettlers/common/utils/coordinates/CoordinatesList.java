@@ -27,6 +27,7 @@ public class CoordinatesList extends CoordinateStream {
 
 	private static final int STANDARD_INITIAL_CAPACITY = 16;
 	public static final int STREAM_INITIALIZATION_INITIAL_CAPACITY = 128;
+	private static final long serialVersionUID = -3920786207828397956L;
 
 	private int[] points;
 	private int size = 0;

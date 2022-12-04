@@ -14,9 +14,44 @@
  *******************************************************************************/
 package jsettlers.common.player;
 
+import jsettlers.common.buildings.EBuildingType;
+
 /**
  * @author codingberlin
  */
 public enum ECivilisation {
-	ROMAN,
+	ROMAN(1),
+	EGYPTIAN(2),
+	ASIAN(3),
+	AMAZON(4);
+
+	private int fileIndex;
+	public final int ordinal;
+
+	public static final ECivilisation[] VALUES = values();
+
+	@Deprecated
+	public static final ECivilisation REPLACE_ME = ROMAN;
+
+	ECivilisation(int fileIndex) {
+		ordinal = ordinal();
+		this.fileIndex = fileIndex;
+	}
+
+	public int getFileIndex() {
+		return fileIndex;
+	}
+
+	public EBuildingType getMannaBuilding() {
+		switch (this) {
+			case EGYPTIAN:
+				return EBuildingType.BREWERY;
+			case ASIAN:
+				return EBuildingType.DISTILLERY;
+			case AMAZON:
+				return EBuildingType.MEAD_BREWERY;
+			default:
+				return EBuildingType.WINEGROWER;
+		}
+	}
 }

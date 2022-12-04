@@ -14,10 +14,14 @@
  *******************************************************************************/
 package jsettlers.common.buildings;
 
+import java.util.EnumMap;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import jsettlers.common.buildings.stacks.RelativeStack;
 import jsettlers.common.material.EMaterialType;
+import jsettlers.common.player.ECivilisation;
 
 /**
  * This class calculates static data gained from configuration files. The class supplies the information what buildings can request a given
@@ -27,24 +31,32 @@ import jsettlers.common.material.EMaterialType;
  * 
  */
 public final class MaterialsOfBuildings {
-	private static final EBuildingType[][] buildingsRequestingMaterial = new EBuildingType[EMaterialType.NUMBER_OF_MATERIALS][];
+	private static final Map<ECivilisation, Map<EMaterialType, EBuildingType[]>> buildingsRequestingMaterial = new EnumMap<>(ECivilisation.class);
 
 	static {
-		@SuppressWarnings({ "unchecked" })
-		LinkedList<EBuildingType>[] buildingsForMaterials = new LinkedList[EMaterialType.NUMBER_OF_MATERIALS];
-		for (int i = 0; i < EMaterialType.NUMBER_OF_MATERIALS; i++) {
-			buildingsForMaterials[i] = new LinkedList<>();
-		}
+		for(ECivilisation civilisation : ECivilisation.VALUES) {
+			Map<EMaterialType, List<EBuildingType>> buildingsForMaterials = new EnumMap<>(EMaterialType.class);
 
-		for (EBuildingType buildingType : EBuildingType.VALUES) {
-			for (RelativeStack requestStack : buildingType.getRequestStacks()) {
-				buildingsForMaterials[requestStack.getMaterialType().ordinal].add(buildingType);
+			for(EMaterialType material : EMaterialType.VALUES) {
+				buildingsForMaterials.put(material, new LinkedList<>());
 			}
-		}
 
-		for (int i = 0; i < EMaterialType.NUMBER_OF_MATERIALS; i++) {
-			LinkedList<EBuildingType> currList = buildingsForMaterials[i];
-			buildingsRequestingMaterial[i] = currList.toArray(new EBuildingType[currList.size()]);
+			for (EBuildingType buildingType : EBuildingType.VALUES) {
+				BuildingVariant building = buildingType.getVariant(civilisation);
+				if(building == null) continue;
+
+				for (RelativeStack requestStack : building.getRequestStacks()) {
+					buildingsForMaterials.get(requestStack.getMaterialType()).add(buildingType);
+				}
+			}
+
+			Map<EMaterialType, EBuildingType[]> asArray = new EnumMap<>(EMaterialType.class);
+
+			for(EMaterialType material : EMaterialType.VALUES) {
+				asArray.put(material, buildingsForMaterials.get(material).toArray(new EBuildingType[0]));
+			}
+
+			buildingsRequestingMaterial.put(civilisation, asArray);
 		}
 	}
 
@@ -57,8 +69,8 @@ public final class MaterialsOfBuildings {
 	 *            {@link EMaterialType} to be checked.
 	 * @return Returns an array of {@link EBuildingType}s that can request the given {@link EMaterialType}.
 	 */
-	public static EBuildingType[] getBuildingTypesRequestingMaterial(EMaterialType material) {
-		return buildingsRequestingMaterial[material.ordinal];
+	public static EBuildingType[] getBuildingTypesRequestingMaterial(EMaterialType material, ECivilisation civilisation) {
+		return buildingsRequestingMaterial.get(civilisation).get(material);
 	}
 
 	private MaterialsOfBuildings() {

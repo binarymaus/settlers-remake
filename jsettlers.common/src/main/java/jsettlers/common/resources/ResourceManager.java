@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2015
+ * Copyright (c) 2015 - 2020
  * <p/>
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -32,7 +32,7 @@ public class ResourceManager {
     }
 
     /**
-     * Gets the file. Throws a io exception if the file does not exist.
+     * Gets the file.
      *
      * @param filename
      * @return

@@ -15,6 +15,7 @@
 package jsettlers.main.swing.menu.joinpanel.slots.factories;
 
 import jsettlers.common.ai.EPlayerType;
+import jsettlers.common.menu.IMultiplayerConnector;
 import jsettlers.main.swing.settings.SettingsManager;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.main.swing.menu.joinpanel.slots.PlayerSlot;
@@ -24,28 +25,28 @@ import jsettlers.main.swing.menu.joinpanel.slots.PlayerSlot;
  */
 public class HostOfMultiplayerPlayerSlotFactory implements IPlayerSlotFactory {
 
+	private IMultiplayerConnector connector;
+
+	public HostOfMultiplayerPlayerSlotFactory(IMultiplayerConnector connector) {
+		this.connector = connector;
+	}
+
 	@Override
 	public PlayerSlot createPlayerSlot(byte slot, MapLoader mapLoader) {
-		PlayerSlot playerSlot = new PlayerSlot();
+		PlayerSlot playerSlot = new PlayerSlot(slot);
 
+		playerSlot.setPossibleTypes(EPlayerType.VALUES_HUMAN_FIRST);
 		if (slot == 0) {
-			SettingsManager settingsManager = SettingsManager.getInstance();
-			playerSlot.setPlayerName(settingsManager.getPlayer().getName());
-			playerSlot.setPossibleTypes(new EPlayerType[] { EPlayerType.HUMAN });
+			playerSlot.setPlayerName(connector.getPlayerName());
 			playerSlot.setReadyButtonEnabled(true);
 			playerSlot.setReady(false);
 		} else {
-			playerSlot.setPossibleTypes(new EPlayerType[] {
-					EPlayerType.HUMAN,
-					EPlayerType.AI_VERY_HARD
-			});
-			playerSlot.setPlayerType(EPlayerType.AI_VERY_HARD, false);
+			playerSlot.setPlayerType(EPlayerType.AI_VERY_HARD, true);
 			playerSlot.setReadyButtonEnabled(false);
 			playerSlot.setReady(true);
 		}
 
 		playerSlot.setSlotAndTeams((byte) mapLoader.getMaxPlayers());
-		playerSlot.disableAllInputs();
 		return playerSlot;
 	}
 }

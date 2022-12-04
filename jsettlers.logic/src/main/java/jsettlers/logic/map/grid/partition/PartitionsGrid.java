@@ -15,7 +15,6 @@
 package jsettlers.logic.map.grid.partition;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.BitSet;
@@ -24,8 +23,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import java8.util.Lists;
-import java8.util.Maps;
 import jsettlers.algorithms.interfaces.IContainingProvider;
 import jsettlers.algorithms.partitions.IBlockingProvider;
 import jsettlers.algorithms.partitions.PartitionCalculatorAlgorithm;
@@ -48,11 +45,13 @@ import jsettlers.logic.map.grid.partition.manager.settings.MaterialProductionSet
 import jsettlers.logic.map.grid.partition.PartitionsListingBorderVisitor.BorderPartitionInfo;
 import jsettlers.logic.map.grid.partition.manager.PartitionManager;
 import jsettlers.logic.map.grid.partition.manager.settings.PartitionManagerSettings;
+import jsettlers.logic.movable.MovableManager;
+import jsettlers.logic.movable.interfaces.ILogicMovable;
 import jsettlers.logic.player.Player;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.logic.player.Team;
-
-import static java8.util.stream.StreamSupport.stream;
+import jsettlers.logic.timer.IScheduledTimerable;
+import jsettlers.logic.timer.RescheduleTimer;
 
 /**
  * This class handles the partitions of the map.
@@ -60,8 +59,10 @@ import static java8.util.stream.StreamSupport.stream;
  * @author Andreas Eberle
  * 
  */
-public final class PartitionsGrid implements Serializable {
+public final class PartitionsGrid implements Serializable, IScheduledTimerable {
 	private static final long serialVersionUID = 8919380724171427679L;
+
+	private static final int RESCHEDULE_DELAY = 10000;
 
 	private static final int NUMBER_OF_START_PARTITION_OBJECTS = 3000;
 	private static final float PARTITIONS_EXPAND_FACTOR = 1.5f;
@@ -95,11 +96,12 @@ public final class PartitionsGrid implements Serializable {
 		for (byte playerId = 0; playerId < playerSettings.length; playerId++) {
 			PlayerSetting playerSetting = playerSettings[(int) playerId];
 			if (playerSetting.isAvailable()) {
-				Maps.computeIfAbsent(teams, playerSetting.getTeamId(), Team::new);
+				teams.computeIfAbsent(playerSetting.getTeamId(), Team::new);
 				Team team = teams.get(playerSetting.getTeamId());
 				this.players[playerId] = new Player(playerId, team, (byte) playerSettings.length, playerSetting.getPlayerType(), playerSetting.getCivilisation());
 				team.registerPlayer(this.players[playerId]);
 				this.blockedPartitionsForPlayers[playerId] = createNewPartition(playerId); // create a blocked partition for every player
+				players[playerId].scheduleTasks();
 			}
 		}
 
@@ -107,7 +109,9 @@ public final class PartitionsGrid implements Serializable {
 		this.towers = new byte[width * height];
 
 		// the no player partition (the manager won't be started)
-		this.partitionObjects[NO_PLAYER_PARTITION_ID] = new Partition(NO_PLAYER_PARTITION_ID, (byte) -1, width * height);
+		this.partitionObjects[NO_PLAYER_PARTITION_ID] = new Partition(this, NO_PLAYER_PARTITION_ID, null, width * height);
+
+		RescheduleTimer.add(this, 1);
 	}
 
 	public void initWithPlayerSettings(PlayerSetting[] playerSettings) {
@@ -133,10 +137,6 @@ public final class PartitionsGrid implements Serializable {
 		oos.defaultWriteObject();
 	}
 
-	private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-		ois.defaultReadObject();
-	}
-
 	public boolean isDefaultPartition(short partitionId) {
 		return partitionId == NO_PLAYER_PARTITION_ID;
 	}
@@ -156,6 +156,10 @@ public final class PartitionsGrid implements Serializable {
 	 */
 	public short getRealPartitionIdAt(int x, int y) {
 		return partitions[x + y * width];
+	}
+
+	public Partition[] getAllPartitions() {
+		return partitionObjects;
 	}
 
 	public Partition getPartitionAt(int x, int y) {
@@ -311,8 +315,7 @@ public final class PartitionsGrid implements Serializable {
 		area.stream().forEach((x, y) -> towers[x + y * width] = 0);
 
 		List<Tuple<Integer, PartitionOccupyingTower>> towersInRange = occupyingTowers.getTowersInRange(tower.position, tower.radius, currTower -> currTower.playerId == tower.playerId);
-		stream(towersInRange)
-				.forEach(currTower -> area.stream()
+		towersInRange.forEach(currTower -> area.stream()
 						.filter(currTower.e2.area::contains)
 						.forEach((x, y) -> towers[x + y * width]++));
 	}
@@ -334,7 +337,7 @@ public final class PartitionsGrid implements Serializable {
 					tower.radius, currTower -> currTower.playerId != tower.playerId);
 
 			// sort the towers by their distance to the removed tower
-			Lists.sort(towersInRange, Tuple.getE1Comparator());
+			towersInRange.sort(Tuple.getE1Comparator());
 
 			for (Tuple<Integer, PartitionOccupyingTower> curr : towersInRange) {
 				final PartitionOccupyingTower currTower = curr.e2;
@@ -650,7 +653,7 @@ public final class PartitionsGrid implements Serializable {
 			}
 		}
 
-		Partition newPartitionObject = new Partition(newPartitionId, playerId, players[playerId]);
+		Partition newPartitionObject = new Partition(this, newPartitionId, players[playerId], players[playerId]);
 		newPartitionObject.startManager();
 		partitionObjects[newPartitionId] = newPartitionObject;
 
@@ -721,6 +724,42 @@ public final class PartitionsGrid implements Serializable {
 		}
 
 		return counter;
+	}
+
+	@Override
+	public int timerEvent() {
+		updatePartitionProfessionStats();
+		return RESCHEDULE_DELAY;
+	}
+
+	public void updatePartitionProfessionStats() {
+		for(Partition partition : partitionObjects) {
+			if(partition == null) continue;
+
+			partition.getPartitionSettings().getProfessionSettings().resetCount();
+		}
+
+		for(ILogicMovable movable : MovableManager.getAllMovables()) {
+			if(movable.getMovableType().isPlayerControllable()) continue;
+
+			ShortPoint2D position = movable.getPosition();
+			Partition partition = getPartitionAt(position.x, position.y);
+
+			if(partition.playerId != movable.getPlayer().getPlayerId()) continue;
+
+			partition.getPartitionSettings().getProfessionSettings().increment(movable.getMovableType());
+		}
+
+		for(Partition partition : partitionObjects) {
+			if(partition == null) continue;
+
+			partition.convertWorkers();
+		}
+	}
+
+	@Override
+	public void kill() {
+		throw new IllegalAccessError("the PartitionsGrid itself can't be killed!");
 	}
 
 	public IPartitionData getPartitionDataForManagerAt(int x, int y) {

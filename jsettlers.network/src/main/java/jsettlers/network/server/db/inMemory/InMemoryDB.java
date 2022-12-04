@@ -14,18 +14,15 @@
  *******************************************************************************/
 package jsettlers.network.server.db.inMemory;
 
-import static java8.util.stream.StreamSupport.stream;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import jsettlers.network.server.db.IDBFacade;
 import jsettlers.network.server.match.EPlayerState;
 import jsettlers.network.server.match.Match;
 import jsettlers.network.server.match.Player;
-
-import java8.util.stream.Collectors;
 
 /**
  * This class implements an in memory database.
@@ -73,7 +70,7 @@ public class InMemoryDB implements IDBFacade {
 	@Override
 	public List<Match> getJoinableMatches() {
 		synchronized (matches) {
-			return stream(matches.values()).collect(Collectors.toList());
+			return matches.values().stream().collect(Collectors.toList());
 		}
 	}
 
@@ -81,7 +78,7 @@ public class InMemoryDB implements IDBFacade {
 	public List<Match> getJoinableRunningMatches(Player player) {
 		synchronized (matches) {
 			String playerId = player.getId();
-			return stream(matches.values()).filter(Match::isRunning).filter(match -> match.hasLeftPlayer(playerId)).collect(Collectors.toList());
+			return matches.values().stream().filter(Match::isRunning).filter(match -> match.hasLeftPlayer(playerId)).collect(Collectors.toList());
 		}
 	}
 
@@ -110,7 +107,7 @@ public class InMemoryDB implements IDBFacade {
 	@Override
 	public List<Player> getPlayers(EPlayerState... allowedStates) {
 		synchronized (players) {
-			return stream(players.values()).filter(player -> EPlayerState.isOneOf(player.getState(), allowedStates)).collect(Collectors.toList());
+			return players.values().stream().filter(player -> EPlayerState.isOneOf(player.getState(), allowedStates)).collect(Collectors.toList());
 		}
 	}
 

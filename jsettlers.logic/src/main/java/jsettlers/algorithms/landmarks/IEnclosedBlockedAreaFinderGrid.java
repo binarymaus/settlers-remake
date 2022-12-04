@@ -15,6 +15,7 @@
 package jsettlers.algorithms.landmarks;
 
 import jsettlers.algorithms.traversing.area.IAreaVisitor;
+import jsettlers.common.player.IPlayer;
 
 /**
  * This interface specifies the methods needed by a map that should be handle with the LandmarksCorrectingThread.
@@ -25,7 +26,7 @@ public interface IEnclosedBlockedAreaFinderGrid {
 
 	boolean isPioneerBlockedAndWithoutTowerProtection(int x, int y);
 
-	byte getPlayerIdAt(int x, int y);
+	IPlayer getPlayerAt(int x, int y);
 
 	boolean isInBounds(int x, int y);
 

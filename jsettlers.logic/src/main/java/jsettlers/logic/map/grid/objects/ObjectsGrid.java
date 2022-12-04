@@ -184,6 +184,18 @@ public final class ObjectsGrid implements Serializable {
 		return false;
 	}
 
+	public final ShortPoint2D getNeighboorObjectTypePoint(int x, int y, EMapObjectType... mapObjectTypes) {
+		EDirection[] directions = EDirection.VALUES;
+
+		for (EDirection currDir : directions) {
+			ShortPoint2D currPos = currDir.getNextHexPoint(x, y);
+			if (hasMapObjectType(currPos.x, currPos.y, mapObjectTypes)) {
+				return currPos;
+			}
+		}
+		return null;
+	}
+
 	/**
 	 * Informs towers of the attackable in their search radius..
 	 * 

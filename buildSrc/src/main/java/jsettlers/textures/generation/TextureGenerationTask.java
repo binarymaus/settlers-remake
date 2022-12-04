@@ -37,8 +37,13 @@ public class TextureGenerationTask extends DefaultTask {
 	@TaskAction
 	public void compileTextures() throws IOException {
 		if (generatedSourcesDirectory == null) {
-			throw new RuntimeException("please use generationDirectory=\"...\"");
+			throw new RuntimeException("please use generatedSourcesDirectory=\"...\"");
 		}
+
+		if (generatedResourcesDirectory == null) {
+			throw new RuntimeException("please use generatedResourcesDirectory=\"...\"");
+		}
+
 		if (resourceDirectory == null) {
 			throw new RuntimeException("please use resourceDirectory=\"...\"");
 		}

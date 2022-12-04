@@ -22,6 +22,8 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import jsettlers.common.CommonConstants;
 import jsettlers.common.logging.MilliStopWatch;
 import jsettlers.common.utils.collections.ChangingList;
@@ -44,7 +46,7 @@ import jsettlers.logic.timer.RescheduleTimer;
  * It lists all available maps, and it can be used to add maps to the game.
  * <p>
  * TODO: load maps before they are needed, to decrease startup time.
- * 
+ *
  * @author michael
  * @author Andreas Eberle
  */
@@ -52,7 +54,7 @@ public class MapList implements IMapListerCallable {
 
 	/**
 	 * Gives the currently used map extension for saving a map.
-	 * 
+	 *
 	 * @return
 	 */
 	public static String getMapExtension() {
@@ -127,15 +129,34 @@ public class MapList implements IMapListerCallable {
 		return freshMaps;
 	}
 
+	private static BiConsumer<Consumer<IListedMap>, String> mapDownloader = null;
+
+	public static void setMapDownloader(BiConsumer<Consumer<IListedMap>, String> mapDownloader) {
+		MapList.mapDownloader = mapDownloader;
+	}
+
 	/**
 	 * Gives the {@link MapLoader} for the map with the given id.
-	 * 
+	 *
 	 * @param id
 	 *            The id of the map to be found.
 	 * @return Returns the corresponding {@link MapLoader}<br>
 	 *         or null if no map with the given id has been found.
 	 */
 	public MapLoader getMapById(String id) {
+		MapLoader map = getMapByIdNoDownload(id);
+		if(map != null) return map;
+
+		if(mapDownloader != null) {
+			mapDownloader.accept(this::foundMap, id);
+			return getMapByIdNoDownload(id);
+		}
+
+		return null;
+
+	}
+
+	private MapLoader getMapByIdNoDownload(String id) {
 		ArrayList<MapLoader> maps = new ArrayList<>();
 		maps.addAll(getFreshMaps().getItems());
 		maps.addAll(getSavedMaps().getItems());
@@ -146,7 +167,6 @@ public class MapList implements IMapListerCallable {
 			}
 		}
 		return null;
-
 	}
 
 	public MapLoader getMapByName(String mapName) {

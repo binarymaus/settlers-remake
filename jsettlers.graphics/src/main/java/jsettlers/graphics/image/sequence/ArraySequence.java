@@ -16,7 +16,7 @@ package jsettlers.graphics.image.sequence;
 
 import java.util.Arrays;
 import java.util.Iterator;
-import java8.util.function.Supplier;
+import java.util.function.Supplier;
 
 import jsettlers.graphics.image.Image;
 import jsettlers.graphics.image.NullImage;

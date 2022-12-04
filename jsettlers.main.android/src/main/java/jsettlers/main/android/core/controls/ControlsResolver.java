@@ -62,6 +62,6 @@ public class ControlsResolver {
 	}
 
 	public IInGamePlayer getPlayer() {
-		return controlsAdapter.getInGamePlayer();
+		return controlsAdapter.getPlayer();
 	}
 }

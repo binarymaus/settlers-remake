@@ -20,10 +20,8 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import static java8.util.stream.StreamSupport.stream;
-
 public abstract class UiContentUpdater<T> {
-	private static final int UPDATER_INTERVAL = 1000;
+	private static final int UPDATER_INTERVAL = 100;
 
 	public interface IUiContentReceiver<T> {
 		void update(T data);
@@ -54,7 +52,7 @@ public abstract class UiContentUpdater<T> {
 		}
 		synchronized (listeners) {
 			// noinspection unchecked
-			stream(listeners).forEach(listeners -> listeners.update(currentData));
+			listeners.forEach(listeners -> listeners.update(currentData));
 		}
 	}
 

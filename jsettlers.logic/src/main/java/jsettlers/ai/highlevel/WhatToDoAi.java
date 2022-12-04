@@ -14,17 +14,19 @@
  *******************************************************************************/
 package jsettlers.ai.highlevel;
 
+
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import java8.util.stream.Collectors;
 import jsettlers.ai.army.ArmyGeneral;
-import jsettlers.ai.construction.BestConstructionPositionFinderFactory;
+import jsettlers.ai.construction.ConstructionPositionFinder;
 import jsettlers.ai.economy.EconomyMinister;
 import jsettlers.ai.highlevel.pioneers.PioneerAi;
 import jsettlers.ai.highlevel.pioneers.PioneerGroup;
@@ -34,7 +36,8 @@ import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.landscape.EResourceType;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.common.movable.EMovableType;
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.player.ECivilisation;
+import jsettlers.common.player.IInGamePlayer;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.input.tasks.ConstructBuildingTask;
 import jsettlers.input.tasks.ConvertGuiTask;
@@ -43,53 +46,17 @@ import jsettlers.input.tasks.EGuiAction;
 import jsettlers.input.tasks.MoveToGuiTask;
 import jsettlers.input.tasks.WorkAreaGuiTask;
 import jsettlers.logic.buildings.Building;
-import jsettlers.logic.buildings.military.occupying.OccupyingBuilding;
 import jsettlers.logic.map.grid.MainGrid;
 import jsettlers.logic.map.grid.movable.MovableGrid;
 import jsettlers.logic.movable.interfaces.ILogicMovable;
 import jsettlers.network.client.interfaces.ITaskScheduler;
 
-import static java8.util.stream.StreamSupport.stream;
-import static jsettlers.ai.highlevel.AiBuildingConstants.COAL_MINE_TO_IRON_MINE_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.COAL_MINE_TO_SMITH_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.FARM_TO_BAKER_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.FARM_TO_MILL_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.FARM_TO_PIG_FARM_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.FARM_TO_SLAUGHTER_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.FARM_TO_WATERWORKS_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.IRONMELT_TO_WEAPON_SMITH_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.IRON_MINE_TO_IRONMELT_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.LUMBERJACK_TO_FORESTER_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.LUMBERJACK_TO_SAWMILL_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.WEAPON_SMITH_TO_BARRACKS_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.WINEGROWER_TO_TEMPLE_RATIO;
-import static jsettlers.common.buildings.EBuildingType.BAKER;
-import static jsettlers.common.buildings.EBuildingType.BARRACK;
-import static jsettlers.common.buildings.EBuildingType.BIG_LIVINGHOUSE;
-import static jsettlers.common.buildings.EBuildingType.BIG_TEMPLE;
-import static jsettlers.common.buildings.EBuildingType.COALMINE;
-import static jsettlers.common.buildings.EBuildingType.FARM;
-import static jsettlers.common.buildings.EBuildingType.FORESTER;
-import static jsettlers.common.buildings.EBuildingType.GOLDMELT;
-import static jsettlers.common.buildings.EBuildingType.IRONMELT;
-import static jsettlers.common.buildings.EBuildingType.IRONMINE;
-import static jsettlers.common.buildings.EBuildingType.LUMBERJACK;
-import static jsettlers.common.buildings.EBuildingType.MEDIUM_LIVINGHOUSE;
-import static jsettlers.common.buildings.EBuildingType.MILL;
-import static jsettlers.common.buildings.EBuildingType.PIG_FARM;
-import static jsettlers.common.buildings.EBuildingType.SAWMILL;
-import static jsettlers.common.buildings.EBuildingType.SLAUGHTERHOUSE;
-import static jsettlers.common.buildings.EBuildingType.SMALL_LIVINGHOUSE;
-import static jsettlers.common.buildings.EBuildingType.STOCK;
-import static jsettlers.common.buildings.EBuildingType.STONECUTTER;
-import static jsettlers.common.buildings.EBuildingType.TEMPLE;
-import static jsettlers.common.buildings.EBuildingType.TOWER;
-import static jsettlers.common.buildings.EBuildingType.WATERWORKS;
-import static jsettlers.common.buildings.EBuildingType.WEAPONSMITH;
-import static jsettlers.common.buildings.EBuildingType.WINEGROWER;
+import static jsettlers.ai.highlevel.AiBuildingConstants.*;
+import static jsettlers.common.buildings.EBuildingType.*;
+import static jsettlers.common.material.EMaterialType.GEMS;
 import static jsettlers.common.material.EMaterialType.GOLD;
-import static jsettlers.logic.constants.Constants.TOWER_ATTACKABLE_SEARCH_RADIUS;
-import static jsettlers.logic.constants.Constants.TOWER_SEARCH_SOLDIERS_RADIUS;
+import static jsettlers.common.material.EMaterialType.MEAD;
+import jsettlers.common.action.EMoveToType;
 
 /**
  * This WhatToDoAi is a high level KI. It delegates the decision which building is build next to its economy minister. However this WhatToDoAi takes care against lack of settlers and it builds a
@@ -117,10 +84,11 @@ class WhatToDoAi implements IWhatToDoAi {
 	private final MainGrid mainGrid;
 	private final MovableGrid movableGrid;
 	private final byte playerId;
+	private final IInGamePlayer player;
 	private final ITaskScheduler taskScheduler;
 	private final AiStatistics aiStatistics;
 	private final ArmyGeneral armyGeneral;
-	private final BestConstructionPositionFinderFactory bestConstructionPositionFinderFactory;
+	private final ConstructionPositionFinder.Factory constructionPositionFinderFactory;
 	private final EconomyMinister economyMinister;
 	private final PioneerAi pioneerAi;
 	private boolean isEndGame = false;
@@ -129,19 +97,24 @@ class WhatToDoAi implements IWhatToDoAi {
 	private PioneerGroup broadenerPioneers;
 	private AiPositions.AiPositionFilter[] geologistFilters = new AiPositions.AiPositionFilter[EResourceType.values().length];
 
-	WhatToDoAi(byte playerId, AiStatistics aiStatistics, EconomyMinister economyMinister, ArmyGeneral armyGeneral, MainGrid mainGrid, ITaskScheduler taskScheduler) {
-		this.playerId = playerId;
+	WhatToDoAi(IInGamePlayer player, AiStatistics aiStatistics, EconomyMinister economyMinister, ArmyGeneral armyGeneral, MainGrid mainGrid, ITaskScheduler taskScheduler) {
+		this.player = player;
+		this.playerId = player.getPlayerId();
 		this.mainGrid = mainGrid;
 		this.movableGrid = mainGrid.getMovableGrid();
 		this.taskScheduler = taskScheduler;
 		this.aiStatistics = aiStatistics;
 		this.armyGeneral = armyGeneral;
 		this.economyMinister = economyMinister;
-		this.pioneerAi = new PioneerAi(aiStatistics, playerId);
-		bestConstructionPositionFinderFactory = new BestConstructionPositionFinderFactory();
+		this.pioneerAi = new PioneerAi(aiStatistics, player);
+		constructionPositionFinderFactory = new ConstructionPositionFinder.Factory(
+				mainGrid.getPartitionsGrid().getPlayer(playerId).getCivilisation(),
+				aiStatistics,
+				mainGrid.getConstructionMarksGrid(),
+				playerId);
 		resourcePioneers = new PioneerGroup(RESOURCE_PIONEER_GROUP_COUNT);
 		broadenerPioneers = new PioneerGroup(BROADEN_PIONEER_GROUP_COUNT);
-		List<Integer> allPioneers = stream(aiStatistics.getPositionsOfMovablesWithTypeForPlayer(playerId, EMovableType.PIONEER))
+		List<Integer> allPioneers = aiStatistics.getPositionsOfMovablesWithTypeForPlayer(playerId, EMovableType.PIONEER).stream()
 				.map(pos -> movableGrid.getMovableAt(pos.x, pos.y))
 				.map(ILogicMovable::getID)
 				.collect(Collectors.toList());
@@ -158,7 +131,12 @@ class WhatToDoAi implements IWhatToDoAi {
 	}
 
 	@Override
-	public void applyRules() {
+	public void applyLightRules() {
+		armyGeneral.applyLightRules(new HashSet<>());
+	}
+
+	@Override
+	public void applyHeavyRules() {
 		if (aiStatistics.isAlive(playerId)) {
 			economyMinister.update();
 			isEndGame = economyMinister.isEndGame();
@@ -166,11 +144,23 @@ class WhatToDoAi implements IWhatToDoAi {
 			destroyBuildings();
 			commandPioneers();
 			buildBuildings();
-			Set<Integer> soldiersWithOrders = occupyMilitaryBuildings();
-			armyGeneral.levyUnits();
-			armyGeneral.commandTroops(soldiersWithOrders);
+			Set<Integer> soldiersWithOrders = new HashSet<>();
+			armyGeneral.applyHeavyRules(soldiersWithOrders);
 			sendGeologists();
 		}
+	}
+
+	private List<EResourceType> getNeededResources() {
+		List<EResourceType> neededResources = new ArrayList<>();
+		neededResources.add(EResourceType.COAL);
+		neededResources.add(EResourceType.IRONORE);
+		neededResources.add(EResourceType.GOLDORE);
+
+		if(player.getCivilisation() == ECivilisation.EGYPTIAN) {
+			neededResources.add(EResourceType.GEMSTONE);
+		}
+
+		return neededResources;
 	}
 
 	private void sendGeologists() {
@@ -178,20 +168,27 @@ class WhatToDoAi implements IWhatToDoAi {
 		List<ShortPoint2D> bearersPositions = aiStatistics.getPositionsOfMovablesWithTypeForPlayer(playerId, EMovableType.BEARER);
 		int bearersCount = bearersPositions.size();
 		int stoneCutterCount = aiStatistics.getNumberOfBuildingTypeForPlayer(STONECUTTER, playerId);
-		if (geologistsCount == 0 && stoneCutterCount >= 1 && bearersCount - 3 > MINIMUM_NUMBER_OF_BEARERS) {
-			ILogicMovable coalGeologist = getBearerAt(bearersPositions.get(0));
-			ILogicMovable ironGeologist = getBearerAt(bearersPositions.get(1));
-			ILogicMovable goldGeologist = getBearerAt(bearersPositions.get(2));
 
-			List<Integer> targetGeologists = new ArrayList<>();
-			targetGeologists.add(coalGeologist.getID());
-			targetGeologists.add(ironGeologist.getID());
-			targetGeologists.add(goldGeologist.getID());
-			taskScheduler.scheduleTask(new ConvertGuiTask(playerId, targetGeologists, EMovableType.GEOLOGIST));
+		List<EResourceType> neededResources = getNeededResources();
 
-			sendGeologistToNearest(coalGeologist, EResourceType.COAL);
-			sendGeologistToNearest(ironGeologist, EResourceType.IRONORE);
-			sendGeologistToNearest(goldGeologist, EResourceType.GOLDORE);
+		if (geologistsCount == 0 && stoneCutterCount >= 1 && bearersCount - neededResources.size() > MINIMUM_NUMBER_OF_BEARERS) {
+			Map<EResourceType, ILogicMovable> targetGeologists = new EnumMap<>(EResourceType.class);
+			List<Integer> convertBearers = new ArrayList<>();
+
+			int bearerIndex = 0;
+			for(EResourceType neededResource : neededResources) {
+				ILogicMovable targetBearer = getBearerAt(bearersPositions.get(bearerIndex));
+				targetGeologists.put(neededResource, targetBearer);
+
+				convertBearers.add(targetBearer.getID());
+				bearerIndex++;
+			}
+
+			taskScheduler.scheduleTask(new ConvertGuiTask(playerId, convertBearers, EMovableType.GEOLOGIST));
+
+			for(Map.Entry<EResourceType, ILogicMovable> targetGeologist : targetGeologists.entrySet()) {
+				sendGeologistToNearest(targetGeologist.getValue(), targetGeologist.getKey());
+			}
 
 		}
 	}
@@ -204,7 +201,7 @@ class WhatToDoAi implements IWhatToDoAi {
 					aiStatistics.getPositionOfPartition(playerId), resourceType, Integer.MAX_VALUE, geologistFilters[resourceType.ordinal]);
 		}
 		if (resourcePoint != null) {
-			sendMovableTo(geologist, resourcePoint);
+			sendMovableTo(geologist, resourcePoint, EMoveToType.DEFAULT);
 		}
 	}
 
@@ -212,38 +209,22 @@ class WhatToDoAi implements IWhatToDoAi {
 		return mainGrid.getMovableGrid().getMovableAt(point.x, point.y);
 	}
 
-	private Set<Integer> occupyMilitaryBuildings() {
-		Set<Integer> soldiersWithOrders = new HashSet<>();
-
-		for (ShortPoint2D militaryBuildingPosition : aiStatistics.getBuildingPositionsOfTypesForPlayer(EBuildingType.MILITARY_BUILDINGS, playerId)) {
-			OccupyingBuilding militaryBuilding = (OccupyingBuilding) aiStatistics.getBuildingAt(militaryBuildingPosition);
-			if (!militaryBuilding.isOccupied()) {
-				ShortPoint2D door = militaryBuilding.getDoor();
-				IMovable soldier = aiStatistics.getNearestSwordsmanOf(door, playerId);
-				if (soldier != null && militaryBuilding.getPosition().getOnGridDistTo(soldier.getPosition()) > TOWER_SEARCH_SOLDIERS_RADIUS) {
-					soldiersWithOrders.add(soldier.getID());
-					sendMovableTo(soldier, door);
-				}
-			}
-		}
-
-		return soldiersWithOrders;
-	}
-
-	private void sendMovableTo(IMovable movable, ShortPoint2D target) {
+	private void sendMovableTo(ILogicMovable movable, ShortPoint2D target, EMoveToType moveToType) {
 		if (movable != null) {
-			taskScheduler.scheduleTask(new MoveToGuiTask(playerId, target, Collections.singletonList(movable.getID())));
+			taskScheduler.scheduleTask(new MoveToGuiTask(playerId, target, Collections.singletonList(movable.getID()), moveToType));
 		}
 	}
 
 	private void destroyBuildings() {
+		int stonecutterWorkRadius = STONECUTTER.getVariant(player.getCivilisation()).getWorkRadius();
+
 		// destroy stonecutters or set their work areas
 		for (ShortPoint2D stoneCutterPosition : aiStatistics.getBuildingPositionsOfTypeForPlayer(STONECUTTER, playerId)) {
 			if (aiStatistics.getBuildingAt(stoneCutterPosition).cannotWork()) {
 				int numberOfStoneCutters = aiStatistics.getNumberOfBuildingTypeForPlayer(STONECUTTER, playerId);
 
 				ShortPoint2D nearestStone = aiStatistics.getStonesForPlayer(playerId)
-						.getNearestPoint(stoneCutterPosition, STONECUTTER.getWorkRadius() * MAXIMUM_STONECUTTER_WORK_RADIUS_FACTOR, null);
+						.getNearestPoint(stoneCutterPosition, stonecutterWorkRadius * MAXIMUM_STONECUTTER_WORK_RADIUS_FACTOR, null);
 				if (nearestStone != null && numberOfStoneCutters < economyMinister.getMidGameNumberOfStoneCutters()) {
 					taskScheduler.scheduleTask(new WorkAreaGuiTask(EGuiAction.SET_WORK_AREA, playerId, nearestStone, stoneCutterPosition));
 				} else {
@@ -253,12 +234,11 @@ class WhatToDoAi implements IWhatToDoAi {
 			}
 		}
 
+		// TODO set work area of rice farm
+
 		// destroy livinghouses
 		if (economyMinister.automaticLivingHousesEnabled()) {
-			int numberOfFreeBeds = aiStatistics.getNumberOfBuildingTypeForPlayer(EBuildingType.SMALL_LIVINGHOUSE, playerId)
-					* NUMBER_OF_SMALL_LIVING_HOUSE_BEDS
-					+ aiStatistics.getNumberOfBuildingTypeForPlayer(EBuildingType.MEDIUM_LIVINGHOUSE, playerId) * NUMBER_OF_MEDIUM_LIVING_HOUSE_BEDS
-					+ aiStatistics.getNumberOfBuildingTypeForPlayer(EBuildingType.BIG_LIVINGHOUSE, playerId) * NUMBER_OF_BIG_LIVING_HOUSE_BEDS
+			int numberOfFreeBeds = player.getBedInformation().getTotalBedAmount()
 					- aiStatistics.getPositionsOfMovablesWithTypeForPlayer(playerId, EMovableType.BEARER).size();
 			if (numberOfFreeBeds >= NUMBER_OF_SMALL_LIVING_HOUSE_BEDS + 1 && !destroyLivingHouse(SMALL_LIVINGHOUSE)) {
 				if (numberOfFreeBeds >= NUMBER_OF_MEDIUM_LIVING_HOUSE_BEDS + 1 && !destroyLivingHouse(MEDIUM_LIVINGHOUSE)) {
@@ -278,7 +258,7 @@ class WhatToDoAi implements IWhatToDoAi {
 				}
 			}
 
-			stream(aiStatistics.getBuildingPositionsOfTypeForPlayer(LUMBERJACK, playerId))
+			aiStatistics.getBuildingPositionsOfTypeForPlayer(LUMBERJACK, playerId).stream()
 					.filter(lumberJackPosition -> aiStatistics.getBuildingAt(lumberJackPosition).cannotWork())
 					.forEach(lumberJackPosition -> taskScheduler.scheduleTask(new SimpleBuildingGuiTask(EGuiAction.DESTROY_BUILDING, playerId, lumberJackPosition)));
 
@@ -338,9 +318,9 @@ class WhatToDoAi implements IWhatToDoAi {
 			return false;
 		}
 
-		ShortPoint2D position = bestConstructionPositionFinderFactory
+		ShortPoint2D position = constructionPositionFinderFactory
 				.getBorderDefenceConstructionPosition(threatenedBorder)
-				.findBestConstructionPosition(aiStatistics, mainGrid.getConstructionMarksGrid(), playerId);
+				.findBestConstructionPosition();
 		if (position != null) {
 			taskScheduler.scheduleTask(new ConstructBuildingTask(EGuiAction.BUILD, playerId, position, TOWER));
 			sendSwordsmenToTower(position);
@@ -350,20 +330,29 @@ class WhatToDoAi implements IWhatToDoAi {
 	}
 
 	private void sendSwordsmenToTower(ShortPoint2D position) {
-		IMovable soldier = aiStatistics.getNearestSwordsmanOf(position, playerId);
+		ILogicMovable soldier = aiStatistics.getNearestSwordsmanOf(position, playerId);
 		if (soldier != null) {
-			sendMovableTo(soldier, position);
+			sendMovableTo(soldier, position, EMoveToType.DEFAULT);
 		}
 	}
 
 	private boolean buildStock() {
-		if (aiStatistics.getTotalNumberOfBuildingTypeForPlayer(GOLDMELT, playerId) < 1) {
+		int goldProducers = 0;
+		goldProducers += aiStatistics.getTotalNumberOfBuildingTypeForPlayer(GOLDMELT, playerId);
+		goldProducers += aiStatistics.getTotalNumberOfBuildingTypeForPlayer(GEMSMINE, playerId);
+		if (goldProducers < 1) {
 			return false;
 		}
+
 		int stockCount = aiStatistics.getTotalNumberOfBuildingTypeForPlayer(STOCK, playerId);
 		int goldCount = aiStatistics.getNumberOfMaterialTypeForPlayer(GOLD, playerId);
+		int gemsCount = aiStatistics.getNumberOfMaterialTypeForPlayer(GEMS, playerId);
+		int totalStore = goldCount;
+		if(player.getCivilisation() == ECivilisation.EGYPTIAN) {
+			totalStore += gemsCount;
+		}
 
-		return stockCount * 6 * 8 - 32 < goldCount && construct(STOCK);
+		return stockCount * 6 * 8 - 32 < totalStore && construct(STOCK);
 	}
 
 	private void buildEconomy() {
@@ -394,17 +383,23 @@ class WhatToDoAi implements IWhatToDoAi {
 		case BAKER:
 			return ratioFits(FARM, FARM_TO_BAKER_RATIO, BAKER);
 		case WATERWORKS:
-			return ratioFits(FARM, FARM_TO_WATERWORKS_RATIO, WATERWORKS);
+			return ratioFits(FARM, FARM_TO_WATERWORKS_RATIO, WATERWORKS) || ratioFits(MEAD_BREWERY, MEAD_BREWERY_TO_WATERWORKS_RATIO,WATERWORKS);
 		case SLAUGHTERHOUSE:
 			return ratioFits(FARM, FARM_TO_SLAUGHTER_RATIO, SLAUGHTERHOUSE);
 		case PIG_FARM:
 			return ratioFits(FARM, FARM_TO_PIG_FARM_RATIO, PIG_FARM);
 		case TEMPLE:
-			return ratioFits(WINEGROWER, WINEGROWER_TO_TEMPLE_RATIO, TEMPLE);
+			return ratioFits(player.getCivilisation().getMannaBuilding(), MANNA_BUILDING_TO_TEMPLE_RATIO, TEMPLE);
+		case BREWERY:
+			return aiStatistics.getNumberOfBuildingTypeForPlayer(EBuildingType.FARM, playerId) > 0;
 		case SAWMILL:
 			return ratioFits(LUMBERJACK, LUMBERJACK_TO_SAWMILL_RATIO, SAWMILL);
 		case FORESTER:
 			return ratioFits(LUMBERJACK, LUMBERJACK_TO_FORESTER_RATIO, FORESTER);
+		case DISTILLERY:
+			return ratioFits(RICE_FARM, RICE_FARM_TO_DISTILLERY_RATIO, DISTILLERY);
+		case MEAD_BREWERY:
+			return ratioFits(BEEKEEPING, BEEKEEPING_TO_MEAD_BREWERY_RATIO, MEAD_BREWERY);
 		default:
 			return true;
 		}
@@ -447,14 +442,14 @@ class WhatToDoAi implements IWhatToDoAi {
 		resourcePioneers.clear();
 		List<ShortPoint2D> pioneers = aiStatistics.getPositionsOfMovablesWithTypeForPlayer(playerId, EMovableType.PIONEER);
 		if (!pioneers.isEmpty()) {
-			List<Integer> pioneerIds = stream(pioneers)
+			List<Integer> pioneerIds = pioneers.stream()
 					.limit(numberOfPioneers)
 					.map(pioneerPosition -> mainGrid.getMovableGrid().getMovableAt(pioneerPosition.x, pioneerPosition.y).getID())
 					.collect(Collectors.toList());
 			taskScheduler.scheduleTask(new ConvertGuiTask(playerId, pioneerIds, EMovableType.BEARER));
 			if (numberOfPioneers == Integer.MAX_VALUE) {
 				// pioneers which can not be converted shall walk into player's land to be converted the next tic
-				taskScheduler.scheduleTask(new MoveToGuiTask(playerId, aiStatistics.getPositionOfPartition(playerId), pioneerIds));
+				taskScheduler.scheduleTask(new MoveToGuiTask(playerId, aiStatistics.getPositionOfPartition(playerId), pioneerIds, EMoveToType.FORCED));
 			}
 		}
 	}
@@ -477,7 +472,7 @@ class WhatToDoAi implements IWhatToDoAi {
 			PioneerGroup pioneersWithNoAction = broadenerPioneers.getPioneersWithNoAction();
 			ShortPoint2D broadenTarget = pioneerAi.findBroadenTarget();
 			if (broadenTarget != null) {
-				taskScheduler.scheduleTask(new MoveToGuiTask(playerId, broadenTarget, pioneersWithNoAction.getPioneerIds()));
+				taskScheduler.scheduleTask(new MoveToGuiTask(playerId, broadenTarget, pioneersWithNoAction.getPioneerIds(), EMoveToType.DEFAULT));
 			}
 		}
 	}
@@ -486,7 +481,7 @@ class WhatToDoAi implements IWhatToDoAi {
 		if (resourcePioneers.isNotEmpty()) {
 			ShortPoint2D resourceTarget = pioneerAi.findResourceTarget();
 			if (resourceTarget != null) {
-				taskScheduler.scheduleTask(new MoveToGuiTask(playerId, resourceTarget, resourcePioneers.getPioneerIds()));
+				taskScheduler.scheduleTask(new MoveToGuiTask(playerId, resourceTarget, resourcePioneers.getPioneerIds(), EMoveToType.DEFAULT));
 			}
 		}
 	}
@@ -527,9 +522,9 @@ class WhatToDoAi implements IWhatToDoAi {
 		if (failedConstructingBuildings.size() > 1 && failedConstructingBuildings.contains(type)) {
 			return false;
 		}
-		ShortPoint2D position = bestConstructionPositionFinderFactory
+		ShortPoint2D position = constructionPositionFinderFactory
 				.getBestConstructionPositionFinderFor(type)
-				.findBestConstructionPosition(aiStatistics, mainGrid.getConstructionMarksGrid(), playerId);
+				.findBestConstructionPosition();
 		if (position != null) {
 			taskScheduler.scheduleTask(new ConstructBuildingTask(EGuiAction.BUILD, playerId, position, type));
 			if (type.isMilitaryBuilding()) {

@@ -1,5 +1,11 @@
 apply plugin: 'com.android.library'
 
+import jsettlers.shaders.compile.ShaderCompilationTask
+
+def shaderDefinitionDir = 'src/main/glsl/'
+def shaderJavaOutputDir = 'src/generated/java'
+def shaderResOutputDir = 'src/generated/resources'
+
 android {
     compileSdkVersion rootProject.ext.androidCompileSdkVersion
     buildToolsVersion rootProject.ext.androidBuildToolsVersion
@@ -7,6 +13,8 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.androidMinSdkVersion
         targetSdkVersion rootProject.ext.androidTargetSdkVersion
+        multiDexEnabled true
+
     }
 
     buildTypes {
@@ -20,19 +28,40 @@ android {
         main {
             manifest.srcFile 'AndroidManifest.xml'
             java.srcDirs = ['src/main/java']
-            resources.srcDirs = ['src/main/resources']
+            resources.srcDirs = ['src/main/resources', shaderResOutputDir]
             res.srcDirs = ['src/main/res']
             assets.srcDirs = ['assets']
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        coreLibraryDesugaringEnabled true
+
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 }
 
 dependencies {
     implementation project(':go.graphics')
+
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.1.5'
 }
 
+
+clean {
+    delete file(shaderJavaOutputDir)
+    delete file(shaderResOutputDir)
+}
+
+task compileShaders(type: ShaderCompilationTask) {
+    inputDirectory = file(shaderDefinitionDir).toPath()
+    generatedSourcesDirectory = file(shaderJavaOutputDir).toPath()
+    generatedResourcesDirectory = file(shaderResOutputDir).toPath()
+}
+
+tasks.whenTaskAdded{ task ->
+    if(task.name == "generateDebugResources" || task.name == "generateReleaseResources" || task.name == "processDebugJavaRes" || task.name == "processReleaseJavaRes") {
+        task.dependsOn(compileShaders)
+    }
+}

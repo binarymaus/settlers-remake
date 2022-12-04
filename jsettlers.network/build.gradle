@@ -1,14 +1,24 @@
-apply plugin: 'application'
-
+plugins {
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
+    id 'application'
+}
 mainClassName = 'jsettlers.network.server.DedicatedServerApp'
 
 startScripts {
-    applicationName = "server"
+    applicationName = "jsettlers.network"
 }
 
 jar {
-    baseName = 'DedicatedJSettlersServer'
     manifest {
         attributes 'Main-Class': mainClassName
     }
+}
+
+shadowJar {
+    archiveBaseName = 'DedicatedJSettlersServer'
+    classifier = ''
+}
+
+dependencies {
+    implementation 'com.google.code.gson:gson:2.8.9'
 }

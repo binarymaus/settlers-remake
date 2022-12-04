@@ -52,19 +52,24 @@ public class EmptyDatFile implements DatFileReader {
 		return new ArraySequence<>(new SingleImage[0]);
 	}
 
+
+	@Override
+	public long getOffsetForLandscape(int index) {
+		throw new UnsupportedOperationException();
+	}
+
 	@Override
 	public DatBitmapTranslator<SingleImage> getLandscapeTranslator() {
 		return new LandscapeTranslator(DatFileType.RGB555);
 	}
 
 	@Override
-	public ByteReader getReaderForLandscape(int index) throws IOException {
+	public <T extends Image> long readImageHeader(DatBitmapTranslator<T> translator, ImageMetadata metadata, long offset) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public void generateImageMap(int width, int height, int[] sequences, String id, String name) throws IOException {
+	public <T extends Image> void readCompressedData(DatBitmapTranslator<T> translator, ImageMetadata metadata, ImageArrayProvider array, long offset) {
 		throw new UnsupportedOperationException();
 	}
-
 }

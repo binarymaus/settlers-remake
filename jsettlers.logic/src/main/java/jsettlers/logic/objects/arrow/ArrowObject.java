@@ -17,12 +17,13 @@ package jsettlers.logic.objects.arrow;
 import jsettlers.common.mapobject.EMapObjectType;
 import jsettlers.common.mapobject.IArrowMapObject;
 import jsettlers.common.movable.EDirection;
+import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.utils.MathUtils;
 import jsettlers.logic.objects.ProgressingSoundableObject;
 
 public final class ArrowObject extends ProgressingSoundableObject implements IArrowMapObject {
-	private static final long serialVersionUID = 1702902724559733166L;
+	private static final long serialVersionUID = 1702902724559733167L;
 
 	private static final float SECONDS_PER_TILE = 0.011f;
 	public static final float MIN_DECOMPOSE_DELAY = 60;
@@ -30,18 +31,18 @@ public final class ArrowObject extends ProgressingSoundableObject implements IAr
 	private final short sourceX;
 	private final short sourceY;
 	private final float hitStrength;
-	private final byte shooterPlayerId;
+	private final IPlayer shooterPlayer;
 
 	private final IArrowAttackableGrid grid;
 
-	public ArrowObject(IArrowAttackableGrid grid, ShortPoint2D targetPos, ShortPoint2D shooterPos, byte shooterPlayerId, float hitStrength) {
+	public ArrowObject(IArrowAttackableGrid grid, ShortPoint2D targetPos, ShortPoint2D shooterPos, IPlayer shooterPlayer, float hitStrength) {
 		super(targetPos);
 
 		this.grid = grid;
 		this.sourceX = shooterPos.x;
 		this.sourceY = shooterPos.y;
 		this.hitStrength = hitStrength;
-		this.shooterPlayerId = shooterPlayerId;
+		this.shooterPlayer = shooterPlayer;
 
 		super.setDuration((float) (SECONDS_PER_TILE * MathUtils.hypot(shooterPos.x - targetPos.x, shooterPos.y - targetPos.y)));
 	}
@@ -104,7 +105,7 @@ public final class ArrowObject extends ProgressingSoundableObject implements IAr
 		return new ShortPoint2D(sourceX, sourceY);
 	}
 
-	public byte getShooterPlayerId() {
-		return shooterPlayerId;
+	public IPlayer getShooterPlayer() {
+		return shooterPlayer;
 	}
 }

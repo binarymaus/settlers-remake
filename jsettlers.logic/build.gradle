@@ -2,26 +2,38 @@ apply plugin: 'java'
 
 
 task aiDifficultiesIT(type: Test, dependsOn: testClasses) {
-    include '**/AiDifficultiesIT*'
+	include '**/AiDifficultiesIT*'
 }
 
 task autoReplayIT(type: Test, dependsOn: testClasses) {
-    include '**/AutoReplayIT*'
+	include '**/AutoReplayIT*'
 }
 
 task replayValidationIT(type: Test, dependsOn: testClasses) {
-    include '**/ReplayValidationIT*'
+	include '**/ReplayValidationIT*'
 }
 
 task unitTest(type: Test) {
-    exclude 'jsettlers/integration/**'
+	exclude 'jsettlers/integration/**'
 }
 
 
 dependencies {
-    implementation project(':jsettlers.common')
-    implementation project(':jsettlers.network')
+	implementation project(':go.graphics')
+	implementation project(':jsettlers.common')
+	implementation project(':jsettlers.network')
 
-    testImplementation project(':jsettlers.testutils')
-    testImplementation project(':jsettlers.main.swing')
+	testImplementation project(':jsettlers.testutils')
+	testImplementation project(':jsettlers.main.swing')
+
+	implementation 'javax.xml.bind:jaxb-api:2.3.1'
+}
+
+compileJava {
+	dependsOn tasks.getByPath(":jsettlers.common:copyMainResources")
+}
+
+test {
+	maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+	maxHeapSize = "4G"
 }

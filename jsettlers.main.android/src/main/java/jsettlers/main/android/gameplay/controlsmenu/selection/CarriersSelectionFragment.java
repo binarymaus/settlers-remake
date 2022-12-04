@@ -20,14 +20,18 @@ import org.androidannotations.annotations.Click;
 import org.androidannotations.annotations.EFragment;
 import org.androidannotations.annotations.ViewById;
 
+import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.widget.ImageView;
 
 import jsettlers.common.action.ConvertAction;
 import jsettlers.common.movable.EMovableType;
+import jsettlers.common.player.ECivilisation;
+import jsettlers.graphics.map.draw.ECommonLinkType;
+import jsettlers.graphics.map.draw.ImageLinkMap;
 import jsettlers.main.android.R;
 import jsettlers.main.android.core.controls.ActionControls;
 import jsettlers.main.android.core.controls.ControlsResolver;
-import jsettlers.main.android.core.resources.ImageLinkFactory;
 import jsettlers.main.android.core.resources.OriginalImageProvider;
 
 /**
@@ -49,13 +53,17 @@ public class CarriersSelectionFragment extends SelectionFragment {
 
 	private ActionControls actionControls;
 
-	@AfterViews
-	void setupImageProvider() {
-		OriginalImageProvider.get(ImageLinkFactory.get(EMovableType.PIONEER)).setAsImage(pioneerImageView);
-		OriginalImageProvider.get(ImageLinkFactory.get(EMovableType.GEOLOGIST)).setAsImage(geologistImageView);
-		OriginalImageProvider.get(ImageLinkFactory.get(EMovableType.THIEF)).setAsImage(thiefImageView);
 
+	@Override
+	public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+		super.onActivityCreated(savedInstanceState);
 		actionControls = new ControlsResolver(getActivity()).getActionControls();
+
+		ECivilisation civilisation = getSelection().get(0).getPlayer().getCivilisation();
+
+		OriginalImageProvider.get(ImageLinkMap.get(civilisation, ECommonLinkType.SETTLER_GUI, EMovableType.PIONEER)).setAsImage(pioneerImageView);
+		OriginalImageProvider.get(ImageLinkMap.get(civilisation, ECommonLinkType.SETTLER_GUI, EMovableType.GEOLOGIST)).setAsImage(geologistImageView);
+		OriginalImageProvider.get(ImageLinkMap.get(civilisation, ECommonLinkType.SETTLER_GUI, EMovableType.THIEF)).setAsImage(thiefImageView);
 	}
 
 	@Click(R.id.button_convert_one_pioneer)

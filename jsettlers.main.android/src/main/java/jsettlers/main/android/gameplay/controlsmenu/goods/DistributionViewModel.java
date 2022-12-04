@@ -15,7 +15,7 @@
 
 package jsettlers.main.android.gameplay.controlsmenu.goods;
 
-import static java8.util.J8Arrays.stream;
+import static java.util.Arrays.stream;
 
 import android.app.Activity;
 import android.arch.lifecycle.ViewModel;
@@ -26,6 +26,7 @@ import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.buildings.MaterialsOfBuildings;
 import jsettlers.common.map.partition.IMaterialDistributionSettings;
 import jsettlers.common.material.EMaterialType;
+import jsettlers.common.player.ECivilisation;
 import jsettlers.main.android.core.controls.ActionControls;
 import jsettlers.main.android.core.controls.ControlsResolver;
 import jsettlers.main.android.core.controls.PositionControls;
@@ -35,32 +36,22 @@ import jsettlers.main.android.core.controls.PositionControls;
  */
 
 public class DistributionViewModel extends ViewModel {
-	private static final EMaterialType[] MATERIAL_TYPES_FOR_DISTRIBUTION = new EMaterialType[] {
-			EMaterialType.COAL,
-			EMaterialType.IRON,
-			EMaterialType.PLANK,
-			EMaterialType.CROP,
-			EMaterialType.WATER,
-			EMaterialType.BREAD,
-			EMaterialType.MEAT,
-			EMaterialType.FISH
-	};
 
 	private final PositionControls positionControls;
 	private final ActionControls actionControls;
+	private final ECivilisation civilisation;
 
-	public DistributionViewModel(PositionControls positionControls, ActionControls actionControls) {
+	public DistributionViewModel(PositionControls positionControls, ActionControls actionControls, ECivilisation civilisation) {
 		this.positionControls = positionControls;
 		this.actionControls = actionControls;
-	}
-
-	public EMaterialType[] getDistributionMaterials() {
-		return MATERIAL_TYPES_FOR_DISTRIBUTION;
+		this.civilisation = civilisation;
 	}
 
 	public DistributionState[] getDistributionStates(EMaterialType materialType) {
+		if(!positionControls.isInPlayerPartition()) return new DistributionState[0];
+
 		IMaterialDistributionSettings materialDistributionSettings = positionControls.getCurrentPartitionData().getPartitionSettings().getDistributionSettings(materialType);
-		EBuildingType[] buildingsForMaterial = MaterialsOfBuildings.getBuildingTypesRequestingMaterial(materialType);
+		EBuildingType[] buildingsForMaterial = MaterialsOfBuildings.getBuildingTypesRequestingMaterial(materialType, civilisation);
 
 		return stream(buildingsForMaterial)
 				.map(buildingType -> new DistributionState(buildingType, materialDistributionSettings))
@@ -76,9 +67,11 @@ public class DistributionViewModel extends ViewModel {
 	 */
 	public static class Factory implements ViewModelProvider.Factory {
 		private final ControlsResolver controlsResolver;
+		private final ECivilisation civilisation;
 
-		public Factory(Activity activity) {
+		public Factory(Activity activity, ECivilisation civilisation) {
 			this.controlsResolver = new ControlsResolver(activity);
+			this.civilisation = civilisation;
 		}
 
 		@Override
@@ -86,7 +79,8 @@ public class DistributionViewModel extends ViewModel {
 			if (modelClass == DistributionViewModel.class) {
 				return (T) new DistributionViewModel(
 						controlsResolver.getPositionControls(),
-						controlsResolver.getActionControls());
+						controlsResolver.getActionControls(),
+						civilisation);
 			}
 			throw new RuntimeException("DistributionViewModel.Factory doesn't know how to create a: " + modelClass.toString());
 		}

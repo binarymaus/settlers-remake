@@ -25,6 +25,7 @@ import jsettlers.common.mapobject.EMapObjectType;
 import jsettlers.common.mapobject.IAttackableTowerMapObject;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.common.material.ESearchType;
+import jsettlers.common.player.ECivilisation;
 import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.RelativePoint;
 import jsettlers.common.position.ShortPoint2D;
@@ -32,18 +33,21 @@ import jsettlers.logic.buildings.stack.IStackSizeSupplier;
 import jsettlers.logic.constants.Constants;
 import jsettlers.logic.constants.MatchConstants;
 import jsettlers.logic.movable.interfaces.IInformable;
+import jsettlers.logic.objects.BurningTree;
 import jsettlers.logic.objects.DonkeyMapObject;
+import jsettlers.logic.objects.HiveObject;
 import jsettlers.logic.objects.PigObject;
 import jsettlers.logic.objects.RessourceSignMapObject;
 import jsettlers.logic.objects.SelfDeletingMapObject;
 import jsettlers.logic.objects.SoundableSelfDeletingObject;
 import jsettlers.logic.objects.StandardMapObject;
-import jsettlers.logic.objects.WineBowlMapObject;
+import jsettlers.logic.objects.MannaBowlMapObject;
 import jsettlers.logic.objects.arrow.ArrowObject;
 import jsettlers.logic.objects.building.BuildingWorkAreaMarkObject;
 import jsettlers.logic.objects.building.ConstructionMarkObject;
 import jsettlers.logic.objects.building.InformableMapObject;
 import jsettlers.logic.objects.growing.Corn;
+import jsettlers.logic.objects.growing.Rice;
 import jsettlers.logic.objects.growing.Wine;
 import jsettlers.logic.objects.growing.tree.AdultTree;
 import jsettlers.logic.objects.growing.tree.Tree;
@@ -53,7 +57,7 @@ import jsettlers.logic.player.Player;
 import jsettlers.logic.timer.IScheduledTimerable;
 import jsettlers.logic.timer.RescheduleTimer;
 
-import java8.util.Optional;
+import java.util.Optional;
 
 /**
  * This class manages the MapObjects on the grid. It handles timed events like growth interrupts of a tree or deletion of arrows.
@@ -105,26 +109,40 @@ public final class MapObjectsManager implements IScheduledTimerable, Serializabl
 		killed = true;
 	}
 
-	public boolean executeSearchType(ShortPoint2D pos, ESearchType type) {
+	public boolean executeSearchType(ShortPoint2D pos, ESearchType type, float timeMod) {
 		switch (type) {
+		case BURNABLE_TREE:
+			return burnTree(pos);
 		case PLANTABLE_TREE:
-			return plantTree(new ShortPoint2D(pos.x, pos.y + 1));
+			return plantTree(new ShortPoint2D(pos.x, pos.y + 1), timeMod);
 		case CUTTABLE_TREE:
 			return cutTree(pos);
 
+		case SUMMON_STONE:
+			return summonStone(pos);
 		case CUTTABLE_STONE:
 			cutStone(pos);
 			return true;
 
 		case PLANTABLE_CORN:
-			return plantCorn(pos);
+			return plantCorn(pos, timeMod);
 		case CUTTABLE_CORN:
 			return cutCorn(pos);
 
 		case PLANTABLE_WINE:
-			return plantWine(pos);
+			return plantWine(pos, timeMod);
 		case HARVESTABLE_WINE:
 			return harvestWine(pos);
+
+		case PLANTABLE_RICE:
+			return plantRice(pos, timeMod);
+		case HARVESTABLE_RICE:
+			return harvestRice(pos);
+
+		case PLANTABLE_HIVE:
+			return plantHive(pos, timeMod);
+		case HARVESTABLE_HIVE:
+			return harvestHive(pos);
 
 		case RESOURCE_SIGNABLE:
 			return addRessourceSign(pos);
@@ -147,6 +165,12 @@ public final class MapObjectsManager implements IScheduledTimerable, Serializabl
 		return true;
 	}
 
+	private boolean summonStone(ShortPoint2D pos) {
+		// between 1 and MAX_CAPACITY should be left
+		Stone newStone = new Stone(MatchConstants.random().nextInt(1, Stone.MAX_CAPACITY));
+		return addMapObject(pos, newStone);
+	}
+
 	private void cutStone(ShortPoint2D pos) {
 		short x = (short) (pos.x - 1);
 		short y = (short) (pos.y + 1);
@@ -162,10 +186,25 @@ public final class MapObjectsManager implements IScheduledTimerable, Serializabl
 		}
 	}
 
-	private boolean plantTree(ShortPoint2D pos) {
+	private boolean burnTree(ShortPoint2D pos) {
+		if(pos.x < 0 || pos.y < 0 || pos.x >= grid.getWidth() || pos.y >= grid.getHeight()) return false;
+
+		AbstractHexMapObject tree = grid.getMapObject(pos.x, pos.y, EMapObjectType.TREE_ADULT);
+		if(tree == null) return false;
+
+		if(!grid.removeMapObject(pos.x, pos.y, tree)) return false;
+
+		BurningTree burningTree = new BurningTree(pos, this::burnTree);
+		for(int i = 1;i < BurningTree.FIRE_TICK_COUNT; i++) schedule(burningTree, BurningTree.FIRE_TICK_INTERVAL*i, false);
+		schedule(burningTree, BurningTree.FIRE_TICK_INTERVAL*BurningTree.FIRE_TICK_COUNT, true);
+		addMapObject(pos.x, pos.y, burningTree);
+		return true;
+	}
+
+	private boolean plantTree(ShortPoint2D pos, float mod) {
 		Tree tree = new Tree(pos);
 		addMapObject(pos, tree);
-		schedule(tree, Tree.GROWTH_DURATION, false);
+		schedule(tree, Tree.GROWTH_DURATION*mod, false);
 		return true;
 	}
 
@@ -182,12 +221,12 @@ public final class MapObjectsManager implements IScheduledTimerable, Serializabl
 		return false;
 	}
 
-	private boolean plantCorn(ShortPoint2D pos) {
+	private boolean plantCorn(ShortPoint2D pos, float mod) {
 		Corn corn = new Corn(pos);
 		addMapObject(pos, corn);
-		schedule(corn, Corn.GROWTH_DURATION, false);
-		schedule(corn, Corn.GROWTH_DURATION + Corn.DECOMPOSE_DURATION, false);
-		schedule(corn, Corn.GROWTH_DURATION + Corn.DECOMPOSE_DURATION + Corn.REMOVE_DURATION, true);
+		schedule(corn, Corn.GROWTH_DURATION*mod, false);
+		schedule(corn, Corn.GROWTH_DURATION*mod + Corn.DECOMPOSE_DURATION, false);
+		schedule(corn, Corn.GROWTH_DURATION*mod + Corn.DECOMPOSE_DURATION + Corn.REMOVE_DURATION, true);
 		return true;
 	}
 
@@ -204,12 +243,12 @@ public final class MapObjectsManager implements IScheduledTimerable, Serializabl
 		return false;
 	}
 
-	private boolean plantWine(ShortPoint2D pos) {
+	private boolean plantWine(ShortPoint2D pos, float mod) {
 		Wine wine = new Wine(pos);
 		addMapObject(pos, wine);
-		schedule(wine, Wine.GROWTH_DURATION, false);
-		schedule(wine, Wine.GROWTH_DURATION + Wine.DECOMPOSE_DURATION, false);
-		schedule(wine, Wine.GROWTH_DURATION + Wine.DECOMPOSE_DURATION + Wine.REMOVE_DURATION, true);
+		schedule(wine, Wine.GROWTH_DURATION*mod, false);
+		schedule(wine, Wine.GROWTH_DURATION*mod + Wine.DECOMPOSE_DURATION, false);
+		schedule(wine, Wine.GROWTH_DURATION*mod + Wine.DECOMPOSE_DURATION + Wine.REMOVE_DURATION, true);
 		return true;
 	}
 
@@ -226,6 +265,50 @@ public final class MapObjectsManager implements IScheduledTimerable, Serializabl
 		return false;
 	}
 
+	private boolean plantRice(ShortPoint2D pos, float mod) {
+		Rice rice = new Rice(pos);
+		addMapObject(pos, rice);
+		schedule(rice, Rice.GROWTH_DURATION * mod, false);
+		schedule(rice, Rice.GROWTH_DURATION * mod + Rice.DECOMPOSE_DURATION, false);
+		schedule(rice, Rice.GROWTH_DURATION * mod + Rice.DECOMPOSE_DURATION + Rice.REMOVE_DURATION, true);
+		return true;
+	}
+
+	private boolean harvestRice(ShortPoint2D pos) {
+		short x = pos.x;
+		short y = pos.y;
+		if (grid.isInBounds(x, y)) {
+			AbstractObjectsManagerObject rice = (AbstractObjectsManagerObject) grid.getMapObject(x, y, EMapObjectType.RICE_HARVESTABLE);
+			if (rice != null && rice.cutOff()) {
+				schedule(rice, Rice.REMOVE_DURATION, true);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private boolean plantHive(ShortPoint2D pos, float mod) {
+		HiveObject hive = new HiveObject(pos);
+		addMapObject(pos, hive);
+		schedule(hive, hive.getEmptyDuration() * mod, false);
+		schedule(hive, hive.getEmptyDuration() * mod + hive.getGrowingDuration(), false);
+		return true;
+	}
+
+	private boolean harvestHive(ShortPoint2D pos) {
+		short x = pos.x;
+		short y = pos.y;
+		if (grid.isInBounds(x, y)) {
+			HiveObject hive = (HiveObject) grid.getMapObject(x, y, EMapObjectType.HIVE_HARVESTABLE);
+			if (hive != null && hive.cutOff()) {
+				schedule(hive, hive.getEmptyDuration(), false);
+				schedule(hive, hive.getEmptyDuration() + hive.getGrowingDuration(), false);
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public boolean addMapObject(ShortPoint2D pos, AbstractHexMapObject mapObject) {
 		return addMapObject(pos.x, pos.y, mapObject);
 	}
@@ -234,7 +317,7 @@ public final class MapObjectsManager implements IScheduledTimerable, Serializabl
 		for (RelativePoint point : mapObject.getBlockedTiles()) {
 			int currX = point.calculateX(x);
 			int currY = point.calculateY(y);
-			if (!grid.isInBounds(currX, currY) || grid.isBlocked(currX, currY)) {
+			if (!grid.isInBounds(currX, currY) || grid.isProtected(currX, currY)) {
 				return false;
 			}
 		}
@@ -280,8 +363,8 @@ public final class MapObjectsManager implements IScheduledTimerable, Serializabl
 	 * @param hitStrength
 	 * 		Strength of the hit.
 	 */
-	public void addArrowObject(ShortPoint2D attackedPos, ShortPoint2D shooterPos, byte shooterPlayerId, float hitStrength) {
-		ArrowObject arrow = new ArrowObject(grid, attackedPos, shooterPos, shooterPlayerId, hitStrength);
+	public void addArrowObject(ShortPoint2D attackedPos, ShortPoint2D shooterPos, IPlayer shooterPlayer, float hitStrength) {
+		ArrowObject arrow = new ArrowObject(grid, attackedPos, shooterPos, shooterPlayer, hitStrength);
 		addMapObject(attackedPos, arrow);
 		schedule(arrow, arrow.getEndTime(), false);
 		schedule(arrow, arrow.getEndTime() + ArrowObject.MIN_DECOMPOSE_DELAY * (1 + MatchConstants.random().nextFloat()), true);
@@ -295,8 +378,8 @@ public final class MapObjectsManager implements IScheduledTimerable, Serializabl
 		addMapObject(x, y, new BuildingWorkAreaMarkObject(radius));
 	}
 
-	public void addWineBowl(ShortPoint2D pos, IStackSizeSupplier wineStack) {
-		addMapObject(pos, new WineBowlMapObject(wineStack));
+	public void addMannaBowl(ShortPoint2D pos, IStackSizeSupplier wineStack, ECivilisation civilisation) {
+		addMapObject(pos, new MannaBowlMapObject(wineStack, civilisation));
 	}
 
 	public void addSelfDeletingMapObject(ShortPoint2D pos, EMapObjectType mapObjectType, float duration, IPlayer player) {
@@ -313,6 +396,25 @@ public final class MapObjectsManager implements IScheduledTimerable, Serializabl
 		}
 		addMapObject(pos, object);
 		timingQueue.add(new TimeEvent(object, duration, true));
+	}
+
+	public void playHealAnimation(ShortPoint2D point, int sound, int animation, float duration, Player player) {
+		SelfDeletingMapObject object = new SpecializedSoundableSelfDeletingObject(point, sound, animation, duration, player);
+		addMapObject(point, object);
+		timingQueue.add(new TimeEvent(object, duration, true));
+	}
+
+	public void addSelfDeletingMapObject(ShortPoint2D point, int sound, int animation, float duration, Player player) {
+		SelfDeletingMapObject object = new SpecializedSoundableSelfDeletingObject(point, sound, animation, duration, player);
+		addMapObject(point, object);
+		timingQueue.add(new TimeEvent(object, duration, true));
+	}
+
+	public void addEyeMapObject(ShortPoint2D position, short radius, float duration, Player player) {
+		EyeMapObject eye = new EyeMapObject(position, duration, radius, player);
+		addMapObject(position, eye);
+		timingQueue.add(new TimeEvent(eye, 0, false));
+		timingQueue.add(new TimeEvent(eye, duration, false));
 	}
 
 	public void setConstructionMarking(int x, int y, byte value) {
@@ -445,6 +547,10 @@ public final class MapObjectsManager implements IScheduledTimerable, Serializabl
 		return popMaterialTypeAt(x, y, materialType) != null;
 	}
 
+	public final EMaterialType popMaterial(short x, short y) {
+		return popMaterialTypeAt(x, y, null);
+	}
+
 	private EMaterialType popMaterialTypeAt(short x, short y, EMaterialType materialType) {
 		StackMapObject stackObject = getStackAtPosition(x, y, materialType);
 
@@ -492,10 +598,6 @@ public final class MapObjectsManager implements IScheduledTimerable, Serializabl
 		}
 
 		return false;
-	}
-
-	public final EMaterialType stealMaterialAt(short x, short y) {
-		return popMaterialTypeAt(x, y, null);
 	}
 
 	private StackMapObject getStackAtPosition(int x, int y, EMaterialType materialType) {

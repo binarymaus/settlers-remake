@@ -23,6 +23,7 @@ import jsettlers.common.position.ShortPoint2D;
  * Created by Rudolf Polzer
  */
 public class DockPosition implements Serializable {
+	private static final long serialVersionUID = 8348359215701874316L;
 	private final ShortPoint2D coastPosition;
 	private final EDirection direction;
 

@@ -18,7 +18,7 @@ package jsettlers.graphics.map;
  * @author Andreas Eberle
  */
 public enum ETextDrawPosition {
-	TOP_LEFT,
-	TOP_RIGHT,
+	MOBILE,
+	DESKTOP,
 	NONE
 }

@@ -19,6 +19,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 
+import java.util.Objects;
 import jsettlers.network.infrastructure.channel.packet.Packet;
 import jsettlers.network.server.match.Match;
 
@@ -33,16 +34,18 @@ public class MatchInfoPacket extends Packet {
 	private int maxPlayers;
 	private MapInfoPacket mapInfo;
 	private PlayerInfoPacket[] players;
+	private SlotInfoPacket[] slots;
 
 	public MatchInfoPacket() {
 	}
 
-	public MatchInfoPacket(String id, String matchName, int maxPlayers, MapInfoPacket mapInfo, PlayerInfoPacket[] players) {
+	public MatchInfoPacket(String id, String matchName, int maxPlayers, MapInfoPacket mapInfo, PlayerInfoPacket[] players, SlotInfoPacket[] slots) {
 		this.id = id;
 		this.matchName = matchName;
 		this.maxPlayers = maxPlayers;
 		this.mapInfo = mapInfo;
 		this.players = players;
+		this.slots = slots;
 	}
 
 	public MatchInfoPacket(Match match) {
@@ -52,6 +55,7 @@ public class MatchInfoPacket extends Packet {
 		maxPlayers = match.getMaxPlayers();
 		mapInfo = match.getMap();
 		players = match.getPlayerInfos();
+		slots = match.getSlotInfos();
 	}
 
 	@Override
@@ -66,6 +70,12 @@ public class MatchInfoPacket extends Packet {
 		for (PlayerInfoPacket curr : players) {
 			curr.serialize(dos);
 		}
+
+		SlotInfoPacket[] slots = this.slots;
+		dos.writeInt(slots.length);
+		for(SlotInfoPacket curr : slots) {
+			curr.serialize(dos);
+		}
 	}
 
 	@Override
@@ -76,14 +86,24 @@ public class MatchInfoPacket extends Packet {
 		mapInfo = new MapInfoPacket();
 		mapInfo.deserialize(dis);
 
-		int length = dis.readInt();
-		PlayerInfoPacket[] players = new PlayerInfoPacket[length];
-		for (int i = 0; i < length; i++) {
+		int playersLength = dis.readInt();
+		PlayerInfoPacket[] players = new PlayerInfoPacket[playersLength];
+		for (int i = 0; i < playersLength; i++) {
 			PlayerInfoPacket curr = new PlayerInfoPacket();
 			curr.deserialize(dis);
 			players[i] = curr;
 		}
 		this.players = players;
+
+		int slotsLength = dis.readInt();
+		SlotInfoPacket[] slots = new SlotInfoPacket[slotsLength];
+		for (int i = 0; i < slotsLength; i++) {
+			SlotInfoPacket curr = new SlotInfoPacket();
+			curr.deserialize(dis);
+			slots[i] = curr;
+		}
+
+		this.slots = slots;
 	}
 
 	public String getId() {
@@ -102,54 +122,33 @@ public class MatchInfoPacket extends Packet {
 		return players;
 	}
 
+	public SlotInfoPacket[] getSlots() {
+		return slots;
+	}
+
 	public int getMaxPlayers() {
 		return maxPlayers;
 	}
 
 	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((mapInfo == null) ? 0 : mapInfo.hashCode());
-		result = prime * result + ((matchName == null) ? 0 : matchName.hashCode());
-		result = prime * result + maxPlayers;
-		result = prime * result + Arrays.hashCode(players);
-		return result;
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		MatchInfoPacket that = (MatchInfoPacket) o;
+		return maxPlayers == that.maxPlayers && Objects.equals(id, that.id) && Objects.equals(matchName, that.matchName) && Objects.equals(mapInfo, that.mapInfo) && Arrays.equals(players, that.players) && Arrays.equals(slots, that.slots);
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		MatchInfoPacket other = (MatchInfoPacket) obj;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (mapInfo == null) {
-			if (other.mapInfo != null)
-				return false;
-		} else if (!mapInfo.equals(other.mapInfo))
-			return false;
-		if (matchName == null) {
-			if (other.matchName != null)
-				return false;
-		} else if (!matchName.equals(other.matchName))
-			return false;
-		if (maxPlayers != other.maxPlayers)
-			return false;
-		return Arrays.equals(players, other.players);
+	public int hashCode() {
+		int result = Objects.hash(id, matchName, maxPlayers, mapInfo);
+		result = 31 * result + Arrays.hashCode(players);
+		result = 31 * result + Arrays.hashCode(slots);
+		return result;
 	}
 
 	@Override
 	public String toString() {
 		return "MatchInfoPacket [id=" + id + ", matchName=" + matchName + ", maxPlayers=" + maxPlayers + ", mapInfo=" + mapInfo + ", players="
-				+ Arrays.toString(players) + "]";
+				+ Arrays.toString(players) + ", slots=" + Arrays.toString(slots) + "]";
 	}
 }

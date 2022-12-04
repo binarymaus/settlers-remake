@@ -115,7 +115,14 @@ public class PacketSerializationTest {
 				new PlayerInfoPacket("1dddsfsfd", "787(/(hdsfjhk2", true),
 				new PlayerInfoPacket("2lkkjsdofij", "0sdfsddfsfgw32dsfjhk2", false)
 		};
-		return new MatchInfoPacket("id28948298fedkj", "KHDHifuh(&/%T", (byte) 3, mapInfo, players);
+		SlotInfoPacket[] slots = new SlotInfoPacket[] {
+			new SlotInfoPacket((byte) 1, (byte) 42, (byte) 3, (byte) 4),
+				new SlotInfoPacket((byte) 3, (byte) 42, (byte) 3, (byte) 0),
+				new SlotInfoPacket((byte) 4, (byte) 42, (byte) 3, (byte) 3),
+				new SlotInfoPacket((byte) 4, (byte) 42, (byte) 3, (byte) 1),
+				new SlotInfoPacket((byte) 0, (byte) 42, (byte) 3, (byte) 2),
+		};
+		return new MatchInfoPacket("id28948298fedkj", "KHDHifuh(&/%T", (byte) 3, mapInfo, players, slots);
 	}
 
 	private static <T extends Packet> Object d(Class<T> classType) {

@@ -27,7 +27,9 @@ import jsettlers.common.mapobject.IMapObject;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.common.movable.EDirection;
 import jsettlers.common.movable.EMovableType;
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.movable.IGraphicsMovable;
+import jsettlers.common.player.ECivilisation;
+import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.ShortPoint2D;
 
 import java.util.ArrayList;
@@ -158,11 +160,11 @@ public class TestMap implements IGraphicsGrid {
 			TestTile tile = getTile(cx, cy);
 			TestBuilding building = null;
 			if (tile.getLandscapeType() == ELandscapeType.GRASS) {
-				building = new TestBuilding(tile.getPosition(), EBuildingType.LUMBERJACK);
+				building = new TestBuilding(tile.getPosition(), EBuildingType.LUMBERJACK.getVariant(ECivilisation.ROMAN));
 			} else if (tile.getLandscapeType() == ELandscapeType.MOUNTAIN) {
-				building = new TestBuilding(tile.getPosition(), EBuildingType.COALMINE);
+				building = new TestBuilding(tile.getPosition(), EBuildingType.COALMINE.getVariant(ECivilisation.ROMAN));
 			} else if (tile.getLandscapeType() == ELandscapeType.SAND) {
-				building = new TestBuilding(tile.getPosition(), EBuildingType.FISHER);
+				building = new TestBuilding(tile.getPosition(), EBuildingType.FISHER.getVariant(ECivilisation.ROMAN));
 			}
 			if (building != null) {
 				this.buildings.add(building);
@@ -450,17 +452,17 @@ public class TestMap implements IGraphicsGrid {
 		return getTile((int) x, (int) y);
 	}
 
-	public List<? extends IMovable> getAllSettlers() {
+	public List<? extends IGraphicsMovable> getAllSettlers() {
 		return this.settlers;
 	}
 
 	@Override
-	public IMovable getMovableAt(int x, int y) {
+	public IGraphicsMovable getMovableAt(int x, int y) {
 		return getTile(x, y).getMovable();
 	}
 
 	@Override
-	public IMapObject getMapObjectsAt(int x, int y) {
+	public IMapObject getVisibleMapObjectsAt(int x, int y) {
 		if (getTile(x, y).getBuilding() != null) {
 			return getTile(x, y).getBuilding();
 		} else {
@@ -469,12 +471,12 @@ public class TestMap implements IGraphicsGrid {
 	}
 
 	@Override
-	public byte getHeightAt(int x, int y) {
+	public byte getVisibleHeightAt(int x, int y) {
 		return getTile(x, y).getHeight();
 	}
 
 	@Override
-	public ELandscapeType getLandscapeTypeAt(int x, int y) {
+	public ELandscapeType getVisibleLandscapeTypeAt(int x, int y) {
 		return getTile(x, y).getLandscapeType();
 	}
 
@@ -489,8 +491,8 @@ public class TestMap implements IGraphicsGrid {
 	}
 
 	@Override
-	public byte getPlayerIdAt(int x, int y) {
-		return 0;
+	public IPlayer getPlayerAt(int x, int y) {
+		return IPlayer.DEFAULT_DUMMY_PLAYER0;
 	}
 
 	@Override

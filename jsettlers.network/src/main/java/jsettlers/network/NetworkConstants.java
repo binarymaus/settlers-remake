@@ -50,6 +50,22 @@ public final class NetworkConstants {
 		public static final int BROADCAST_PORT = 10233;
 		public static final String BROADCAST_MESSAGE = "JSETTLERS-LAN-SERVER-BROADCAST-V1";
 		public static final int BROADCAST_BUFFER_LENGTH = BROADCAST_MESSAGE.length();
+		public static final int BROADCAST_DELAY = 2000;
+
+		/**
+		 * Only increase
+		 */
+		public static final int MAX_BROADCAST_DELAY = 2000;
+
+		/**
+		 * fd02::1
+		 */
+		public static final byte[] MULTICAST_IP6 = new byte[16];
+		static {
+			MULTICAST_IP6[0] = -1;
+			MULTICAST_IP6[1] = 2;
+			MULTICAST_IP6[15] = 1;
+		}
 
 		public static final long OPEN_MATCHES_SEND_INTERVAL_MS = 5 * 1000;
 	}
@@ -94,7 +110,11 @@ public final class NetworkConstants {
 		UNAUTHORIZED,
 		UNKNOWN_ERROR,
 		INVALID_STATE_ERROR,
-
+		TEAM_CHANGED,
+		CIVILISATION_CHANGED,
+		POSITION_CHANGED,
+		TYPE_CHANGED,
+		PLAYER_COUNT_CHANGED,
 		;
 
 		private static final ENetworkMessage[] values = ENetworkMessage.values();
@@ -144,7 +164,14 @@ public final class NetworkConstants {
 		CHAT_MESSAGE,
 		TIME_SYNC,
 
-		CHANGE_START_FINISHED;
+		CHANGE_START_FINISHED,
+
+		CHANGE_CIVILISATION,
+		CHANGE_TEAM,
+		CHANGE_PLAYER_TYPE,
+		CHANGE_POSITION,
+		CHANGE_PLAYER_COUNT,
+		;
 
 		private static final ENetworkKey[] values = ENetworkKey.values();
 		private final byte ordinal;

@@ -17,7 +17,7 @@ package jsettlers.graphics.test;
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.landscape.ELandscapeType;
 import jsettlers.common.mapobject.IMapObject;
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.movable.IGraphicsMovable;
 import jsettlers.common.position.ShortPoint2D;
 
 import java.awt.Color;
@@ -29,7 +29,7 @@ public class TestTile {
 
 	private boolean river = false;
 
-	private IMovable movable = null;
+	private IGraphicsMovable movable = null;
 	private TestBuilding building = null;
 	private IMapObject stack = null;
 	private IMapObject object = null;
@@ -73,7 +73,7 @@ public class TestTile {
 		return this.object;
 	}
 
-	public IMovable getMovable() {
+	public IGraphicsMovable getMovable() {
 		return this.movable;
 	}
 
@@ -85,7 +85,7 @@ public class TestTile {
 		return this.player;
 	}
 
-	public void setMovable(IMovable moveavble) {
+	public void setMovable(IGraphicsMovable moveavble) {
 		this.movable = moveavble;
 	}
 

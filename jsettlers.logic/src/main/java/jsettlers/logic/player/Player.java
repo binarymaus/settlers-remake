@@ -27,6 +27,7 @@ import jsettlers.common.player.EWinState;
 import jsettlers.common.player.ICombatStrengthInformation;
 import jsettlers.common.player.IInGamePlayer;
 import jsettlers.common.player.ISettlerInformation;
+import jsettlers.logic.trading.TradeManager;
 import jsettlers.logic.map.grid.partition.data.MaterialCounts;
 import jsettlers.logic.map.grid.partition.manager.materials.offers.IOffersCountListener;
 
@@ -36,20 +37,24 @@ import jsettlers.logic.map.grid.partition.manager.materials.offers.IOffersCountL
  * @author Andreas Eberle
  */
 public class Player implements Serializable, IMessenger, IInGamePlayer, IOffersCountListener {
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 2L;
 
 	public final byte playerId;
 
 	private final Team             team;
 	private final byte             numberOfPlayers;
-	private final MannaInformation mannaInformation = new MannaInformation();
-	private final MaterialCounts   materialCounts   = new MaterialCounts();
-	private final EndgameStatistic endgameStatistic = new EndgameStatistic(mannaInformation);
+	private final MannaInformation mannaInformation;
+
+	private final MaterialCounts	materialCounts = new MaterialCounts();
+	private final TradeManager seaTradeManager = new TradeManager();
+	private final TradeManager landTradeManager = new TradeManager();
+	private final EndgameStatistic	endgameStatistic = new EndgameStatistic(this);
+	private final BedInformation bedInformation = new BedInformation();
 
 	private EWinState winState;
+	private ECivilisation civilisation;
 
 	private transient EPlayerType               playerType;
-	private transient ECivilisation             civilisation;
 	private transient CombatStrengthInformation combatStrengthInfo = new CombatStrengthInformation();
 	private transient IMessenger                messenger;
 
@@ -60,6 +65,7 @@ public class Player implements Serializable, IMessenger, IInGamePlayer, IOffersC
 		this.playerType = playerType;
 		this.civilisation = civilisation;
 		this.winState = EWinState.UNDECIDED;
+		mannaInformation = new MannaInformation(civilisation);
 		team.registerPlayer(this);
 		updateCombatStrengths();
 	}
@@ -106,6 +112,14 @@ public class Player implements Serializable, IMessenger, IInGamePlayer, IOffersC
 		return endgameStatistic;
 	}
 
+	public TradeManager getLandTradeManager() {
+		return landTradeManager;
+	}
+
+	public TradeManager getSeaTradeManager() {
+		return seaTradeManager;
+	}
+
 	@Override
 	public ISettlerInformation getSettlerInformation() {
 		return new SettlerInformation(playerId);
@@ -119,12 +133,20 @@ public class Player implements Serializable, IMessenger, IInGamePlayer, IOffersC
 	public void offersCountChanged(EMaterialType materialType, int delta) {
 		materialCounts.offersCountChanged(materialType, delta);
 
-		if (materialType == EMaterialType.GOLD) {
+		if (materialType == EMaterialType.GOLD || materialType == EMaterialType.GEMS) {
 			CombatStrengthInformation combatStrength = this.combatStrengthInfo;
 			updateCombatStrengths();
 			System.out.println("amount of gold of player: " + playerId + "   changed by: " + delta + "    to total: " + getAmountOf(EMaterialType.GOLD) + "    combat strength changed from\n\t" +
 					combatStrength + "   to \n\t" + this.combatStrengthInfo);
+
+			System.out.println("amount of gems of player: " + playerId + "   changed by: " + delta + "    to total: " + getAmountOf(EMaterialType.GEMS) + "    combat strength changed from\n\t" +
+					combatStrength + "   to \n\t" + this.combatStrengthInfo);
 		}
+	}
+
+	@Override
+	public BedInformation getBedInformation() {
+		return bedInformation;
 	}
 
 	@Override
@@ -134,7 +156,8 @@ public class Player implements Serializable, IMessenger, IInGamePlayer, IOffersC
 
 	private void updateCombatStrengths() {
 		int amountOfGold = getAmountOf(EMaterialType.GOLD);
-		this.combatStrengthInfo.updateGoldCombatStrength(numberOfPlayers, amountOfGold);
+		int amountOfGems = getAmountOf(EMaterialType.GEMS);
+		combatStrengthInfo.updateCombatStrength(numberOfPlayers, civilisation, amountOfGold, amountOfGems);
 	}
 
 	public byte getTeamId() {
@@ -163,5 +186,10 @@ public class Player implements Serializable, IMessenger, IInGamePlayer, IOffersC
 
 	public boolean hasSameTeam(Player player) {
 		return player != null && this.team == player.team;
+	}
+
+	public void scheduleTasks() {
+		landTradeManager.scheduleTasks();
+		seaTradeManager.scheduleTasks();
 	}
 }

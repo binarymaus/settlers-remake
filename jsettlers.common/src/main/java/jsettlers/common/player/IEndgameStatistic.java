@@ -22,4 +22,9 @@ public interface IEndgameStatistic {
 	short getAmountOfProducedSoldiers();
 	short getAmountOfProducedMana();
 	short getAmountOfProducedGold();
+	long getAmountOfKills();
+
+	String getName();
+
+	byte getTeam();
 }

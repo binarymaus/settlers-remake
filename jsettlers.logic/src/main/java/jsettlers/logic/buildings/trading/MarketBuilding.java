@@ -14,20 +14,11 @@
  *******************************************************************************/
 package jsettlers.logic.buildings.trading;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import java8.util.stream.Stream;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.logic.buildings.IBuildingsGrid;
 import jsettlers.logic.player.Player;
-
-import static java8.util.stream.StreamSupport.stream;
+import jsettlers.logic.trading.TradeManager;
 
 /**
  *
@@ -35,28 +26,11 @@ import static java8.util.stream.StreamSupport.stream;
  *
  */
 public class MarketBuilding extends TradingBuilding {
-	private static final List<MarketBuilding> ALL_MARKETS = new ArrayList<>();
 
-	public static Stream<MarketBuilding> getAllMarkets(final Player player) {
-		return stream(ALL_MARKETS).filter(building -> building.getPlayer() == player);
-	}
-
-	public static void clearState() {
-		ALL_MARKETS.clear();
-	}
-
-	@SuppressWarnings("unchecked")
-	public static void readStaticState(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-		ALL_MARKETS.addAll((Collection<? extends MarketBuilding>) ois.readObject());
-	}
-
-	public static void writeStaticState(ObjectOutputStream oos) throws IOException {
-		oos.writeObject(ALL_MARKETS);
-	}
+	private static final long serialVersionUID = -2068624609186914142L;
 
 	public MarketBuilding(EBuildingType type, Player player, ShortPoint2D position, IBuildingsGrid buildingsGrid) {
 		super(type, player, position, buildingsGrid);
-		ALL_MARKETS.add(this);
 	}
 
 	@Override
@@ -73,11 +47,20 @@ public class MarketBuilding extends TradingBuilding {
 	@Override
 	protected void killedEvent() {
 		super.killedEvent();
-		ALL_MARKETS.remove(this);
 	}
 
 	@Override
 	public ShortPoint2D getPickUpPosition() {
 		return getDoor();
+	}
+
+	@Override
+	protected TradeManager getTradeManager() {
+		return getPlayer().getLandTradeManager();
+	}
+
+	@Override
+	protected int getTradersForMaterial() {
+		return 0;
 	}
 }

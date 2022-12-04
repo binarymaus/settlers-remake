@@ -47,6 +47,7 @@ import go.graphics.swing.sound.SwingSoundPlayer;
 import jsettlers.common.CommonConstants;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.landscape.ELandscapeType;
+import jsettlers.graphics.map.MapDrawContext;
 import jsettlers.logic.map.loading.MapLoadException;
 import jsettlers.common.menu.FakeMapGame;
 import jsettlers.common.menu.IMapInterfaceListener;
@@ -67,6 +68,7 @@ import jsettlers.main.swing.SwingManagedJSettlers;
 import jsettlers.main.swing.settings.SettingsManager;
 import jsettlers.mapcreator.data.MapData;
 import jsettlers.mapcreator.data.MapDataDelta;
+import jsettlers.mapcreator.data.symmetry.SymmetryConfig;
 import jsettlers.mapcreator.localization.EditorLabels;
 import jsettlers.mapcreator.main.action.AbortDrawingAction;
 import jsettlers.mapcreator.main.action.CombiningActionFirerer;
@@ -196,7 +198,7 @@ public class EditorControl extends EditorControlBase implements IMapInterfaceLis
 				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
 
 				Integer player = (Integer) value;
-				setIcon(new RectIcon(22, new Color(mapContent.getPlayerColor(player.byteValue()).getARGB()), Color.GRAY));
+				setIcon(new RectIcon(22, new Color(MapDrawContext.getPlayerColor(player.byteValue()).getARGB()), Color.GRAY));
 				setText(String.format(Locale.ENGLISH, EditorLabels.getLabel("general.player_x"), player));
 
 				return this;
@@ -283,7 +285,7 @@ public class EditorControl extends EditorControlBase implements IMapInterfaceLis
 		Area area = new Area();
 		final Region region = new Region(Region.POSITION_CENTER);
 		area.set(region);
-		displayPanel = new AreaContainer(area, SettingsManager.getInstance().getBackend(), SettingsManager.getInstance().isGraphicsDebug());
+		displayPanel = new AreaContainer(area, SettingsManager.getInstance().getBackend(), SettingsManager.getInstance().isGraphicsDebug(), SettingsManager.getInstance().getGuiScale());
 		displayPanel.setMinimumSize(new Dimension(640, 480));
 		displayPanel.setFocusable(true);
 		root.add(displayPanel, BorderLayout.CENTER);
@@ -313,7 +315,7 @@ public class EditorControl extends EditorControlBase implements IMapInterfaceLis
 		// center on screen
 		window.setLocationRelativeTo(null);
 
-		this.mapContent = new MapContent(new FakeMapGame(map), new SwingSoundPlayer(SettingsManager.getInstance()), ETextDrawPosition.TOP_RIGHT,
+		this.mapContent = new MapContent(new FakeMapGame(map), new SwingSoundPlayer(SettingsManager.getInstance()), ETextDrawPosition.DESKTOP,
 				new MapEditorControls(new CombiningActionFirerer(this)));
 		connector = mapContent.getInterfaceConnector();
 		region.setContent(mapContent);
@@ -755,8 +757,9 @@ public class EditorControl extends EditorControlBase implements IMapInterfaceLis
 
 				// only getter call, no Swing calls
 				ShapeType shape = toolSidebar.getActiveShape();
+				SymmetryConfig symmetry = toolSidebar.getSymmetry();
 
-				tool.apply(mapData, shape, lineAction.getStart(), lineAction.getEnd(), lineAction.getUidy());
+				tool.apply(mapData, symmetry, shape, lineAction.getStart(), lineAction.getEnd(), lineAction.getUidy());
 
 				validator.reValidate();
 			}
@@ -791,9 +794,10 @@ public class EditorControl extends EditorControlBase implements IMapInterfaceLis
 					PointAction lineAction = (PointAction) action;
 
 					ShapeType shape = toolSidebar.getActiveShape();
+					SymmetryConfig symmetry = toolSidebar.getSymmetry();
 
 					tool.start(mapData, shape, lineAction.getPosition());
-					tool.apply(mapData, shape, lineAction.getPosition(), lineAction.getPosition(), 0);
+					tool.apply(mapData, symmetry, shape, lineAction.getPosition(), lineAction.getPosition(), 0);
 
 					undoRedo.endUseStep();
 					validator.reValidate();

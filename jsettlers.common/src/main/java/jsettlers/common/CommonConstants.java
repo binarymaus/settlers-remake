@@ -14,7 +14,7 @@
  *******************************************************************************/
 package jsettlers.common;
 
-import jsettlers.common.ai.EPlayerType;
+import java.util.function.Supplier;
 
 public abstract class CommonConstants {
 	/**
@@ -27,13 +27,42 @@ public abstract class CommonConstants {
 	public static final int FOG_OF_WAR_EXPLORED = 50;
 
 	/**
+	 * NOTE: this will consume high amounts of memory even for small maps
+	 */
+	public static final boolean FOG_OF_WAR_DEBUG_REFERENCES = false;
+
+	/**
+	 * How much the current fog of war status can be changed per second
+	 */
+	public static final int FOG_OF_WAR_DIM = 30;
+
+	public static final int FOG_OF_WAR_DIM_FRAMERATE = 15;
+	public static final int FOG_OF_WAR_DIM_MAX_FRAMERATE = 60;
+	public static final int FOG_OF_WAR_REF_UPDATE_FRAMERATE = 1;
+
+	public static final int FOG_OF_WAR_DIM_NO_CLOCK_FRAMERATE = 10;
+
+	/**
 	 * Radius of the area occupied by towers.
 	 */
 	public static final short TOWER_RADIUS = 40;
+
+	public static final short MOVABLE_PATH_REPAIR_DISTANCE = 10;
+
 	/**
 	 * Maximum number of players allowed to play. Should be 2..127.
 	 */
 	public static final int MAX_PLAYERS = 32;
+
+	/**
+	 * Enables debug messages and strict tree checking
+	 */
+	public static final boolean DEBUG_BEHAVIOR_TREES = false;
+
+	/**
+	 * Only enable this to allow reloading the movables.txt files.
+	 */
+	public static boolean MUTABLE_MOVABLES_TXT = false;
 
 	/**
 	 * If true, all players of a map will always be positioned on startup.
@@ -73,4 +102,8 @@ public abstract class CommonConstants {
 	 * Disables the checksum test for original maps.
 	 */
 	public static boolean DISABLE_ORIGINAL_MAPS_CHECKSUM = false;
+
+	public static Supplier<Boolean> PLAYALL_MUSIC = () -> false;
+
+	public static Supplier<Float> MUSIC_VOLUME = () -> 1f;
 }

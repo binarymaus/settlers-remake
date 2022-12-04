@@ -31,4 +31,5 @@ public interface IManageableBricklayer extends IManageable {
 	 */
 	boolean setBricklayerJob(IConstructableBuilding constructionSite, ShortPoint2D bricklayerTargetPos, EDirection direction);
 
+	void convertToBearer();
 }

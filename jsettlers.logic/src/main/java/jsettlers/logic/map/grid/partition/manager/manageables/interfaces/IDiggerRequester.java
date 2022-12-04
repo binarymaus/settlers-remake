@@ -14,7 +14,8 @@
  *******************************************************************************/
 package jsettlers.logic.map.grid.partition.manager.manageables.interfaces;
 
-import jsettlers.common.buildings.EBuildingType;
+import jsettlers.common.buildings.BuildingVariant;
+import jsettlers.common.material.EPriority;
 import jsettlers.common.position.ILocatable;
 
 /**
@@ -26,9 +27,9 @@ import jsettlers.common.position.ILocatable;
 public interface IDiggerRequester extends ILocatable {
 	/**
 	 * 
-	 * @return {@link EBuildingType} of the requesting building.
+	 * @return {@link BuildingVariant} of the requesting building.
 	 */
-	EBuildingType getBuildingType();
+	BuildingVariant getBuildingVariant();
 
 	/**
 	 * Indicates if the request from this requester is still active or has been canceled.
@@ -45,4 +46,6 @@ public interface IDiggerRequester extends ILocatable {
 	byte getAverageHeight();
 
 	void diggerRequestFailed();
+
+	EPriority getPriority();
 }

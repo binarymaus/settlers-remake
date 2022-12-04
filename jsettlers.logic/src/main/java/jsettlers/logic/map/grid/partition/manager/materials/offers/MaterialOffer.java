@@ -30,6 +30,7 @@ import jsettlers.logic.map.grid.partition.manager.materials.offers.list.IPriorit
  * @author Andreas Eberle
  */
 public class MaterialOffer implements Serializable, ILocatable, IPrioritizable<EOfferPriority>, IListManageable, IMaterialOffer {
+	private static final long serialVersionUID = -8205797836220090667L;
 	private final ShortPoint2D position;
 	private final EMaterialType materialType;
 

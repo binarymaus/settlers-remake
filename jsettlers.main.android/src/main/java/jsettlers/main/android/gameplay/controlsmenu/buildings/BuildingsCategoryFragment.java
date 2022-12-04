@@ -34,9 +34,12 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import jsettlers.common.buildings.EBuildingType;
+import jsettlers.common.player.ECivilisation;
 import jsettlers.graphics.map.controls.original.panel.content.buildings.EBuildingsCategory;
 import jsettlers.main.android.R;
 import jsettlers.main.android.core.resources.OriginalImageProvider;
+
+import static java.util.Arrays.*;
 
 /**
  * Created by Tom Pratt on 24/11/2016.
@@ -44,9 +47,10 @@ import jsettlers.main.android.core.resources.OriginalImageProvider;
 @EFragment(R.layout.menu_buildings_category)
 public class BuildingsCategoryFragment extends Fragment {
 	private static final String ARG_BUILDINGS_CATEGORY = "arg_buildings_category";
+	private static final String ARG_BUILDINGS_CIVILISATION = "arg_buildings_civilisation";
 
-	public static BuildingsCategoryFragment newInstance(EBuildingsCategory buildingsCategory) {
-		return BuildingsCategoryFragment_.builder().buildingsCategory(buildingsCategory).build();
+	public static BuildingsCategoryFragment newInstance(EBuildingsCategory buildingsCategory, ECivilisation civilisation) {
+		return BuildingsCategoryFragment_.builder().buildingsCategory(buildingsCategory).civilisation(civilisation).build();
 	}
 
 	private BuildingsCategoryViewModel viewModel;
@@ -55,6 +59,8 @@ public class BuildingsCategoryFragment extends Fragment {
 	RecyclerView recyclerView;
 	@FragmentArg(ARG_BUILDINGS_CATEGORY)
 	EBuildingsCategory buildingsCategory;
+	@FragmentArg(ARG_BUILDINGS_CIVILISATION)
+	ECivilisation civilisation;
 
 	@Override
 	public void onActivityCreated(@Nullable Bundle savedInstanceState) {
@@ -118,6 +124,12 @@ public class BuildingsCategoryFragment extends Fragment {
 		}
 
 		void setBuildingViewStates(BuildingViewState[] buildingViewStates) {
+			// remove buildings that we can't build
+			buildingViewStates = stream(buildingViewStates)
+					.filter(viewState -> viewState.getBuildingType()
+							.getVariant(civilisation)!=null)
+					.toArray(BuildingViewState[]::new);
+
 			DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(new BuildingsDiffCallback(this.buildingViewStates, buildingViewStates));
 			diffResult.dispatchUpdatesTo(this);
 
@@ -140,7 +152,7 @@ public class BuildingsCategoryFragment extends Fragment {
 		}
 
 		void setBuilding(BuildingViewState buildingViewState) {
-			OriginalImageProvider.get(buildingViewState.getBuildingType()).setAsImage(imageView);
+			OriginalImageProvider.get(buildingViewState.getBuildingType().getVariant(civilisation)).setAsImage(imageView);
 			nameTextView.setText(buildingViewState.getName());
 			buildingCountTextView.setText(buildingViewState.getCount());
 			buildingConstructionCountTextView.setText(buildingViewState.getConstructionCount());

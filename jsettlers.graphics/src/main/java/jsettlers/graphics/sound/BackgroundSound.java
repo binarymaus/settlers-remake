@@ -35,6 +35,7 @@ public class BackgroundSound implements Runnable {
 	private static final float DESERT_VOLUME =  .05f;
 	private static final float RIVER_VOLUME =  .03f;
 	private static final float MOUNTAIN_VOLUME =  .003f;
+	private static final float BEES_VOLUME =  .05f;
 
 	private static final int INDEX_BIRDS1 = 69;
 	private static final int INDEX_BIRDS2 = 70;
@@ -42,6 +43,7 @@ public class BackgroundSound implements Runnable {
 	private static final int INDEX_DESERT = 67;
 	private static final int INDEX_RIVER = 71;
 	private static final int INDEX_MOUNTAIN = 73;
+	public static final int INDEX_BEES = 117;
 
 	private final MapDrawContext map;
 	private final SoundManager sound;
@@ -95,11 +97,13 @@ public class BackgroundSound implements Runnable {
 				} else for (int x1 = 0; x1 < screen.getWidth(); x1++) {
 					if (hasRiver(x0 + x1, y)) {
 						sound.playSound(INDEX_RIVER, RIVER_VOLUME, x0 + x1, y);
+					} else if(hasBeeHive(x0 + x1, y)) {
+						sound.playSound(INDEX_BEES, BEES_VOLUME, x0 + x1, y);
 					}
 				}
 			}
 		} catch (Throwable e) {
-			System.out.println("Sound thread died because of an exception.");
+			//System.out.println("Sound thread died because of an exception.");
 			e.printStackTrace();
 		}
 	}
@@ -134,6 +138,20 @@ public class BackgroundSound implements Runnable {
 				&& map.getLandscape(x, y) == ELandscapeType.MOUNTAIN;
 	}
 
+	private boolean hasBeeHive(int x, int y) {
+		if(!map.checkMapCoordinates(x, y) || map.getVisibleStatus(x, y) == 0) {
+			return false;
+		}
+		IMapObject object = map.getMap().getVisibleMapObjectsAt(x, y);
+
+		if(object == null) return false;
+
+		return object.getMapObject(EMapObjectType.HIVE_EMPTY) != null ||
+				object.getMapObject(EMapObjectType.HIVE_GROWING) != null ||
+				object.getMapObject(EMapObjectType.HIVE_HARVESTABLE) != null;
+
+	}
+
 	private boolean hasTree(int cx, int cy) {
 		for (int x = cx - 2; x <= cx + 2; x++) {
 			for (int y = cy - 2; y <= cy + 2; y++) {
@@ -148,7 +166,7 @@ public class BackgroundSound implements Runnable {
 	}
 
 	private boolean hasTreeObject(int x, int y) {
-		IMapObject o = map.getMap().getMapObjectsAt(x, y);
+		IMapObject o = map.getMap().getVisibleMapObjectsAt(x, y);
 		while (o != null) {
 			EMapObjectType type = o.getObjectType();
 			if (type == EMapObjectType.TREE_ADULT

@@ -24,5 +24,6 @@ package jsettlers.ai.highlevel;
  */
 interface IWhatToDoAi {
 
-	void applyRules();
+	void applyLightRules();
+	void applyHeavyRules();
 }

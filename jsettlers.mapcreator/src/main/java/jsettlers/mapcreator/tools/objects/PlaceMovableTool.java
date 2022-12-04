@@ -22,6 +22,8 @@ import jsettlers.mapcreator.control.IPlayerSetter;
 import jsettlers.mapcreator.localization.EditorLabels;
 
 import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Stream;
 
 public class PlaceMovableTool extends PlaceMapObjectTool {
 
@@ -33,6 +35,15 @@ public class PlaceMovableTool extends PlaceMapObjectTool {
 		this.type = type;
 		this.player = player;
 		this.translatedName = String.format(Locale.ENGLISH, EditorLabels.getLabel("tool.place"), Labels.getName(type));
+	}
+
+	public static PlaceMovableTool[] createArray(IPlayerSetter player, EMovableType... types) {
+		return Stream.of(types).map(type -> new PlaceMovableTool(type, player)).toArray(PlaceMovableTool[]::new);
+	}
+
+
+	public static PlaceMovableTool[] createArray(IPlayerSetter player, Set<EMovableType> types) {
+		return types.stream().map(type -> new PlaceMovableTool(type, player)).toArray(PlaceMovableTool[]::new);
 	}
 
 	@Override

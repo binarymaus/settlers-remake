@@ -104,5 +104,4 @@ public final class StackMapObject extends AbstractHexMapObject implements IStack
 	public final boolean canBeCut() {
 		return false;
 	}
-
 }

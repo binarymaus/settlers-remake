@@ -1,4 +1,6 @@
-apply plugin: 'java'
+apply plugin: 'application'
+
+mainClassName = 'jsettlers.ToolsMain'
 
 dependencies {
     implementation 'junit:junit:4.12'
@@ -12,3 +14,13 @@ dependencies {
     implementation project(':jsettlers.testutils')
     implementation project(':jsettlers.tests')
 }
+
+jar {
+    archiveBaseName = 'JSettlersTools'
+    manifest {
+        attributes 'Main-Class': mainClassName
+        attributes 'Class-Path' : 'JSettlers.jar'
+    }
+}
+
+tasks.run.workingDir = rootProject.projectDir

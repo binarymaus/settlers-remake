@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jsettlers.ai.highlevel.AiStatistics;
-import jsettlers.algorithms.construction.AbstractConstructionMarkableMap;
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.position.ShortPoint2D;
 
@@ -28,29 +28,30 @@ import jsettlers.common.position.ShortPoint2D;
  * 
  * @author codingberlin
  */
-public class NearRequiredBuildingConstructionPositionFinder implements IBestConstructionPositionFinder {
+public class NearRequiredBuildingConstructionPositionFinder extends ConstructionPositionFinder {
 
-	private final EBuildingType buildingType;
+	private final BuildingVariant building;
 	private final EBuildingType neededBuildingType;
 
-	public NearRequiredBuildingConstructionPositionFinder(EBuildingType ownBuildingType, EBuildingType neededBuildingType) {
-		this.buildingType = ownBuildingType;
+	public NearRequiredBuildingConstructionPositionFinder(Factory factory, EBuildingType ownBuildingType, EBuildingType neededBuildingType) {
+		super(factory);
+		this.building = ownBuildingType.getVariant(civilisation);
 		this.neededBuildingType = neededBuildingType;
 	}
 
 	@Override
-	public ShortPoint2D findBestConstructionPosition(AiStatistics aiStatistics, AbstractConstructionMarkableMap constructionMap, byte playerId) {
+	public ShortPoint2D findBestConstructionPosition() {
 		List<ShortPoint2D> neededBuildings = aiStatistics.getBuildingPositionsOfTypeForPlayer(neededBuildingType, playerId);
 		List<ScoredConstructionPosition> scoredConstructionPositions = new ArrayList<>();
 		for (ShortPoint2D point : aiStatistics.getLandForPlayer(playerId)) {
-			if (constructionMap.canConstructAt(point.x, point.y, buildingType, playerId)
-					&& !aiStatistics.blocksWorkingAreaOfOtherBuilding(point.x, point.y, playerId, buildingType)) {
+			if (constructionMap.canConstructAt(point.x, point.y, building.getType(), playerId)
+					&& !aiStatistics.blocksWorkingAreaOfOtherBuilding(point.x, point.y, playerId, building)) {
 				ShortPoint2D nearestNeededBuilding = AiStatistics.detectNearestPointFromList(point, neededBuildings);
 				int nearestNeededBuildingDistance = 0;
 				if (nearestNeededBuilding != null) {
 					nearestNeededBuildingDistance = point.getOnGridDistTo(nearestNeededBuilding);
 				}
-				byte flatternEffort = aiStatistics.getFlatternEffortAtPositionForBuilding(point, buildingType);
+				byte flatternEffort = aiStatistics.getFlatternEffortAtPositionForBuilding(point, building);
 				scoredConstructionPositions.add(new ScoredConstructionPosition(point, nearestNeededBuildingDistance + flatternEffort));
 			}
 		}

@@ -122,60 +122,65 @@ public final class PartitionCalculatorAlgorithm {
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
 				int index = x + y * width;
-				if (containing.get(index)) {
 
-					if (blockingProvider.isBlocked(minX + x, minY + y)) {
-						partitionsGrid[index] = BLOCKED_PARTITION;
-						continue;
+				if(!containing.get(index)) {
+					continue;
+				}
+
+				if (blockingProvider.isBlocked(minX + x, minY + y)) {
+					partitionsGrid[index] = BLOCKED_PARTITION;
+					continue;
+				}
+
+				int westX = x + neighborX[0];
+				int westY = y + neighborY[0];
+				int northWestX = x + neighborX[1];
+				int northWestY = y + neighborY[1];
+				int northEastX = x + neighborX[2];
+				int northEastY = y + neighborY[2];
+
+				int partition = -1;
+				int westPartition = -1;
+				int northEastPartition = -1;
+
+				int westIndex = westX + westY * width;
+				if (westIndex >= 0 && containing.get(westIndex)) {
+					short currPartition = partitions[partitionsGrid[westIndex]];
+					if (currPartition != BLOCKED_PARTITION) {
+						westPartition = currPartition;
+						partition = currPartition;
 					}
+				}
 
-					int westX = x + neighborX[0];
-					int westY = y + neighborY[0];
-					int northWestX = x + neighborX[1];
-					int northWestY = y + neighborY[1];
-					int northEastX = x + neighborX[2];
-					int northEastY = y + neighborY[2];
-
-					int partition = -1;
-					int westPartition = -1;
-					int northEastPartition = -1;
-
-					if (containing.get(westX + westY * width)) {
-						short currPartition = partitions[partitionsGrid[westX + westY * width]];
-						if (currPartition != BLOCKED_PARTITION) {
-							westPartition = currPartition;
-							partition = currPartition;
-						}
+				int northIndex = northWestX + northWestY * width;
+				if (northIndex >= 0 && containing.get(northIndex)) {
+					short currPartition =  partitions[partitionsGrid[northIndex]];
+					if (currPartition != BLOCKED_PARTITION) {
+						partition = currPartition;
 					}
+				}
 
-					if (containing.get(northWestX + northWestY * width)) {
-						short currPartition =  partitions[partitionsGrid[northWestX + northWestY * width]];
-						if (currPartition != BLOCKED_PARTITION) {
-							partition = currPartition;
-						}
+				int northEastIndex = northEastX + northEastY * width;
+				if (northEastIndex >= 0 && containing.get(northEastIndex)) {
+					short currPartition =  partitions[partitionsGrid[northEastIndex]];
+					if (currPartition != BLOCKED_PARTITION) {
+						northEastPartition = currPartition;
+						partition = currPartition;
 					}
+				}
 
-					if (containing.get(northEastX + northEastY * width)) {
-						short currPartition =  partitions[partitionsGrid[northEastX + northEastY * width]];
-						if (currPartition != BLOCKED_PARTITION) {
-							northEastPartition = currPartition;
-							partition = currPartition;
-						}
-					}
+				if (westPartition != -1 && northEastPartition != -1 && partitions[westPartition] != partitions[northEastPartition]) {
+					// mergePartitions if west and northeast are not equal, not blocked but already set
+					short newPartition = (short) Math.min(partitions[westPartition], partitions[northEastPartition]);
+					partitions[westPartition] = newPartition;
+					partitions[northEastPartition] = newPartition;
+					partitionsGrid[index] = newPartition;
 
-					if (westPartition != -1 && northEastPartition != -1 && partitions[westPartition] != partitions[northEastPartition]) {
-						// mergePartitions if west and northeast are not equal, not blocked but already set
-						short newPartition = (short) Math.min(partitions[westPartition], partitions[northEastPartition]);
-						partitions[westPartition] = newPartition;
-						partitions[northEastPartition] = newPartition;
-						partitionsGrid[index] = newPartition;
+				} else if (partition != -1) { // just set the value.
+					partitionsGrid[index] = partitions[partition];
 
-					} else if (partition != -1) { // just set the value.
-						partitionsGrid[index] = partitions[partition];
-
-					} else { // create a new partition
-						partitionsGrid[index] = createNewPartition(y, x);
-					}
+				} else { // create a new partition
+					partitionsGrid[index] = createNewPartition(y, x);
 				}
 			}
 		}

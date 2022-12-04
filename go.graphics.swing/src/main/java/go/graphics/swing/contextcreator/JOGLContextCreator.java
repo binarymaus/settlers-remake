@@ -14,7 +14,6 @@
  *******************************************************************************/
 package go.graphics.swing.contextcreator;
 
-import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLCapabilities;
 import com.jogamp.opengl.GLContext;
@@ -22,12 +21,12 @@ import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.awt.GLJPanel;
 
-import go.graphics.swing.GLContainer;
+import go.graphics.swing.ContextContainer;
 import go.graphics.swing.event.swingInterpreter.GOSwingEventConverter;
 
-public class JOGLContextCreator extends ContextCreator implements GLEventListener{
+public class JOGLContextCreator extends ContextCreator<GLJPanel> implements GLEventListener {
 
-	public JOGLContextCreator(GLContainer container, boolean debug) {
+	public JOGLContextCreator(ContextContainer container, boolean debug) {
 		super(container, debug);
 	}
 
@@ -38,30 +37,20 @@ public class JOGLContextCreator extends ContextCreator implements GLEventListene
 
 	@Override
 	public void initSpecific() {
-		GLCapabilities caps = new GLCapabilities(GLProfile.getDefault());
+		GLCapabilities caps = new GLCapabilities(GLProfile.getMaxProgrammable(true));
 		caps.setStencilBits(1);
 
 		canvas = new GLJPanel(caps);
-		((GLJPanel)canvas).addGLEventListener(this);
+		if(debug) canvas.setContextCreationFlags(GLContext.CTX_OPTION_DEBUG);
+		canvas.addGLEventListener(this);
 
 		new GOSwingEventConverter(canvas, parent);
 	}
 
 	@Override
-	public void repaint() {
-		canvas.repaint();
-	}
-
-	@Override
-	public void requestFocus() {
-		canvas.requestFocus();
-	}
-
-	@Override
 	public void init(GLAutoDrawable drawable) {
 		drawable.getGL().setSwapInterval(0);
-		if(debug) drawable.getGL().glEnable(GL4.GL_DEBUG_OUTPUT); // Better than nothing
-		parent.wrapNewContext();
+		parent.wrapNewGLContext();
 	}
 
 	@Override
@@ -71,11 +60,17 @@ public class JOGLContextCreator extends ContextCreator implements GLEventListene
 
 	@Override
 	public void display(GLAutoDrawable drawable) {
-		parent.draw();
+		try {
+			parent.draw();
+			parent.finishFrame();
+			if(fpsLimit == 0) repaint();
+		} catch(ContextException ignored) {}
 	}
 
 	@Override
 	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
-		parent.resize_gl(width, height);
+		try {
+			parent.resizeContext(width, height);
+		} catch(ContextException ignored) {}
 	}
 }

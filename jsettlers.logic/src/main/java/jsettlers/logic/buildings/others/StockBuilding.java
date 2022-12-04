@@ -14,8 +14,7 @@
  *******************************************************************************/
 package jsettlers.logic.buildings.others;
 
-import java8.util.J8Arrays;
-import java8.util.stream.Collectors;
+import java.util.Arrays;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.mapobject.EMapObjectType;
@@ -30,30 +29,31 @@ import jsettlers.logic.buildings.stack.multi.StockSettings;
 import jsettlers.logic.player.Player;
 
 import java.util.List;
-
-import static java8.util.stream.StreamSupport.stream;
+import java.util.stream.Collectors;
 
 /**
  * Created by Andreas Eberle.
  */
 public class StockBuilding extends Building implements IBuilding.IStock {
+	private static final long serialVersionUID = 8108451257910163368L;
 	private final StockSettings stockSettings;
 
 	public StockBuilding(Player player, ShortPoint2D position, IBuildingsGrid buildingsGrid) {
 		super(EBuildingType.STOCK, player, position, buildingsGrid);
 		stockSettings = new StockSettings(buildingsGrid.getRequestStackGrid().getPartitionStockSettings(position));
+		setOccupied(true);
 	}
 
 	@Override
 	protected List<? extends IRequestStack> createWorkStacks() {
 		MultiRequestStackSharedData sharedData = new MultiRequestStackSharedData(stockSettings);
 
-		List<MultiRequestAndOfferStack> newStacks = J8Arrays.stream(type.getRequestStacks())
+		List<MultiRequestAndOfferStack> newStacks = Arrays.stream(getBuildingVariant().getRequestStacks())
 				.map(relativeStack -> relativeStack.calculatePoint(this.pos))
 				.map(position -> new MultiRequestAndOfferStack(grid.getRequestStackGrid(), position, type, super.getPriority(), sharedData))
 				.collect(Collectors.toList());
 
-		stream(newStacks).forEach(stack -> stockSettings.registerStockSettingsListener(stack));
+		newStacks.forEach(stockSettings::registerStockSettingsListener);
 
 		return newStacks;
 	}
@@ -80,11 +80,6 @@ public class StockBuilding extends Building implements IBuilding.IStock {
 	@Override
 	protected EMapObjectType getFlagType() {
 		return EMapObjectType.FLAG_DOOR;
-	}
-
-	@Override
-	public boolean isOccupied() {
-		return true;
 	}
 
 	@Override

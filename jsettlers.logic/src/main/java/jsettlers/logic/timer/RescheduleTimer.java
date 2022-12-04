@@ -18,7 +18,9 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 import jsettlers.logic.map.loading.MapLoadException;
 import jsettlers.logic.constants.MatchConstants;

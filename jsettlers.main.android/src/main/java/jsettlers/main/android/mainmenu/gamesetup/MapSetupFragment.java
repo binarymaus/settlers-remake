@@ -245,7 +245,7 @@ public abstract class MapSetupFragment extends Fragment {
 				@Override
 				public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
 					Civilisation civilisation = civilisationsAdapter.getItem(position);
-					presenter.setCivilisation(civilisation);
+					presenter.civilisationSelected(civilisation);
 				}
 			});
 
@@ -253,7 +253,7 @@ public abstract class MapSetupFragment extends Fragment {
 				@Override
 				public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
 					PlayerType playerType = playerTypesAdapter.getItem(position);
-					presenter.setPlayerType(playerType);
+					presenter.playerTypeSelected(playerType);
 				}
 			});
 
@@ -340,9 +340,19 @@ public abstract class MapSetupFragment extends Fragment {
 		}
 
 		@Override
-		public void setControlsEnabled() {
+		public void setReadyControlsEnabled() {
 			readySwitch.setClickable(true);
 			readySwitch.setFocusable(true);
+		}
+
+		@Override
+		public void setReadyControlsDisabled() {
+			readySwitch.setClickable(false);
+			readySwitch.setFocusable(false);
+		}
+
+		@Override
+		public void setPlayerControlsEnabled() {
 			playerTypeSpinner.setEnabled(true);
 			civilisationSpinner.setEnabled(true);
 			startPositionSpinner.setEnabled(true);
@@ -350,9 +360,7 @@ public abstract class MapSetupFragment extends Fragment {
 		}
 
 		@Override
-		public void setControlsDisabled() {
-			readySwitch.setClickable(false);
-			readySwitch.setFocusable(false);
+		public void setPlayerControlsDisabled() {
 			playerTypeSpinner.setEnabled(false);
 			civilisationSpinner.setEnabled(false);
 			startPositionSpinner.setEnabled(false);

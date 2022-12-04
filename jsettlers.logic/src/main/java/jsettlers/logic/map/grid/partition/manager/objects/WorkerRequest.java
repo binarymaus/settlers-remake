@@ -40,7 +40,7 @@ public final class WorkerRequest extends WorkerCreationRequest implements ILocat
 
 	@Override
 	public String toString() {
-		return movableType + "    " + creationRequested + "     " + building.getBuildingType();
+		return movableType + "    " + creationRequested + "     " + building.getBuildingVariant();
 	}
 
 	@Override

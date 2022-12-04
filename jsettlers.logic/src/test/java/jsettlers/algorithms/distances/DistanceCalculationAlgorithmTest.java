@@ -23,6 +23,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import jsettlers.common.logging.MilliStopWatch;
+import jsettlers.common.player.ECivilisation;
 import jsettlers.logic.map.loading.data.IMapData;
 import jsettlers.logic.map.loading.MapLoadException;
 import jsettlers.common.map.shapes.HexGridArea;
@@ -53,7 +54,7 @@ public class DistanceCalculationAlgorithmTest {
 		IMapData mapData = mapLoader.getMapData();
 		int width = mapData.getWidth();
 		int height = mapData.getHeight();
-		int testDistance = FISHER.getWorkRadius();
+		int testDistance = FISHER.getVariant(ECivilisation.ROMAN).getWorkRadius();
 
 		MilliStopWatch stopWatch = new MilliStopWatch();
 		BitSet actual = DistancesCalculationAlgorithm.calculatePositionsInDistance(width, height, (x, y) -> mapData.getLandscape(x, y).isWater,

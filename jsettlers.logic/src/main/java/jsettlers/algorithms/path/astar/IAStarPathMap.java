@@ -21,7 +21,7 @@ public interface IAStarPathMap {
 
 	boolean isBlocked(IPathCalculatable requester, int x, int y);
 
-	float getCost(int sx, int sy, int tx, int ty);
+	float getCost(IPathCalculatable requester, int sx, int sy, int tx, int ty);
 
 	/**
 	 * only for debugging
@@ -45,13 +45,6 @@ public interface IAStarPathMap {
 
 	void setDebugColor(int x, int y, Color color);
 
-	/**
-	 * Gets the id of of the blocked partition of the given coordinates.
-	 * 
-	 * @param x
-	 * @param y
-	 * @return
-	 */
-	short getBlockedPartition(int x, int y);
+	boolean isReachable(int x1, int y1, int x2, int y2, boolean ship);
 
 }

@@ -15,8 +15,6 @@
 
 package jsettlers.main.android.core.resources;
 
-import static java8.util.stream.StreamSupport.stream;
-
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,7 +25,7 @@ import android.os.Handler;
 import android.widget.ImageView;
 
 import jsettlers.common.Color;
-import jsettlers.common.buildings.EBuildingType;
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.images.ImageLink;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.graphics.image.Image;
@@ -41,7 +39,7 @@ public class OriginalImageProvider {
 	private ImageLoaderThread imageLoadThread;
 	private final LinkedBlockingQueue<ImageReference> toLoad = new LinkedBlockingQueue<>();
 
-	public static ImageReference get(EBuildingType building) {
+	public static ImageReference get(BuildingVariant building) {
 		return INSTANCE.create(building.getGuiImage());
 	}
 
@@ -112,7 +110,7 @@ public class OriginalImageProvider {
 			bm = Bitmap.createBitmap(colors, 0, loaded.getWidth(), loaded.getWidth(), loaded.getHeight(), Bitmap.Config.ARGB_8888);
 
 			handler.post(() -> {
-				stream(viewsToUpdate).forEach(this::realSetAsImage);
+				viewsToUpdate.forEach(this::realSetAsImage);
 				viewsToUpdate = null;
 			});
 		}

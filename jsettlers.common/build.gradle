@@ -1,4 +1,4 @@
-apply plugin: 'java'
+apply plugin: 'java-library'
 
 
 import jsettlers.textures.generation.TextureGenerationTask
@@ -7,22 +7,23 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 
 
 def generatedDirectory = 'src/generated/'
-def generatedCommitInfoDirectory = generatedDirectory + 'commitInfo/'
-def generatedTexturesDirectory = generatedDirectory + 'textures/'
+def generatedCommitInfoDirectory = generatedDirectory + 'commitInfo/java/'
+def generatedTexturesJavaDirectory = generatedDirectory + 'textures/java'
+def generatedTexturesResourcesDirectory = generatedDirectory + 'textures/resources'
 
 
 task compileTextures(type: TextureGenerationTask) {
     resourceDirectory = file('raw_images_for_textures')
-    generatedSourcesDirectory = file(generatedTexturesDirectory + 'java')
-    generatedResourcesDirectory = file(generatedTexturesDirectory + 'resources')
+    generatedSourcesDirectory = file(generatedTexturesJavaDirectory)
+    generatedResourcesDirectory = file(generatedTexturesResourcesDirectory)
 }
 
 task findGitRevision {
-    def commitFile = file(generatedCommitInfoDirectory + 'java/jsettlers/common/CommitInfo.java')
+    def commitFile = file(generatedCommitInfoDirectory + 'jsettlers/common/CommitInfo.java')
 
     FileRepositoryBuilder builder = new FileRepositoryBuilder()
     Repository repository = builder.readEnvironment().findGitDir(file('.')).build()
-    def headRef = repository.getRef("HEAD")
+    def headRef = repository.exactRef("HEAD")
     def localRev = headRef.objectId.name
     repository.close()
 
@@ -48,8 +49,8 @@ public final class CommitInfo {
 
 
 sourceSets {
-    main.java.srcDirs = [generatedTexturesDirectory + 'java', generatedCommitInfoDirectory + 'java', "src/main/java"]
-    main.resources.srcDirs = [generatedTexturesDirectory + 'resources', 'src/main/resources']
+    main.java.srcDirs += [generatedTexturesJavaDirectory, generatedCommitInfoDirectory]
+    main.resources.srcDirs += [generatedTexturesResourcesDirectory]
 }
 
 compileJava {
@@ -62,6 +63,10 @@ clean {
 }
 
 dependencies {
-    compile project(':go.graphics')
+    api project(':go.graphics')
     testImplementation project(':jsettlers.testutils')
+}
+
+copyMainResources {
+    dependsOn compileTextures
 }

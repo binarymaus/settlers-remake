@@ -14,8 +14,10 @@
  *******************************************************************************/
 package jsettlers.graphics.ui;
 
-import jsettlers.common.action.Action;
 import jsettlers.common.images.ImageLink;
+
+import java.util.Optional;
+import jsettlers.common.action.Action;
 
 /**
  * This is a button, consisting of images in the given file.
@@ -49,7 +51,7 @@ public class Button extends UIPanel {
 
 	@Override
 	protected ImageLink getBackgroundImage() {
-		return active ? activeImage : image;
+		return isActive() ? activeImage : image;
 	}
 
 	public boolean isActive() {
@@ -69,8 +71,8 @@ public class Button extends UIPanel {
 	}
 
 	@Override
-	public Action getAction(float relativex, float relativey) {
-		return getAction();
+	public Optional<Action> getAction(float relativex, float relativey) {
+		return Optional.ofNullable(getAction());
 	}
 
 	@Override

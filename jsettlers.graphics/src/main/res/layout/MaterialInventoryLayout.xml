@@ -163,6 +163,15 @@
 		<material material="SPEAR" />
 	</element>
 
+	<element x="104" width="18" y="302" height="18"
+			 class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.MaterialButton">
+		<material material="MEAD" />
+	</element>
+	<element x="104" width="18" y="319" height="7"
+			 class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.InventoryCount">
+		<material material="MEAD" />
+	</element>
+
 	<!-- Row 4 -->
 	<element x="14" width="18" y="329" height="18"
 		class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.MaterialButton">
@@ -237,6 +246,42 @@
 		<material material="WINE" />
 	</element>
 
+	<element x="50" width="18" y="356" height="18"
+			 class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.MaterialButton">
+		<material material="KEG" />
+	</element>
+	<element x="50" width="18" y="373" height="7"
+			 class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.InventoryCount">
+		<material material="KEG" />
+	</element>
+
+	<element x="68" width="18" y="356" height="18"
+			 class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.MaterialButton">
+		<material material="LIQUOR" />
+	</element>
+	<element x="68" width="18" y="373" height="7"
+			 class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.InventoryCount">
+		<material material="LIQUOR" />
+	</element>
+
+	<element x="86" width="18" y="356" height="18"
+			 class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.MaterialButton">
+		<material material="RICE" />
+	</element>
+	<element x="86" width="18" y="373" height="7"
+			 class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.InventoryCount">
+		<material material="RICE" />
+	</element>
+
+	<element x="104" width="18" y="356" height="18"
+			 class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.MaterialButton">
+		<material material="HONEY" />
+	</element>
+	<element x="104" width="18" y="373" height="7"
+			 class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.InventoryCount">
+		<material material="HONEY" />
+	</element>
+
 	<!-- Row 6 -->
 	<element x="14" width="18" y="383" height="18"
 		class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.MaterialButton">
@@ -245,6 +290,33 @@
 	<element x="14" width="18" y="400" height="7"
 		class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.InventoryCount">
 		<material material="GOLD" />
+	</element>
+
+	<element x="32" width="18" y="383" height="18"
+			 class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.MaterialButton">
+		<material material="GEMS" />
+	</element>
+	<element x="32" width="18" y="400" height="7"
+			 class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.InventoryCount">
+		<material material="GEMS" />
+	</element>
+
+	<element x="50" width="18" y="383" height="18"
+			 class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.MaterialButton">
+		<material material="SULFUR" />
+	</element>
+	<element x="50" width="18" y="400" height="7"
+			 class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.InventoryCount">
+		<material material="SULFUR" />
+	</element>
+
+	<element x="68" width="18" y="383" height="18"
+			 class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.MaterialButton">
+		<material material="GUN_POWDER" />
+	</element>
+	<element x="68" width="18" y="400" height="7"
+			 class="jsettlers.graphics.map.controls.original.panel.content.material.inventory.InventoryPanel.InventoryCount">
+		<material material="GUN_POWDER" />
 	</element>
 
 </element>

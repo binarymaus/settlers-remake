@@ -18,6 +18,7 @@ import jsettlers.common.material.EMaterialType;
 import jsettlers.graphics.map.controls.original.panel.button.SelectionManagedMaterialButton;
 import jsettlers.graphics.map.controls.original.panel.selection.BuildingSelectionContent;
 import jsettlers.graphics.map.controls.original.panel.selection.BuildingState;
+import jsettlers.graphics.ui.UIPanel;
 
 /**
  * This is a material that is displayed on the stock screen.
@@ -46,6 +47,25 @@ public class StockControlButton extends SelectionManagedMaterialButton implement
 			return DotColor.GREEN;
 		} else {
 			return DotColor.RED;
+		}
+	}
+
+	public static class Array extends UIPanel {
+		public Array() {
+			int w = 6;
+			int h = 6;
+
+			float xStep = 1.f/w;
+			float yStep = 1.f/h;
+
+			for(int i = 0; i < EMaterialType.NUMBER_OF_DROPPABLE_MATERIALS; i++) {
+				int x = i % w;
+				int y = i / w;
+				StockControlButton button = new StockControlButton(EMaterialType.DROPPABLE_MATERIALS[i]);
+
+				addChild(button, xStep*x, 1-yStep*(y+1), xStep*(x+1), 1-yStep*y);
+			}
+
 		}
 	}
 }

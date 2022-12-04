@@ -25,7 +25,7 @@ public interface IMessage {
 	/**
 	 * Number of messages that queue can hold at largest.
 	 */
-	int MAX_MESSAGES = 16;
+	int MAX_MESSAGES = 8;
 	/**
 	 * Longest duration for which messages should remain in queue, in milliseconds.
 	 */

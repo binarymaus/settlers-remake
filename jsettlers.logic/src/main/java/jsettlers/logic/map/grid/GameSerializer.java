@@ -22,7 +22,7 @@ import jsettlers.logic.buildings.Building;
 import jsettlers.logic.buildings.trading.HarborBuilding;
 import jsettlers.logic.buildings.trading.MarketBuilding;
 import jsettlers.logic.map.loading.MapLoadException;
-import jsettlers.logic.movable.Movable;
+import jsettlers.logic.movable.MovableManager;
 
 /**
  * This class serializes and deserializes the {@link MainGrid} and therefore the complete game state.
@@ -94,7 +94,7 @@ public class GameSerializer {
 				Building.writeStaticState(oos);
 				MarketBuilding.writeStaticState(oos);
 				HarborBuilding.writeStaticState(oos);
-				Movable.writeStaticState(oos);
+				MovableManager.writeStaticState(oos);
 				oos.writeObject(grid);
 			} catch (Throwable t) {
 				t.printStackTrace();
@@ -118,7 +118,7 @@ public class GameSerializer {
 				Building.readStaticState(ois);
 				MarketBuilding.readStaticState(ois);
 				HarborBuilding.readStaticState(ois);
-				Movable.readStaticState(ois);
+				MovableManager.readStaticState(ois);
 				grid = (MainGrid) ois.readObject();
 			} catch (Throwable t) {
 				t.printStackTrace();

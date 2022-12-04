@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.Serializable;
 
 import jsettlers.common.ai.EPlayerType;
+import jsettlers.logic.player.InitialGameState;
 import jsettlers.logic.player.PlayerSetting;
 
 /**
@@ -27,29 +28,17 @@ import jsettlers.logic.player.PlayerSetting;
  */
 public class ReplayStartInformation implements Serializable {
 
-	private long randomSeed;
 	private String mapName;
 	private String mapId;
-	private int playerId;
-	private PlayerSetting[] playerSettings;
+	private InitialGameState initialGameState;
 
 	public ReplayStartInformation() {
 	}
 
-	public ReplayStartInformation(long randomSeed, String mapName, String mapId, int playerId, PlayerSetting[] playerSettings) {
-		this.randomSeed = randomSeed;
-		this.playerId = playerId;
+	public ReplayStartInformation(String mapName, String mapId, InitialGameState initialGameState) {
+		this.initialGameState = initialGameState;
 		this.mapName = mapName;
 		this.mapId = mapId;
-		this.playerSettings = playerSettings;
-	}
-
-	public long getRandomSeed() {
-		return randomSeed;
-	}
-
-	public int getPlayerId() {
-		return playerId;
 	}
 
 	public String getMapName() {
@@ -60,40 +49,25 @@ public class ReplayStartInformation implements Serializable {
 		return mapId;
 	}
 
-	public PlayerSetting[] getPlayerSettings() {
-		return playerSettings;
-	}
-
 	public void serialize(DataOutputStream dos) throws IOException {
-		dos.writeLong(randomSeed);
-		dos.writeByte(playerId);
 		dos.writeUTF(mapName);
 		dos.writeUTF(mapId);
 
-		dos.writeInt(playerSettings.length);
-		for (PlayerSetting playerSetting : playerSettings) {
-			playerSetting.writeTo(dos);
-		}
+		initialGameState.serialize(dos);
 	}
 
 	public void deserialize(DataInputStream dis) throws IOException {
-		randomSeed = dis.readLong();
-		playerId = dis.readByte();
 		mapName = dis.readUTF();
 		mapId = dis.readUTF();
 
-		playerSettings = new PlayerSetting[dis.readInt()];
-		for (int i = 0; i < playerSettings.length; i++) {
-			playerSettings[i] = PlayerSetting.readFromStream(dis);
-		}
+		initialGameState = new InitialGameState(dis);
 	}
 
-	public PlayerSetting[] getReplayablePlayerSettings() {
-		PlayerSetting[] playerSettings = new PlayerSetting[this.playerSettings.length];
-		for (int i = 0; i < playerSettings.length; i++) {
-			PlayerSetting originalSetting = this.playerSettings[i];
-			playerSettings[i] = new PlayerSetting(originalSetting.isAvailable(), EPlayerType.HUMAN, originalSetting.getCivilisation(), originalSetting.getTeamId());
-		}
-		return playerSettings;
+	public InitialGameState getInitialGameState() {
+		return initialGameState;
+	}
+
+	public InitialGameState getReplayableGameState() {
+		return initialGameState.clone();
 	}
 }

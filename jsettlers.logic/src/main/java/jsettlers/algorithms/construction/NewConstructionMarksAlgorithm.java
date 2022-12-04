@@ -14,19 +14,16 @@
  *******************************************************************************/
 package jsettlers.algorithms.construction;
 
-import jsettlers.common.buildings.BuildingAreaBitSet;
-import jsettlers.common.buildings.EBuildingType;
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.map.shapes.IMapArea;
 import jsettlers.common.map.shapes.MapRectangle;
 import jsettlers.common.position.RelativePoint;
 
-import java.util.BitSet;
-
 /**
  * Algorithm to calculate the construction marks for the user.
- * 
+ *
  * @author Andreas Eberle
- * 
+ *
  */
 public final class NewConstructionMarksAlgorithm {
 	private final AbstractConstructionMarkableMap map;
@@ -39,91 +36,31 @@ public final class NewConstructionMarksAlgorithm {
 		this.playerId = player;
 	}
 
-	public void calculateConstructMarks(final MapRectangle mapArea, EBuildingType buildingType) {
+	public void calculateConstructMarks(final MapRectangle mapArea, BuildingVariant buildingVariant) {
 		if (lastArea != null) {
 			removeConstructionMarks(lastArea, mapArea);
 		}
 
-		BuildingAreaBitSet buildingArea = buildingType.getBuildingAreaBitSet();
-		boolean binaryConstructionMarkValues = !buildingType.needsFlattenedGround();
-		RelativePoint[] positionsToBeFlattened = buildingType.getBuildingArea();
+		boolean binaryConstructionMarkValues = !buildingVariant.needsFlattenedGround();
+		RelativePoint[] buildingArea = buildingVariant.getBuildingArea();
 
-		// declare local variables
-		final short[] xJumps = buildingArea.xJumps;
-		final short[] yJumps = buildingArea.yJumps;
+		final short height = mapArea.getHeight();
+		final short width = mapArea.getWidth();
 
-		final int lineLength = mapArea.getWidth() + mapArea.getHeight() / 2;
-		final BitSet doneSet = new BitSet(lineLength * mapArea.getHeight());
+		for(short line = 0; line < height; line++) {
+			short y = (short) mapArea.getLineY(line);
 
-		final int xOffsetForBuilding = buildingArea.minX;
-		final int yOffsetForBuilding = buildingArea.minY;
-		final int buildingAreaWidth = buildingArea.width;
-		final int buildingAreaHeight = buildingArea.height;
+			short minX = (short) mapArea.getLineStartX(line);
 
-		// iterate over the positions in the mapArea with the offset from the buildingArea
-		for (int line = 0; line < mapArea.getHeight(); line++) {
-			final int y = mapArea.getLineY(line);
-			final int xLineOffset = mapArea.getMinX();
+			for(short tile = 0; tile < width; tile++) {
+				short x = (short) (minX + tile);
 
-			DX_LOOP: for (int dx = 0; dx < lineLength; dx++) {
-				final int x = xLineOffset + dx;
-				final short partitionId;
-
-				if (!mapArea.contains(x, y) || doneSet.get(dx + line * lineLength)) { // if this position has already been pruned.
-					continue;
+				if(map.canConstructAt(x, y, buildingVariant.getType(), playerId)) {
+					map.setConstructMarking(x, y, true, binaryConstructionMarkValues, buildingArea);
+				} else {
+					map.setConstructMarking(x, y, false, false, null);
 				}
 
-				{ // get the partition and check if the player is allowed to use this partition
-					int firstPosX = buildingArea.aPosition.calculateX(x);
-					int firstPosY = buildingArea.aPosition.calculateY(y);
-
-					if (!map.isInBounds(firstPosX, firstPosY)) {
-						continue;
-					}
-
-					partitionId = map.getPartitionIdAt(firstPosX, firstPosY);
-
-					if (!map.canPlayerConstructOnPartition(playerId, partitionId)) {
-						continue;
-					}
-				}
-
-				// go over all positions of the building and check if they are free
-				for (int buildingDx = buildingAreaWidth - 1; buildingDx >= 0; buildingDx--) {
-					for (int buildingDy = buildingAreaHeight - 1; buildingDy >= 0; buildingDy--) {
-						int index = buildingDx + buildingDy * buildingAreaWidth;
-
-						// relative position regarding the building
-						int buildingPositionX = buildingDx + xOffsetForBuilding;
-						int buildingPositionY = buildingDy + yOffsetForBuilding;
-
-						// if the position must be free, but isn't
-						if (xJumps[index] != 0
-								&& !map.canUsePositionForConstruction(x + buildingPositionX, y + buildingPositionY,
-										buildingType.getRequiredGroundTypeAt(buildingPositionX, buildingPositionY), partitionId)) {
-
-							map.setConstructMarking(x, y, false, binaryConstructionMarkValues, null);
-
-							// prune the positions we already know that they are invalid.
-							for (int pruneX = 0; pruneX < xJumps[index]; pruneX++) {
-								int currYJumps = yJumps[(buildingDx - pruneX) + buildingDy * buildingAreaWidth];
-								for (int pruneY = 0; pruneY < currYJumps; pruneY++) {
-									if (pruneY == 0 && pruneX == 0) {
-										continue; // skip the original position
-									}
-
-									doneSet.set((dx + pruneX) + (line + pruneY) * lineLength);
-									map.setConstructMarking(x + pruneX, y + pruneY, false, binaryConstructionMarkValues, null);
-								}
-							}
-
-							continue DX_LOOP;
-						}
-					}
-				}
-
-				// no bad position found, so set the construction mark
-				map.setConstructMarking(x, y, true, binaryConstructionMarkValues, positionsToBeFlattened);
 			}
 		}
 

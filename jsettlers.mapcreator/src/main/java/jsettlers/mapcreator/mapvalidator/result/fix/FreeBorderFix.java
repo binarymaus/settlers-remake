@@ -20,7 +20,8 @@ import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.utils.coordinates.CoordinateStream;
 import jsettlers.mapcreator.localization.EditorLabels;
 
-import javax.swing.*;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;

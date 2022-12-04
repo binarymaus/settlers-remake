@@ -28,6 +28,9 @@ import jsettlers.graphics.ui.UIElement;
 import jsettlers.graphics.ui.UIPanel;
 import jsettlers.graphics.ui.layout.StatisticLayoutRomans;
 
+import java.util.Set;
+import java.util.stream.Stream;
+
 /**
  * The ingame settler statistics panel
  *
@@ -37,14 +40,17 @@ import jsettlers.graphics.ui.layout.StatisticLayoutRomans;
  */
 public class SettlersStatisticsPanel extends AbstractContentProvider implements IUiContentReceiver<ISettlerInformation> {
 
-	private final UIPanel panel = new StatisticLayoutRomans()._root;
+	private UIPanel panel;
 	private final UiPlayerDependingContentUpdater<ISettlerInformation> uiContentUpdater = new UiPlayerDependingContentUpdater<>(IInGamePlayer::getSettlerInformation);
+	private IInGamePlayer player;
 
 	public SettlersStatisticsPanel() {
 		uiContentUpdater.addListener(this);
 	}
 
 	public void setPlayer(IInGamePlayer player) {
+		panel = new StatisticLayoutRomans(null, player.getCivilisation())._root;
+		this.player = player;
 		uiContentUpdater.updatePlayer(player);
 	}
 
@@ -75,7 +81,7 @@ public class SettlersStatisticsPanel extends AbstractContentProvider implements 
 
 				switch (name) {
 				case "stat_beds":
-					label.setText("-"); // there is not concept of "beds" yet
+					label.setText(Integer.toString(player.getBedInformation().getTotalBedAmount())); // there is not concept of "beds" yet
 					break;
 				case "stat_civilian":
 					label.setText(String.valueOf(civilianCount));
@@ -99,23 +105,17 @@ public class SettlersStatisticsPanel extends AbstractContentProvider implements 
 					label.setText(String.valueOf(genericWorker));
 					break;
 				case "stat_swordsman": {
-					int count = settlerInformation.getMovableCount(EMovableType.SWORDSMAN_L1)
-							+ settlerInformation.getMovableCount(EMovableType.SWORDSMAN_L2)
-							+ settlerInformation.getMovableCount(EMovableType.SWORDSMAN_L3);
+					int count = calculateMovableCount(settlerInformation, EMovableType.SWORDSMEN);
 					label.setText(String.valueOf(count));
 					break;
 				}
 				case "stat_bowman": {
-					int count = settlerInformation.getMovableCount(EMovableType.BOWMAN_L1)
-							+ settlerInformation.getMovableCount(EMovableType.BOWMAN_L2)
-							+ settlerInformation.getMovableCount(EMovableType.BOWMAN_L3);
+					int count = calculateMovableCount(settlerInformation, EMovableType.BOWMEN);
 					label.setText(String.valueOf(count));
 					break;
 				}
 				case "stat_pikeman": {
-					int count = settlerInformation.getMovableCount(EMovableType.PIKEMAN_L1)
-							+ settlerInformation.getMovableCount(EMovableType.PIKEMAN_L2)
-							+ settlerInformation.getMovableCount(EMovableType.PIKEMAN_L3);
+					int count = calculateMovableCount(settlerInformation, EMovableType.PIKEMEN);
 					label.setText(String.valueOf(count));
 					break;
 				}
@@ -140,43 +140,39 @@ public class SettlersStatisticsPanel extends AbstractContentProvider implements 
 	}
 
 	private int calculateSoldiersCount(ISettlerInformation settlerInformation) {
-		return settlerInformation.getMovableCount(EMovableType.SWORDSMAN_L1)
-				+ settlerInformation.getMovableCount(EMovableType.SWORDSMAN_L2)
-				+ settlerInformation.getMovableCount(EMovableType.SWORDSMAN_L3)
-				+ settlerInformation.getMovableCount(EMovableType.BOWMAN_L1)
-				+ settlerInformation.getMovableCount(EMovableType.BOWMAN_L2)
-				+ settlerInformation.getMovableCount(EMovableType.BOWMAN_L3)
-				+ settlerInformation.getMovableCount(EMovableType.PIKEMAN_L1)
-				+ settlerInformation.getMovableCount(EMovableType.PIKEMAN_L2)
-				+ settlerInformation.getMovableCount(EMovableType.PIKEMAN_L3)
-				+ settlerInformation.getMovableCount(EMovableType.MAGE);
+		return calculateMovableCount(settlerInformation,
+				EMovableType.SWORDSMAN_L1, EMovableType.SWORDSMAN_L2,
+				EMovableType.SWORDSMAN_L3, EMovableType.BOWMAN_L1,
+				EMovableType.BOWMAN_L2, EMovableType.BOWMAN_L3,
+				EMovableType.PIKEMAN_L1,EMovableType.PIKEMAN_L2,
+				EMovableType.PIKEMAN_L3, EMovableType.MAGE);
 	}
 
 	private int calculateCiviliansCount(ISettlerInformation settlerInformation, int genericWorker) {
-		return genericWorker
-				+ settlerInformation.getMovableCount(EMovableType.BEARER)
-				+ settlerInformation.getMovableCount(EMovableType.DIGGER)
-				+ settlerInformation.getMovableCount(EMovableType.BRICKLAYER);
+		return genericWorker + calculateMovableCount(settlerInformation, EMovableType.BEARER, EMovableType.DIGGER, EMovableType.BRICKLAYER);
 	}
 
 	private int calculateGenericWorkersCount(ISettlerInformation settlerInformation) {
-		return settlerInformation.getMovableCount(EMovableType.PIG_FARMER)
-				+ settlerInformation.getMovableCount(EMovableType.DOCKWORKER)
-				+ settlerInformation.getMovableCount(EMovableType.FARMER)
-				+ settlerInformation.getMovableCount(EMovableType.LUMBERJACK)
-				+ settlerInformation.getMovableCount(EMovableType.SAWMILLER)
-				+ settlerInformation.getMovableCount(EMovableType.FISHERMAN)
-				+ settlerInformation.getMovableCount(EMovableType.WATERWORKER)
-				+ settlerInformation.getMovableCount(EMovableType.BAKER)
-				+ settlerInformation.getMovableCount(EMovableType.MINER)
-				+ settlerInformation.getMovableCount(EMovableType.SLAUGHTERER)
-				+ settlerInformation.getMovableCount(EMovableType.MILLER)
-				+ settlerInformation.getMovableCount(EMovableType.SMITH)
-				+ settlerInformation.getMovableCount(EMovableType.FORESTER)
-				+ settlerInformation.getMovableCount(EMovableType.MELTER)
-				+ settlerInformation.getMovableCount(EMovableType.WINEGROWER)
-				+ settlerInformation.getMovableCount(EMovableType.CHARCOAL_BURNER)
-				+ settlerInformation.getMovableCount(EMovableType.STONECUTTER);
+		return calculateMovableCount(settlerInformation,
+				EMovableType.PIG_FARMER, EMovableType.DOCKWORKER,
+				EMovableType.FARMER, EMovableType.LUMBERJACK,
+				EMovableType.SAWMILLER, EMovableType.FISHERMAN,
+				EMovableType.WATERWORKER,EMovableType.BAKER,
+				EMovableType.MINER,EMovableType.SLAUGHTERER,
+				EMovableType.MILLER, EMovableType.SMITH,
+				EMovableType.FORESTER, EMovableType.MELTER,
+				EMovableType.WINEGROWER, EMovableType.CHARCOAL_BURNER,
+				EMovableType.STONECUTTER, EMovableType.BREWER,
+				EMovableType.RICE_FARMER, EMovableType.DISTILLER,
+				EMovableType.ALCHEMIST, EMovableType.MEAD_BREWER);
+	}
+
+	private int calculateMovableCount(ISettlerInformation settlerInformation, Set<EMovableType> movableTypes) {
+		return movableTypes.stream().mapToInt(settlerInformation::getMovableCount).sum();
+	}
+
+	private int calculateMovableCount(ISettlerInformation settlerInformation, EMovableType... movableTypes) {
+		return Stream.of(movableTypes).mapToInt(settlerInformation::getMovableCount).sum();
 	}
 
 	@Override

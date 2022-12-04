@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+import jsettlers.logic.movable.civilian.BuildingWorkerMovable;
 import jsettlers.network.client.interfaces.IGameClock;
 
 /**
@@ -38,6 +39,8 @@ public final class MatchConstants {
 
 	public static boolean ENABLE_FOG_OF_WAR_DISABLING = false;
 
+	public static final boolean ENABLE_PRODUCTION_LOG = false;
+
 	/**
 	 * NOTE: this value has only an effect if it's changed before the MainGrid is created! IT MUSTN'T BE CHANGED AFTER A MAIN GRID HAS BEEN CREATED <br>
 	 * if false, no debug coloring is possible (but saves memory) <br>
@@ -57,6 +60,8 @@ public final class MatchConstants {
 		MatchConstants.clock = clock;
 		MatchConstants.gameRandom = new ExtendedRandom(randomSeed);
 		MatchConstants.aiRandom = new ExtendedRandom(randomSeed);
+
+		BuildingWorkerMovable.resetProductionFile();
 	}
 
 	public static void clearState() {

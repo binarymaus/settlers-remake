@@ -25,6 +25,22 @@ public enum EPlayerType {
 	HUMAN;
 
 	public static final EPlayerType[] VALUES = EPlayerType.values();
+
+	public static final EPlayerType[] VALUES_HUMAN_FIRST = new EPlayerType[] {
+			HUMAN,
+			AI_VERY_HARD,
+			AI_HARD,
+			AI_EASY,
+			AI_VERY_EASY
+	};
+
+	public static final EPlayerType[] VALUES_AI_ONLY = new EPlayerType[] {
+			AI_VERY_HARD,
+			AI_HARD,
+			AI_EASY,
+			AI_VERY_EASY
+	};
+
 	public static final int NUMBER_OF_PLAYER_TYPES = VALUES.length;
 
 	public static EPlayerType getTypeByIndex(int index) {

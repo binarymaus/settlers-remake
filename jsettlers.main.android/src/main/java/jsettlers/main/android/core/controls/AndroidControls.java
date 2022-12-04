@@ -18,9 +18,13 @@ package jsettlers.main.android.core.controls;
 import go.graphics.GLDrawContext;
 import go.graphics.UIPoint;
 import go.graphics.event.mouse.GODrawEvent;
+import java.util.Optional;
 import jsettlers.common.action.Action;
+import jsettlers.common.action.AskCastSpellAction;
 import jsettlers.common.action.BuildAction;
+import jsettlers.common.action.CastSpellAction;
 import jsettlers.common.action.EActionType;
+import jsettlers.common.action.EMoveToType;
 import jsettlers.common.action.IAction;
 import jsettlers.common.action.PointAction;
 import jsettlers.common.action.SetDockAction;
@@ -72,15 +76,13 @@ public class AndroidControls implements IControls, ActionFireable, TaskControls 
 			}
 			break;
 		case ASK_SET_WORK_AREA:
-			startTask(action);
-			break;
+		case ASK_CAST_SPELL:
 		case ASK_SET_DOCK:
-			startTask(action);
-			break;
 		case ASK_SET_TRADING_WAYPOINT:
 			startTask(action);
 			break;
 		case SET_WORK_AREA:
+		case CAST_SPELL:
 		case SET_DOCK:
 		case SET_TRADING_WAYPOINT:
 		case BUILD:
@@ -107,6 +109,8 @@ public class AndroidControls implements IControls, ActionFireable, TaskControls 
 					return new BuildAction(showConstructionMarksAction.getBuildingType(), pointAction.getPosition());
 				case ASK_SET_WORK_AREA:
 					return new PointAction(EActionType.SET_WORK_AREA, pointAction.getPosition());
+				case ASK_CAST_SPELL:
+					return new CastSpellAction(((AskCastSpellAction)taskAction).getSpell(), pointAction.getPosition());
 				case ASK_SET_DOCK:
 					return new SetDockAction(pointAction.getPosition());
 				case ASK_SET_TRADING_WAYPOINT:
@@ -156,16 +160,18 @@ public class AndroidControls implements IControls, ActionFireable, TaskControls 
 	}
 
 	@Override
-	public void setMapViewport(MapRectangle screenArea) {
-		int centerX = screenArea.getLineStartX(screenArea.getHeight() / 2) + screenArea.getWidth() / 2;
-		int centerY = screenArea.getLineY(screenArea.getHeight() / 2);
-		ShortPoint2D displayCenter = new ShortPoint2D(centerX, centerY);
+	public void setMapViewport(MapRectangle screenArea, ShortPoint2D displayCenter) {
 		controlsAdapter.onPositionChanged(screenArea, displayCenter);
 	}
 
 	@Override
-	public Action getActionFor(UIPoint position, boolean selecting) {
-		return null;
+	public Optional<Action> getActionForMoveTo(UIPoint position, EMoveToType moveToType) {
+		return Optional.empty();
+	}
+
+	@Override
+	public Optional<Action> getActionForSelect(UIPoint position) {
+		return Optional.empty();
 	}
 
 	@Override

@@ -72,7 +72,7 @@ public class BucketQueueAStarTest {
 
 			@Override
 			public IPlayer getPlayer() {
-				return new IPlayer.DummyPlayer();
+				return IPlayer.DEFAULT_DUMMY_PLAYER0;
 			}
 
 			@Override

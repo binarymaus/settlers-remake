@@ -22,7 +22,8 @@ import jsettlers.common.map.IGraphicsBackgroundListener;
 import jsettlers.common.map.IGraphicsGrid;
 import jsettlers.common.map.partition.IPartitionData;
 import jsettlers.common.mapobject.IMapObject;
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.movable.IGraphicsMovable;
+import jsettlers.common.player.IPlayer;
 import jsettlers.mapcreator.data.MapData;
 import jsettlers.mapcreator.data.objects.ObjectContainer;
 
@@ -64,12 +65,12 @@ public class MapGraphics implements IGraphicsGrid {
 	}
 
 	@Override
-	public IMovable getMovableAt(int x, int y) {
+	public IGraphicsMovable getMovableAt(int x, int y) {
 		return data.getMovableContainer(x, y);
 	}
 
 	@Override
-	public IMapObject getMapObjectsAt(int x, int y) {
+	public IMapObject getVisibleMapObjectsAt(int x, int y) {
 		ObjectContainer container = data.getMapObjectContainer(x, y);
 		if (container instanceof IMapObject) {
 			return (IMapObject) container;
@@ -85,12 +86,12 @@ public class MapGraphics implements IGraphicsGrid {
 	}
 
 	@Override
-	public byte getHeightAt(int x, int y) {
+	public byte getVisibleHeightAt(int x, int y) {
 		return data.getLandscapeHeight(x, y);
 	}
 
 	@Override
-	public ELandscapeType getLandscapeTypeAt(int x, int y) {
+	public ELandscapeType getVisibleLandscapeTypeAt(int x, int y) {
 		return data.getLandscape(x, y);
 	}
 
@@ -105,8 +106,8 @@ public class MapGraphics implements IGraphicsGrid {
 	}
 
 	@Override
-	public byte getPlayerIdAt(int x, int y) {
-		return data.getPlayer(x, y);
+	public IPlayer getPlayerAt(int x, int y) {
+		return IPlayer.DummyPlayer.getCached(data.getPlayer(x, y));
 	}
 
 	@Override

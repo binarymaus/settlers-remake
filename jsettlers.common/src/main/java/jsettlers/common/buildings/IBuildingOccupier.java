@@ -14,7 +14,7 @@
  *******************************************************************************/
 package jsettlers.common.buildings;
 
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.movable.IGraphicsMovable;
 
 /**
  * This interface allows the graphics to get the occupyer in a building.
@@ -28,7 +28,7 @@ public interface IBuildingOccupier {
 	 * 
 	 * @return The type.
 	 */
-	IMovable getMovable();
+	IGraphicsMovable getMovable();
 
 	/**
 	 * The place the occupyer was placed

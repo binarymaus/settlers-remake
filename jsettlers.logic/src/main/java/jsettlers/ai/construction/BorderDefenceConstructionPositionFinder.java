@@ -15,9 +15,8 @@
 package jsettlers.ai.construction;
 
 import jsettlers.ai.highlevel.AiPositions;
-import jsettlers.ai.highlevel.AiStatistics;
-import jsettlers.algorithms.construction.AbstractConstructionMarkableMap;
 import jsettlers.common.CommonConstants;
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.position.ShortPoint2D;
 
@@ -26,20 +25,25 @@ import java.util.List;
 /**
  * @author codingberlin
  */
-public class BorderDefenceConstructionPositionFinder implements IBestConstructionPositionFinder {
+public class BorderDefenceConstructionPositionFinder extends ConstructionPositionFinder {
 	private final List<ShortPoint2D> threatenedBorders;
 
-	public BorderDefenceConstructionPositionFinder(List<ShortPoint2D> threatenedBorders) {
+	private final BuildingVariant tower;
+
+	public BorderDefenceConstructionPositionFinder(Factory factory, List<ShortPoint2D> threatenedBorders) {
+		super(factory);
 		this.threatenedBorders = threatenedBorders;
+
+		tower = EBuildingType.TOWER.getVariant(civilisation);
 	}
 
 	@Override
-	public ShortPoint2D findBestConstructionPosition(final AiStatistics aiStatistics, final AbstractConstructionMarkableMap constructionMap, final byte playerId) {
+	public ShortPoint2D findBestConstructionPosition() {
 		AiPositions landToBuildOn = aiStatistics.getLandForPlayer(playerId);
 		for (ShortPoint2D threatenedBorder : threatenedBorders) {
 			ShortPoint2D constructionPosition = landToBuildOn.getNearestPoint(threatenedBorder, CommonConstants.TOWER_RADIUS,
 					(x, y) -> constructionMap.canConstructAt((short) x, (short) y, EBuildingType.TOWER, playerId)
-							&& !aiStatistics.blocksWorkingAreaOfOtherBuilding(x, y, playerId, EBuildingType.TOWER));
+							&& !aiStatistics.blocksWorkingAreaOfOtherBuilding(x, y, playerId, tower));
 			if (constructionPosition != null) {
 				return constructionPosition;
 			}

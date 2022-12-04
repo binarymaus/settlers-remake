@@ -15,26 +15,24 @@
 
 package jsettlers.logic.buildings.military.occupying;
 
-import static java8.util.stream.StreamSupport.stream;
-
 import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import jsettlers.common.buildings.OccupierPlace;
 import jsettlers.common.material.ESearchType;
 import jsettlers.common.movable.ESoldierClass;
 import jsettlers.common.movable.ESoldierType;
 
-import java8.util.stream.Collectors;
-
 /**
  * Created by Andreas Eberle on 03.07.2017.
  */
 class SoldierRequests implements Serializable {
+	private static final long serialVersionUID = 8468334443347242053L;
 	private final LinkedList<SoldierRequest>[] requestsByClass;
 
 	SoldierRequests() {
@@ -76,7 +74,7 @@ class SoldierRequests implements Serializable {
 	Set<ESearchType> getRequestedSearchTypes() {
 		Set<ESearchType> requestedSearchTypes = EnumSet.noneOf(ESearchType.class);
 		for (LinkedList<SoldierRequest> classRequests : requestsByClass) {
-			requestedSearchTypes.addAll(stream(classRequests).map(SoldierRequest::getSearchType).collect(Collectors.toList()));
+			requestedSearchTypes.addAll(classRequests.stream().map(SoldierRequest::getSearchType).collect(Collectors.toList()));
 		}
 		return requestedSearchTypes;
 	}
@@ -88,8 +86,8 @@ class SoldierRequests implements Serializable {
 
 	List<OccupierPlace> getPlaces() {
 		List<OccupierPlace> places = new LinkedList<>();
-		places.addAll(stream(requestsByClass[0]).map(request -> request.place).collect(Collectors.toList()));
-		places.addAll(stream(requestsByClass[0]).map(request -> request.place).collect(Collectors.toList()));
+		places.addAll(requestsByClass[0].stream().map(request -> request.place).collect(Collectors.toList()));
+		places.addAll(requestsByClass[0].stream().map(request -> request.place).collect(Collectors.toList()));
 		return places;
 	}
 }

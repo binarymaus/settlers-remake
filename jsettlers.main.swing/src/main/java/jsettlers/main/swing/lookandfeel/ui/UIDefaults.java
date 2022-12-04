@@ -17,6 +17,8 @@ package jsettlers.main.swing.lookandfeel.ui;
 import java.awt.Color;
 import java.awt.Font;
 
+import jsettlers.main.swing.settings.SettingsManager;
+
 /**
  * Constant colors for L&F
  * 
@@ -39,9 +41,15 @@ public final class UIDefaults {
 	public static final Color LABEL_TEXT_COLOR = Color.YELLOW;
 
 	/**
+	 * Label color if disabled
+	 */
+	public static final Color LABEL_DISABLED_TEXT_COLOR = Color.LIGHT_GRAY;
+
+	/**
 	 * Default font
 	 */
 	public static final Font FONT = new Font("Sans", Font.BOLD, 14);
+	public static final Font FONT_SMALL = new Font("Sans", Font.PLAIN, 10);
 
 	/**
 	 * Default font

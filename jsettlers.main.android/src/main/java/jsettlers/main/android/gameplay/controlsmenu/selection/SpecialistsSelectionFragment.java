@@ -21,7 +21,6 @@ import org.androidannotations.annotations.ViewById;
 
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageView;
@@ -31,10 +30,12 @@ import android.widget.TextView;
 import jsettlers.common.action.ConvertAction;
 import jsettlers.common.action.EActionType;
 import jsettlers.common.movable.EMovableType;
+import jsettlers.common.player.ECivilisation;
+import jsettlers.graphics.map.draw.ECommonLinkType;
+import jsettlers.graphics.map.draw.ImageLinkMap;
 import jsettlers.main.android.R;
 import jsettlers.main.android.core.controls.ActionControls;
 import jsettlers.main.android.core.controls.ControlsResolver;
-import jsettlers.main.android.core.resources.ImageLinkFactory;
 import jsettlers.main.android.core.resources.OriginalImageProvider;
 
 /**
@@ -48,7 +49,7 @@ public class SpecialistsSelectionFragment extends SelectionFragment {
 			EMovableType.GEOLOGIST,
 	};
 
-	public static Fragment newInstance() {
+	public static SpecialistsSelectionFragment newInstance() {
 		return new SpecialistsSelectionFragment_();
 	}
 
@@ -65,14 +66,16 @@ public class SpecialistsSelectionFragment extends SelectionFragment {
 		LayoutInflater layoutInflater = LayoutInflater.from(getActivity());
 
 		for (EMovableType movableType : specialistTypes) {
-			int count = getSelection().getMovableCount(movableType);
+			int count = getSelection().getMovableCount(movableType, null);
 
 			if (count > 0) {
 				View view = layoutInflater.inflate(R.layout.view_specialist, specialistsLayout, false);
 				ImageView imageView = (ImageView) view.findViewById(R.id.image_view_specialist);
 				TextView textView = (TextView) view.findViewById(R.id.text_view_specialist_count);
 
-				OriginalImageProvider.get(ImageLinkFactory.get(movableType)).setAsImage(imageView);
+				ECivilisation civilisation = getSelection().get(0).getPlayer().getCivilisation();
+
+				OriginalImageProvider.get(ImageLinkMap.get(civilisation, ECommonLinkType.SETTLER_GUI, movableType)).setAsImage(imageView);
 				textView.setText(count + "");
 
 				specialistsLayout.addView(view);

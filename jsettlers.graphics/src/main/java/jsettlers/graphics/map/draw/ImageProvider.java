@@ -14,23 +14,27 @@
  *******************************************************************************/
 package jsettlers.graphics.map.draw;
 
-import java8.util.function.Supplier;
+import java.util.function.Supplier;
 import jsettlers.common.images.DirectImageLink;
 import jsettlers.common.images.EImageLinkType;
 import jsettlers.common.images.ImageLink;
 import jsettlers.common.images.OriginalImageLink;
 import jsettlers.common.images.TextureMap;
+import jsettlers.common.player.ECivilisation;
 import jsettlers.graphics.image.Image;
 import jsettlers.graphics.image.ImageIndexFile;
 import jsettlers.graphics.image.SingleImage;
 import jsettlers.graphics.image.NullImage;
-import jsettlers.graphics.image.SingleImage;
 import jsettlers.graphics.image.reader.AdvancedDatFileReader;
 import jsettlers.graphics.image.reader.DatFileReader;
 import jsettlers.graphics.image.reader.DatFileSet;
 import jsettlers.graphics.image.reader.DatFileType;
 import jsettlers.graphics.image.reader.EmptyDatFile;
 import jsettlers.graphics.image.reader.custom.graphics.CustomGraphicsInterceptor;
+import jsettlers.graphics.image.reader.shadowmap.IdentityShadowMapping;
+import jsettlers.graphics.image.reader.shadowmap.ShadowMapping;
+import jsettlers.graphics.image.reader.shadowmap.ShadowMapping22;
+import jsettlers.graphics.image.reader.shadowmap.ShadowMapping42;
 import jsettlers.graphics.image.reader.versions.DefaultGfxFolderMapping;
 import jsettlers.graphics.image.reader.versions.GfxFolderMapping;
 import jsettlers.graphics.image.reader.versions.SettlersVersionMapping;
@@ -50,19 +54,29 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * <p>
  * Settlers supports two image modes, one rgb mode (555 bits) and one rgb mode (565 bits).
  *
- * @author michael
+ * @author michael, MarviMarv
  */
 public final class ImageProvider {
+	/**
+	 * lets make this class a real provider
+	 */
+	// private final static int[] CIVILISATION = {0, 1, 2, 3}; //roman, egyptian, asian, amazon
+	private final static int[] BUILDING_BUILD_GFX_FILE = {13, 23, 33, 43};
+
+	private final static int[] MILL_ROTATION_SEQUENCE = {15, 22, 21, 20}; //12 images
+
+	private static final int[] MANNA_BOWL_SEQUENCE = {46, 47, 49, 49}; // 8 images
+
 	private static final String FILE_PREFIX = "siedler3_";
 	private static final int LAST_SEQUENCE_NUMBER = 2;
-	private static final List<Integer> HIGHRES_IMAGE_FILE_NUMBERS = Arrays.asList(3, 14);
+	private static final List<Integer> HIGHRES_IMAGE_FILE_NUMBERS = Arrays.asList(3, 14, 24, 34, 44);
 
 	/**
 	 * The lookup path for the dat files.
 	 */
 	private static File lookupPath;
 
-	private static final DatFileReader EMPTY_DAT_FILE = new EmptyDatFile();
+	public static final DatFileReader EMPTY_DAT_FILE = new EmptyDatFile();
 
 	private static ImageProvider instance;
 
@@ -190,11 +204,19 @@ public final class ImageProvider {
 	 * @return the image matching the specified indexes.
 	 */
 	private Image getSequencedImage(OriginalImageLink link, int sequenceNumber) {
+		Image image;
 		if (link.getType() == EImageLinkType.SETTLER) {
-			return getSettlerSequence(link.getFile(), link.getSequence()).getImageSafe(link.getImage() + sequenceNumber, link::getHumanName);
+			image = getSettlerSequence(link.getFile(), link.getSequence()).getImageSafe(link.getImage() + sequenceNumber, link::getHumanName);
 		} else {
-			return getGuiImage(link.getFile(), link.getSequence() + sequenceNumber, link::getHumanName);
+			image = getGuiImage(link.getFile(), link.getSequence() + sequenceNumber, link::getHumanName);
 		}
+
+		if(image != NullImage.getInstance()) return image;
+
+		OriginalImageLink fallbackLink = link.getFallback();
+		if(fallbackLink == null) return image;
+
+		return getSequencedImage(fallbackLink, sequenceNumber);
 	}
 
 	private Image getDirectImage(DirectImageLink link) {
@@ -290,8 +312,10 @@ public final class ImageProvider {
 
 			File file = findFileInPaths(fileName);
 
+			ShadowMapping shadowMapping = ShadowMapping.getMappingFor(fileIndex);
+
 			if (file != null) {
-				reader = new AdvancedDatFileReader(file, type, gfxFolderMapping.getDatFileMapping(fileIndex), "F" + fileIndex);
+				reader = new AdvancedDatFileReader(file, type, gfxFolderMapping.getDatFileMapping(fileIndex), shadowMapping, "F" + fileIndex);
 				break;
 			}
 		}
@@ -327,5 +351,24 @@ public final class ImageProvider {
 	 */
 	public void addPreloadTask(GLPreloadTask task) {
 		tasks.add(task);
+	}
+
+	/**
+	 * lets make this class a real provider
+	 */
+	private int getOriginalFileData(final int[] array, final ECivilisation civilisation) {
+		return array[civilisation.getFileIndex() - 1];
+	}
+
+	public int getGFXBuildingFileIndex(final ECivilisation civilisation) {
+		return getOriginalFileData(BUILDING_BUILD_GFX_FILE, civilisation);
+	}
+
+	public int getMillRotationIndex(final ECivilisation civilisation) {
+		return getOriginalFileData(MILL_ROTATION_SEQUENCE, civilisation);
+	}
+
+	public int getMannaBowlSequence(final ECivilisation civilisation) {
+		return getOriginalFileData(MANNA_BOWL_SEQUENCE, civilisation);
 	}
 }

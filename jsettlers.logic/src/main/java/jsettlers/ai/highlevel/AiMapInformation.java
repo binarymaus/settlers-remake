@@ -14,27 +14,19 @@
  *******************************************************************************/
 package jsettlers.ai.highlevel;
 
-import static jsettlers.ai.highlevel.AiBuildingConstants.COAL_MINE_TO_IRON_MINE_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.COAL_MINE_TO_SMITH_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.FARM_TO_BAKER_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.FARM_TO_MILL_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.FARM_TO_PIG_FARM_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.FARM_TO_SLAUGHTER_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.FARM_TO_WATERWORKS_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.LUMBERJACK_TO_FORESTER_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.LUMBERJACK_TO_SAWMILL_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.LUMBERJACK_TO_STONE_CUTTER_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.WEAPON_SMITH_TO_BARRACKS_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.WEAPON_SMITH_TO_FARM_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.WEAPON_SMITH_TO_FISHER_HUT_RATIO;
-import static jsettlers.ai.highlevel.AiBuildingConstants.WEAPON_SMITH_TO_LUMBERJACK_RATIO;
+import static jsettlers.ai.highlevel.AiBuildingConstants.*;
 import static jsettlers.common.buildings.EBuildingType.FISHER;
 
 import java.util.BitSet;
 
+import java.util.EnumMap;
+import java.util.Map;
 import jsettlers.algorithms.distances.DistancesCalculationAlgorithm;
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.landscape.EResourceType;
+import jsettlers.common.player.ECivilisation;
+import jsettlers.common.player.IPlayer;
 import jsettlers.logic.map.grid.landscape.LandscapeGrid;
 import jsettlers.logic.map.grid.partition.PartitionsGrid;
 
@@ -49,63 +41,71 @@ import jsettlers.logic.map.grid.partition.PartitionsGrid;
  */
 public class AiMapInformation {
 
-	public static final int GRASS_INDEX = EResourceType.VALUES.length;
 	private static final double FISH_TO_FISHER_HUTS_RATIO = 80F / 1F;
 	private static final double COAL_TO_COAL_MINES_RATIO = 100F / 1F;
+	private static final double GEMSTONE_TO_GEM_MINES_RATIO = 100F / 1F;
 	private static final double IRONORE_TO_IRON_MINES_RATIO = 100F / 1F;
+	private static final float SWAMP_TO_RICE_FARM_RATIO = 60F;
 	private static final float GRASS_TO_LUMBERJACK_RATIO = 1360F;
-	private static final int MIN_SMITHS_BEFORE_WINE_AND_GOLD_REDUCTION = 10;
-	private static final int MIN_WINE_GROWER_BEFORE_GOLD_REDUCTION = 2;
+	private static final float GRASS_TO_FARM_RATIO = 6200F;
+	private static final float STONE_TO_STONECUTTER_RATIO = 10F;
+	private static final int MIN_SMITHS_BEFORE_MANNA_AND_GOLD_REDUCTION = 10;
+	private static final int MIN_MANNA_PRODUCERS_BEFORE_GOLD_REDUCTION = 2;
 	private static final int MIN_LUMBERJACK_COUNT = 3;
-	private static final int MAX_FISHERS = 10;
-	// max 10 fisher to prevent AI from building only fishermen which on the one hand looks very unnatural and on the other hand is unproductive in
-	// the late game caused by over fishing.
-	public long[][] resourceAndGrassCount;
-	public final BitSet wasFishNearByAtGameStart;
+	private static final int FISHER_PENALTY_MIN_AMOUNT = 7;
+	// throttle the number of FISHER after the 7th one
+	// this prevents the AI from overfishing but also takes the high amount of resources on some maps into account
+	public final BitSet[] wasFishNearByAtGameStart = new BitSet[ECivilisation.VALUES.length];
+	private final AiPartitionResources defaultPartitionResources;
+	private final byte numberOfPlayers;
 
-	public AiMapInformation(PartitionsGrid partitionsGrid, LandscapeGrid landscapeGrid) {
-		resourceAndGrassCount = new long[partitionsGrid.getNumberOfPlayers() + 1][EResourceType.VALUES.length + 1];
-		wasFishNearByAtGameStart = calculateIsFishNearBy(partitionsGrid, landscapeGrid);
+	public AiMapInformation(PartitionsGrid partitionsGrid, LandscapeGrid landscapeGrid, AiPartitionResources defaultPartitionResources) {
+		this.defaultPartitionResources = defaultPartitionResources;
+		for(ECivilisation civ : ECivilisation.VALUES) {
+			wasFishNearByAtGameStart[civ.ordinal] = calculateIsFishNearBy(partitionsGrid, landscapeGrid, civ);
+		}
+
+		numberOfPlayers = partitionsGrid.getNumberOfPlayers();
 	}
 
-	private BitSet calculateIsFishNearBy(PartitionsGrid partitionsGrid, LandscapeGrid landscapeGrid) {
+	private BitSet calculateIsFishNearBy(PartitionsGrid partitionsGrid, LandscapeGrid landscapeGrid, ECivilisation civilisation) {
 		return DistancesCalculationAlgorithm.calculatePositionsInDistance(partitionsGrid.getWidth(), partitionsGrid.getHeight(),
 				(x, y) -> landscapeGrid.getResourceTypeAt(x, y) == EResourceType.FISH && landscapeGrid.getResourceAmountAt(x, y) > 0,
-				FISHER.getWorkRadius());
+				FISHER.getVariant(civilisation).getWorkRadius());
 	}
 
-	public void clear() {
-		for (int i = 0; i < resourceAndGrassCount.length; i++) {
-			for (int ii = 0; ii < resourceAndGrassCount[i].length; ii++) {
-				resourceAndGrassCount[i][ii] = 0;
-			}
+	public int[] getBuildingCounts(PlayerStatistic playerStatistic, IPlayer player) {
+		Map<EResourceType, Long> resourceAmount = new EnumMap<>(EResourceType.class);
+		for(EResourceType resource : EResourceType.VALUES) {
+			resourceAmount.put(resource, Math.round(defaultPartitionResources.resourceCount[resource.ordinal] / (float)numberOfPlayers) + playerStatistic.partitionResources.resourceCount[resource.ordinal]);
 		}
-	}
 
-	public int[] getBuildingCounts(byte playerId) {
-		int numberOfPlayers = resourceAndGrassCount.length - 1;
-		int neverland = resourceAndGrassCount.length - 1;
-		long playersAndNeverlandFish = Math.round(resourceAndGrassCount[neverland][EResourceType.FISH.ordinal] / numberOfPlayers) + resourceAndGrassCount[playerId][EResourceType.FISH.ordinal];
-		long playersAndNeverlandCoal = Math.round(resourceAndGrassCount[neverland][EResourceType.COAL.ordinal] / numberOfPlayers) + resourceAndGrassCount[playerId][EResourceType.COAL.ordinal];
-		long playersAndNeverlandIronOre = Math.round(resourceAndGrassCount[neverland][EResourceType.IRONORE.ordinal] / numberOfPlayers)
-				+ resourceAndGrassCount[playerId][EResourceType.IRONORE.ordinal];
-		long playersAndNeverlandGold = Math.round(resourceAndGrassCount[neverland][EResourceType.GOLDORE.ordinal] / numberOfPlayers) + resourceAndGrassCount[playerId][EResourceType.GOLDORE.ordinal];
-		long playersAndNeverlandGrass = Math.round(resourceAndGrassCount[neverland][GRASS_INDEX] / numberOfPlayers) + resourceAndGrassCount[playerId][GRASS_INDEX];
+		long playersAndNeverlandGrass = Math.round(defaultPartitionResources.grassCount / (float)numberOfPlayers) + playerStatistic.partitionResources.grassCount;
 
-		int maxFishermen = Math.max(1, (int) Math.min(MAX_FISHERS, Math.ceil(playersAndNeverlandFish / FISH_TO_FISHER_HUTS_RATIO)));
-		int maxCoalMines = (int) Math.ceil(playersAndNeverlandCoal / COAL_TO_COAL_MINES_RATIO);
-		int maxIronMines = (int) Math.ceil(playersAndNeverlandIronOre / IRONORE_TO_IRON_MINES_RATIO);
-		int maxGoldMelts = playersAndNeverlandGold > 0 ? 2 : 0;
+		long playersAndNeverlandStone = Math.round(defaultPartitionResources.stoneCount / (float)numberOfPlayers) + playerStatistic.partitionResources.stoneCount;
+		long playersAndNeverlandSwamp = Math.round(defaultPartitionResources.usableSwampCount / (float)numberOfPlayers) + playerStatistic.partitionResources.usableSwampCount;
+
+		int maxFishermen = (int) Math.ceil(resourceAmount.get(EResourceType.FISH) / FISH_TO_FISHER_HUTS_RATIO);
+		if(maxFishermen > FISHER_PENALTY_MIN_AMOUNT) maxFishermen = (int)Math.log(maxFishermen - FISHER_PENALTY_MIN_AMOUNT)*3 + FISHER_PENALTY_MIN_AMOUNT;
+		maxFishermen = Math.max(1, maxFishermen);
+		int maxCoalMines = (int) Math.ceil(resourceAmount.get(EResourceType.COAL) / COAL_TO_COAL_MINES_RATIO);
+		int maxIronMines = (int) Math.ceil(resourceAmount.get(EResourceType.IRONORE) / IRONORE_TO_IRON_MINES_RATIO);
+		int maxGoldMelts = resourceAmount.get(EResourceType.GOLDORE) > 0 ? 2 : 0;
+		int maxGemsMines = (int) Math.ceil(resourceAmount.get(EResourceType.GEMSTONE) / GEMSTONE_TO_GEM_MINES_RATIO);
+		if(player.getCivilisation() != ECivilisation.EGYPTIAN && player.getCivilisation() != ECivilisation.AMAZON) {
+			maxGemsMines = 0;
+		}
 
 		if (maxIronMines > maxCoalMines / COAL_MINE_TO_IRON_MINE_RATIO + 1)
 			maxIronMines = (int) Math.ceil(maxCoalMines / COAL_MINE_TO_IRON_MINE_RATIO + 1);
 		if (maxCoalMines > maxIronMines * COAL_MINE_TO_IRON_MINE_RATIO + 1)
 			maxCoalMines = (int) Math.ceil(maxIronMines * COAL_MINE_TO_IRON_MINE_RATIO + 1);
 		int maxSmiths = (int) Math.floor((float) maxCoalMines / COAL_MINE_TO_SMITH_RATIO);
-		return calculateBuildingCounts(maxSmiths, maxFishermen, maxGoldMelts, 3, 1, playersAndNeverlandGrass);
+		int maxRiceFarms = (int) Math.floor((float) playersAndNeverlandSwamp / SWAMP_TO_RICE_FARM_RATIO);
+		return calculateBuildingCounts(maxSmiths, maxFishermen, maxGoldMelts, maxGemsMines, 3, 1, maxRiceFarms, playersAndNeverlandGrass, playersAndNeverlandStone, player.getCivilisation());
 	}
 
-	private int[] calculateBuildingCounts(int numberOfWeaponSmiths, int maxFishermen, int maxGoldMelts, int maxWineGrowers, int maxBigTemples, long grassTiles) {
+	private int[] calculateBuildingCounts(int numberOfWeaponSmiths, int maxFishermen, int maxGoldMelts, int maxGemsMines, int maxMannaProducers, int maxBigTemples, int maxRiceFarms, long grassTiles, long stoneCount, ECivilisation civilisation) {
 		int[] buildingCounts = new int[EBuildingType.NUMBER_OF_BUILDINGS];
 		for (int i = 0; i < buildingCounts.length; i++) {
 			buildingCounts[i] = 0;
@@ -123,20 +123,33 @@ public class AiMapInformation {
 		int numberOfRemainingWeaponSmiths = Math.max(0, numberOfWeaponSmiths - (int) (numberOfFisher * WEAPON_SMITH_TO_FISHER_HUT_RATIO));
 
 		int numberOfFarms = (int) Math.ceil(numberOfRemainingWeaponSmiths / WEAPON_SMITH_TO_FARM_RATIO);
+		if(civilisation == ECivilisation.EGYPTIAN) {
+			numberOfFarms += maxMannaProducers;
+		}
+
+		int minFarmsForMap = Math.round(grassTiles / GRASS_TO_FARM_RATIO);
+
+		numberOfFarms = Math.max(minFarmsForMap, numberOfFarms);
+
 		buildingCounts[EBuildingType.FARM.ordinal] = numberOfFarms;
 		buildingCounts[EBuildingType.BAKER.ordinal] = (int) Math.ceil(numberOfFarms / FARM_TO_BAKER_RATIO);
 		buildingCounts[EBuildingType.MILL.ordinal] = (int) Math.ceil(numberOfFarms / FARM_TO_MILL_RATIO);
-		buildingCounts[EBuildingType.WATERWORKS.ordinal] = (int) Math.ceil(numberOfFarms / FARM_TO_WATERWORKS_RATIO);
+		int numberOfWaterworks = (int) Math.ceil(numberOfFarms / FARM_TO_WATERWORKS_RATIO);
+		if(civilisation == ECivilisation.AMAZON) numberOfWaterworks += maxMannaProducers;
+		buildingCounts[EBuildingType.WATERWORKS.ordinal] = numberOfWaterworks;
 		buildingCounts[EBuildingType.SLAUGHTERHOUSE.ordinal] = (int) Math.ceil(numberOfFarms / FARM_TO_SLAUGHTER_RATIO);
 		buildingCounts[EBuildingType.PIG_FARM.ordinal] = (int) Math.ceil(numberOfFarms / FARM_TO_PIG_FARM_RATIO);
 
 		int lumberJacksForWeaponSmiths = Math.max(8, (int) (numberOfWeaponSmiths / WEAPON_SMITH_TO_LUMBERJACK_RATIO));
 		int maxLumberJacksForMap = Math.round((float) grassTiles / GRASS_TO_LUMBERJACK_RATIO);
 		int numberOfLumberJacks = Math.max(MIN_LUMBERJACK_COUNT, Math.min(maxLumberJacksForMap, lumberJacksForWeaponSmiths));
+		if(civilisation == ECivilisation.ASIAN) numberOfLumberJacks *= 2;
 		buildingCounts[EBuildingType.LUMBERJACK.ordinal] = numberOfLumberJacks;
 		buildingCounts[EBuildingType.FORESTER.ordinal] = Math.max((int) (numberOfLumberJacks / LUMBERJACK_TO_FORESTER_RATIO), 1);
 		buildingCounts[EBuildingType.SAWMILL.ordinal] = Math.max((int) (numberOfLumberJacks / LUMBERJACK_TO_SAWMILL_RATIO), 1);
-		buildingCounts[EBuildingType.STONECUTTER.ordinal] = Math.max((int) (numberOfLumberJacks / LUMBERJACK_TO_STONE_CUTTER_RATIO), 1);
+		buildingCounts[EBuildingType.STONECUTTER.ordinal] = Math.max((int) (stoneCount / STONE_TO_STONECUTTER_RATIO), 1);
+
+		buildingCounts[EBuildingType.GEMSMINE.ordinal] = maxGemsMines;
 
 		if (maxGoldMelts > 0) {
 			buildingCounts[EBuildingType.GOLDMELT.ordinal] = maxGoldMelts;
@@ -147,40 +160,46 @@ public class AiMapInformation {
 			buildingCounts[EBuildingType.BIG_TEMPLE.ordinal] = maxBigTemples;
 		}
 
-		if (maxWineGrowers > 0) {
-			buildingCounts[EBuildingType.WINEGROWER.ordinal] = maxWineGrowers;
-			buildingCounts[EBuildingType.TEMPLE.ordinal] = maxWineGrowers;
+		buildingCounts[EBuildingType.RICE_FARM.ordinal] = maxRiceFarms;
+		buildingCounts[EBuildingType.BEEKEEPING.ordinal] = (int) (maxMannaProducers * BEEKEEPING_TO_MEAD_BREWERY_RATIO);
+
+		if (maxMannaProducers > 0) {
+			buildingCounts[civilisation.getMannaBuilding().ordinal] = maxMannaProducers;
+			buildingCounts[EBuildingType.TEMPLE.ordinal] = maxMannaProducers;
 		}
 
-		if (isEnoughSpace(buildingCounts, grassTiles)) {
+		if (isEnoughSpace(buildingCounts, grassTiles, civilisation)) {
 			return buildingCounts;
-		} else if (numberOfWeaponSmiths > MIN_SMITHS_BEFORE_WINE_AND_GOLD_REDUCTION) {
-			return calculateBuildingCounts(numberOfWeaponSmiths - 1, maxFishermen, maxGoldMelts, maxWineGrowers, maxBigTemples, grassTiles);
-		} else if (maxWineGrowers > MIN_WINE_GROWER_BEFORE_GOLD_REDUCTION) {
-			return calculateBuildingCounts(numberOfWeaponSmiths, maxFishermen, maxGoldMelts, maxWineGrowers - 1, maxBigTemples, grassTiles);
+		} else if (numberOfWeaponSmiths > MIN_SMITHS_BEFORE_MANNA_AND_GOLD_REDUCTION) {
+			return calculateBuildingCounts(numberOfWeaponSmiths - 1, maxFishermen, maxGoldMelts, maxGemsMines, maxMannaProducers, maxBigTemples, maxRiceFarms, grassTiles, stoneCount, civilisation);
+		} else if (maxMannaProducers > MIN_MANNA_PRODUCERS_BEFORE_GOLD_REDUCTION) {
+			return calculateBuildingCounts(numberOfWeaponSmiths, maxFishermen, maxGoldMelts, maxMannaProducers - 1, maxGemsMines, maxBigTemples, maxRiceFarms, grassTiles, stoneCount, civilisation);
 		} else if (maxGoldMelts > 1) {
-			return calculateBuildingCounts(numberOfWeaponSmiths, maxFishermen, maxGoldMelts - 1, maxWineGrowers, maxBigTemples, grassTiles);
-		} else if (maxWineGrowers > 1) {
-			return calculateBuildingCounts(numberOfWeaponSmiths, maxFishermen, maxGoldMelts, maxWineGrowers - 1, maxBigTemples, grassTiles);
+			return calculateBuildingCounts(numberOfWeaponSmiths, maxFishermen, maxGoldMelts - 1, maxGemsMines, maxMannaProducers, maxBigTemples, maxRiceFarms, grassTiles, stoneCount, civilisation);
+		} else if (maxMannaProducers > 1) {
+			return calculateBuildingCounts(numberOfWeaponSmiths, maxFishermen, maxGoldMelts, maxGemsMines, maxMannaProducers - 1, maxBigTemples, maxRiceFarms, grassTiles, stoneCount, civilisation);
 		} else if (maxBigTemples > 1) {
-			return calculateBuildingCounts(numberOfWeaponSmiths, maxFishermen, maxGoldMelts, maxWineGrowers, 0, grassTiles);
-		} else if (maxWineGrowers > 0) {
-			return calculateBuildingCounts(numberOfWeaponSmiths, maxFishermen, maxGoldMelts, maxWineGrowers - 1, 0, grassTiles);
+			return calculateBuildingCounts(numberOfWeaponSmiths, maxFishermen, maxGoldMelts, maxGemsMines, maxMannaProducers, 0, maxRiceFarms, grassTiles, stoneCount, civilisation);
+		} else if(maxRiceFarms > 0) {
+			return calculateBuildingCounts(numberOfWeaponSmiths, maxFishermen, maxGoldMelts, maxGemsMines, maxMannaProducers, 0, maxRiceFarms - 1, grassTiles, stoneCount, civilisation);
+		} else if (maxMannaProducers > 0) {
+			return calculateBuildingCounts(numberOfWeaponSmiths, maxFishermen, maxGoldMelts, maxGemsMines, maxMannaProducers - 1, 0, maxRiceFarms, grassTiles, stoneCount, civilisation);
 		} else if (maxFishermen > 0) {
-			return calculateBuildingCounts(numberOfWeaponSmiths, maxFishermen - 1, maxGoldMelts, maxWineGrowers, 0, grassTiles);
+			return calculateBuildingCounts(numberOfWeaponSmiths, maxFishermen - 1, maxGoldMelts, maxGemsMines, maxMannaProducers, 0, maxRiceFarms, grassTiles, stoneCount, civilisation);
 		} else if (numberOfWeaponSmiths > 0) {
-			return calculateBuildingCounts(numberOfWeaponSmiths - 1, maxFishermen, maxGoldMelts, maxWineGrowers, 0, grassTiles);
+			return calculateBuildingCounts(numberOfWeaponSmiths - 1, maxFishermen, maxGoldMelts, maxGemsMines, maxMannaProducers, 0, maxRiceFarms, grassTiles, stoneCount, civilisation);
 		} else {
 			return new int[EBuildingType.NUMBER_OF_BUILDINGS];
 		}
 	}
 
-	private boolean isEnoughSpace(int[] buildingCounts, long grassTiles) {
+	private boolean isEnoughSpace(int[] buildingCounts, long grassTiles, ECivilisation playerCivilisation) {
 		long grassTilesWithoutBuffer = Math.round(grassTiles / 3F);
 		for (int i = 0; i < buildingCounts.length; i++) {
-			EBuildingType buildingType = EBuildingType.VALUES[i];
-			if (!buildingType.isMine()) {
-				grassTilesWithoutBuffer -= EBuildingType.VALUES[i].getProtectedTiles().length * buildingCounts[i];
+			BuildingVariant building = EBuildingType.VALUES[i].getVariant(playerCivilisation);
+
+			if(building != null && !building.isMine()) {
+				grassTilesWithoutBuffer -= building.getProtectedTiles().length * buildingCounts[i];
 				if (grassTilesWithoutBuffer < 0) {
 					return false;
 				}
@@ -188,19 +207,5 @@ public class AiMapInformation {
 		}
 
 		return true;
-	}
-
-	public long getRemainingGrassTiles(AiStatistics aiStatistics, byte playerId) {
-		long remainingGrass = resourceAndGrassCount[playerId][GRASS_INDEX];
-		for (EBuildingType buildingType : EBuildingType.VALUES) {
-			if (!buildingType.isMine()) {
-				remainingGrass -= buildingType.getProtectedTiles().length * aiStatistics.getTotalNumberOfBuildingTypeForPlayer(buildingType, playerId);
-			}
-		}
-		return remainingGrass;
-	}
-
-	public long getGrassTilesOf(byte playerId) {
-		return resourceAndGrassCount[playerId][GRASS_INDEX];
 	}
 }

@@ -14,7 +14,7 @@
  */
 package jsettlers.graphics.image.reader;
 
-import java8.util.function.Supplier;
+import java.util.function.Supplier;
 import jsettlers.common.images.AnimationSequence;
 import jsettlers.graphics.image.Image;
 import jsettlers.graphics.image.NullImage;

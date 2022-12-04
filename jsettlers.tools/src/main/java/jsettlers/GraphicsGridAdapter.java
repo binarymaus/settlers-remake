@@ -21,7 +21,8 @@ import jsettlers.common.map.IGraphicsBackgroundListener;
 import jsettlers.common.map.IGraphicsGrid;
 import jsettlers.common.map.partition.IPartitionData;
 import jsettlers.common.mapobject.IMapObject;
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.movable.IGraphicsMovable;
+import jsettlers.common.player.IPlayer;
 
 public class GraphicsGridAdapter implements IGraphicsGrid {
 
@@ -44,22 +45,22 @@ public class GraphicsGridAdapter implements IGraphicsGrid {
 	}
 
 	@Override
-	public IMovable getMovableAt(int x, int y) {
+	public IGraphicsMovable getMovableAt(int x, int y) {
 		return null;
 	}
 
 	@Override
-	public IMapObject getMapObjectsAt(int x, int y) {
+	public IMapObject getVisibleMapObjectsAt(int x, int y) {
 		return null;
 	}
 
 	@Override
-	public byte getHeightAt(int x, int y) {
+	public byte getVisibleHeightAt(int x, int y) {
 		return 0;
 	}
 
 	@Override
-	public ELandscapeType getLandscapeTypeAt(int x, int y) {
+	public ELandscapeType getVisibleLandscapeTypeAt(int x, int y) {
 		return ELandscapeType.GRASS;
 	}
 
@@ -74,8 +75,8 @@ public class GraphicsGridAdapter implements IGraphicsGrid {
 	}
 
 	@Override
-	public byte getPlayerIdAt(int x, int y) {
-		return 0;
+	public IPlayer getPlayerAt(int x, int y) {
+		return IPlayer.DEFAULT_DUMMY_PLAYER0;
 	}
 
 	@Override

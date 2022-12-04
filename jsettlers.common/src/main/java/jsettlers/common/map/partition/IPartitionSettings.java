@@ -46,4 +46,6 @@ public interface IPartitionSettings {
 	EMaterialType getMaterialTypeForPriority(int priorityIdx);
 
 	IStockSettings getStockSettings();
+
+	IProfessionSettings getProfessionSettings();
 }

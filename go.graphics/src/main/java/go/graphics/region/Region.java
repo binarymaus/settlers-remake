@@ -14,8 +14,6 @@
  *******************************************************************************/
 package go.graphics.region;
 
-import static java8.util.stream.StreamSupport.stream;
-
 import java.util.LinkedList;
 
 import go.graphics.GLDrawContext;
@@ -181,7 +179,7 @@ public class Region implements RedrawListener {
 			if (content != null) {
 				content.handleEvent(event);
 			}
-			stream(eventHandlers).forEach(eventHandler -> eventHandler.handleEvent(event));
+			eventHandlers.forEach(eventHandler -> eventHandler.handleEvent(event));
 		}
 	}
 
@@ -199,6 +197,6 @@ public class Region implements RedrawListener {
 
 	@Override
 	public void requestRedraw() {
-		stream(redrawListeners).forEach(RedrawListener::requestRedraw);
+		redrawListeners.forEach(RedrawListener::requestRedraw);
 	}
 }

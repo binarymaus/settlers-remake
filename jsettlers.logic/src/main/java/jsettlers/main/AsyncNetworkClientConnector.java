@@ -23,6 +23,7 @@ import jsettlers.network.client.interfaces.INetworkClient;
 import jsettlers.network.client.receiver.IPacketReceiver;
 import jsettlers.network.common.packets.ArrayOfMatchInfosPacket;
 import jsettlers.network.infrastructure.channel.reject.RejectPacket;
+import jsettlers.network.infrastructure.log.Logger;
 
 /**
  * 
@@ -36,22 +37,25 @@ public class AsyncNetworkClientConnector {
 	private AsyncNetworkClientFactoryState state = AsyncNetworkClientFactoryState.CONNECTING_TO_SERVER;
 
 	public AsyncNetworkClientConnector(final String serverAddress, final String userId, final String userName,
-			final IPacketReceiver<ArrayOfMatchInfosPacket> matchesRetriever) {
+									   final IPacketReceiver<ArrayOfMatchInfosPacket> matchesRetriever, Logger log) {
 		new Thread("AsyncNetworkClientConnector") {
 			@Override
 			public void run() {
 				try {
-					networkClient = new NetworkClient(serverAddress, null);
+					networkClient = new NetworkClient(serverAddress, () -> {
+						log.info("client disconnected");
+						setState(AsyncNetworkClientFactoryState.CLOSED);
+					});
 					networkClient.registerRejectReceiver(generateRejectReceiver());
 					networkClient.logIn(userId, userName, generateMatchesRetriever(matchesRetriever));
 				} catch (IllegalStateException e) {
-					e.printStackTrace(); // this can never happen
+					log.error(e); // this can never happen
 					setState(AsyncNetworkClientFactoryState.FAILED_CONNECTING);
 				} catch (UnknownHostException e) {
-					e.printStackTrace();
+					log.error(e);
 					setState(AsyncNetworkClientFactoryState.FAILED_SERVER_NOT_FOUND);
 				} catch (IOException e) {
-					e.printStackTrace();
+					log.error(e);
 					setState(AsyncNetworkClientFactoryState.FAILED_CONNECTING);
 				}
 			}
@@ -92,6 +96,10 @@ public class AsyncNetworkClientConnector {
 			networkClient.close();
 			networkClient = null;
 		}
+	}
+
+	public synchronized AsyncNetworkClientFactoryState getState() {
+		return state;
 	}
 
 	/**

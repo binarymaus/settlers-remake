@@ -147,31 +147,6 @@ public abstract class RemakeMapLoader extends MapLoader {
 	}
 
 	@Override
-	public MainGridWithUiSettings loadMainGrid(PlayerSetting[] playerSettings, EMapStartResources startResources) throws MapLoadException {
-		MilliStopWatch watch = new MilliStopWatch();
-		IMapData mapData = getMapData();
-		watch.stop("Loading map data required");
-
-		byte numberOfPlayers = (byte) getMaxPlayers();
-
-		if (playerSettings == null || CommonConstants.ACTIVATE_ALL_PLAYERS) {
-			playerSettings = new PlayerSetting[numberOfPlayers];
-			for (int i = 0; i < numberOfPlayers; i++) {
-				playerSettings[i] = new PlayerSetting((byte) i);
-			}
-		}
-
-		MainGrid mainGrid = new MainGrid(getMapId(), getMapName(), mapData, playerSettings);
-
-		PlayerState[] playerStates = new PlayerState[numberOfPlayers];
-		for (byte playerId = 0; playerId < numberOfPlayers; playerId++) {
-			playerStates[playerId] = new PlayerState(playerId, new UIState(mapData.getStartPoint(playerId)));
-		}
-
-		return new MainGridWithUiSettings(mainGrid, playerStates);
-	}
-
-	@Override
 	public IListedMap getListedMap() {
 		return file;
 	}

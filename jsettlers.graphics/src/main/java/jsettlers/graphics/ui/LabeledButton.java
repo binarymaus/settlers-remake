@@ -14,10 +14,11 @@
  *******************************************************************************/
 package jsettlers.graphics.ui;
 
+import java.util.Optional;
+
 import go.graphics.GLDrawContext;
 import go.graphics.text.EFontSize;
 import go.graphics.text.TextDrawer;
-import jsettlers.common.Color;
 import jsettlers.common.images.EImageLinkType;
 import jsettlers.common.images.OriginalImageLink;
 import jsettlers.common.action.Action;
@@ -55,13 +56,16 @@ public class LabeledButton extends Button {
 		super.drawAt(gl);
 
 		TextDrawer drawer = gl.getTextDrawer(size);
-		drawer.setColor(Color.WHITE);
-		drawer.renderCentered(getPosition().getCenterX(), getPosition().getCenterY(), text);
+		drawer.renderCentered(getPosition().getCenterX(), getPosition().getCenterY(), getText());
 	}
 
+	protected String getText() {
+		return text;
+	}
+	
 	@Override
-	public Action getAction(float relativex, float relativey) {
-		return enabled ? action : null;
+	public Optional<Action> getAction(float relativex, float relativey) {
+		return enabled ? super.getAction(relativex, relativey) : Optional.empty();
 	}
 
 	/**

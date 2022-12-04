@@ -14,11 +14,11 @@
  *******************************************************************************/
 package go.graphics.sound;
 
+import java.io.File;
+
 public interface SoundPlayer {
 	/**
 	 * Starts to play a sound.
-	 * <p>
-	 * Blocks until the sound is played.
 	 * 
 	 * @param soundStart
 	 * @param leftVolume
@@ -27,4 +27,6 @@ public interface SoundPlayer {
 	void playSound(int soundStart, float leftVolume, float rightVolume);
 
 	void setSoundDataRetriever(ISoundDataRetriever soundDataRetriever);
+
+	SoundHandle openSound(File musicFile);
 }

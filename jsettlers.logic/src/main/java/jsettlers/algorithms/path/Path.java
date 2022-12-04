@@ -38,8 +38,35 @@ public class Path implements Serializable {
 	}
 
 	/**
+	 * Concatenates two paths
+	 *
+	 * @param oldPath
+	 *            The path to be appended to the prefix.
+	 * @param pathPrefix
+	 *            The path prefix. NOTE: The prefix must start with the current position of the movable!
+	 */
+	public Path(Path oldPath, Path pathPrefix) {
+		int length = oldPath.getRemainingSteps() + pathPrefix.getRemainingSteps();
+		pathX = new short[length];
+		pathY = new short[length];
+
+		int i = 0;
+		while(pathPrefix.hasNextStep()) {
+			insertAt(i, pathPrefix.nextX(), pathPrefix.nextY());
+			pathPrefix.goToNextStep();
+			i++;
+		}
+
+		while(oldPath.hasNextStep()) {
+			insertAt(i, oldPath.nextX(), oldPath.nextY());
+			oldPath.goToNextStep();
+			i++;
+		}
+	}
+
+	/**
 	 * Concatenates a path and a prefix of {@link ShortPoint2D} objects.
-	 * 
+	 *
 	 * @param oldPath
 	 *            The path to be appended to the prefix.
 	 * @param pathPrefix
@@ -63,7 +90,7 @@ public class Path implements Serializable {
 
 	/**
 	 * Creates a path of length 1 with that's just containing to the given position.<br>
-	 * 
+	 *
 	 * @param position
 	 *            the single path position.
 	 */
@@ -74,7 +101,7 @@ public class Path implements Serializable {
 
 	/**
 	 * sets the given position to the given index of the path
-	 * 
+	 *
 	 * @param idx
 	 *            NOTE: this must be in the integer interval [0, pathlength -1]!
 	 * @param x
@@ -85,6 +112,10 @@ public class Path implements Serializable {
 	public final void insertAt(int idx, short x, short y) {
 		pathX[idx] = x;
 		pathY[idx] = y;
+	}
+
+	public int getRemainingSteps() {
+		return pathX.length - idx - 1;
 	}
 
 	public boolean hasNextStep() {
@@ -101,6 +132,10 @@ public class Path implements Serializable {
 
 	public final ShortPoint2D getNextPos() {
 		return new ShortPoint2D(nextX(), nextY());
+	}
+
+	public final ShortPoint2D getNextPos(int index) {
+		return new ShortPoint2D(pathX[idx + index], pathY[idx + index]);
 	}
 
 	public final boolean isFinished() {
@@ -141,6 +176,10 @@ public class Path implements Serializable {
 	 */
 	public final void goToNextStep() {
 		idx++;
+	}
+
+	public void goToNextStep(int skip) {
+		idx += skip;
 	}
 
 	public final ShortPoint2D getFirstPos() {

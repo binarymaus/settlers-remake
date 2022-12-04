@@ -33,6 +33,7 @@ import jsettlers.logic.constants.MatchConstants;
 import jsettlers.logic.map.loading.MapLoadException;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.map.loading.list.MapList;
+import jsettlers.logic.player.InitialGameState;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.main.JSettlersGame;
 import jsettlers.main.JSettlersGame.GameRunner;
@@ -42,7 +43,7 @@ import jsettlers.network.client.OfflineNetworkConnector;
 import jsettlers.network.client.interfaces.IGameClock;
 import jsettlers.network.client.interfaces.INetworkConnector;
 
-import static java8.util.J8Arrays.stream;
+import static java.util.Arrays.stream;
 
 /**
  *
@@ -171,9 +172,7 @@ public class ReplayUtils {
 	private static void createReplayOfRemainingTasks(MapLoader newSavegame, ReplayStartInformation replayStartInformation, String newReplayFile, IGameClock gameClock) throws IOException {
 		System.out.println("Creating new jsettlers.integration.replay file (" + newReplayFile + ")...");
 
-		ReplayStartInformation replayInfo = new ReplayStartInformation(0, newSavegame.getMapName(), newSavegame.getMapId(), replayStartInformation.getPlayerId(),
-			replayStartInformation.getPlayerSettings()
-		);
+		ReplayStartInformation replayInfo = new ReplayStartInformation(newSavegame.getMapName(), newSavegame.getMapId(), replayStartInformation.getInitialGameState());
 
 		DataOutputStream dos = new DataOutputStream(ResourceManager.writeUserFile(newReplayFile));
 		replayInfo.serialize(dos);
@@ -186,7 +185,7 @@ public class ReplayUtils {
 
 	public static PlayMapResult playMapToTargetTimes(MapLoader map, byte playerId, final int... targetTimeMinutes) {
 		OfflineNetworkConnector networkConnector = ReplayUtils.createPausingOfflineNetworkConnector();
-		JSettlersGame game = new JSettlersGame(map, 0L, networkConnector, playerId, PlayerSetting.createDefaultSettings(playerId, (byte) map.getMaxPlayers())) {
+		JSettlersGame game = new JSettlersGame(map, networkConnector, new InitialGameState(playerId, PlayerSetting.createDefaultSettings(playerId, (byte) map.getMaxPlayers()), 0L)) {
 			@Override
 			protected OutputStream createReplayWriteStream() throws IOException {
 				return ResourceManager.writeConfigurationFile("jsettlers.integration.replay");

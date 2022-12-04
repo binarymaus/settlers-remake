@@ -80,6 +80,27 @@ public abstract class ShapeIcon implements Icon, Cloneable {
 
 	};
 
+	public static final ShapeIcon NO_SYM = new ShapeIcon() {
+		@Override
+		protected void paint(Component c, Graphics2D g, int x, int y) {
+			g.fillOval(x+3, y+3, 3, 3);
+			g.drawLine(x+8, y+1, x+8,y+15);
+			g.drawLine(x+1, y+8, x+15,y+8);
+		}
+	};
+
+	public static final ShapeIcon SYM_REPEAT4 = new ShapeIcon() {
+		@Override
+		protected void paint(Component c, Graphics2D g, int x, int y) {
+			g.fillOval(x+3, y+3, 3, 3);
+			g.fillOval(x+11, y+3, 3, 3);
+			g.fillOval(x+3, y+11, 3, 3);
+			g.fillOval(x+11, y+11, 3, 3);
+			g.drawLine(x+8, y+1, x+8,y+15);
+			g.drawLine(x+1, y+8, x+15,y+8);
+		}
+	};
+
 	/**
 	 * Background color
 	 */

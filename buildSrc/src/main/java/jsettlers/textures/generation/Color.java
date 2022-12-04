@@ -31,11 +31,11 @@ public final class Color {
 	private static final int SHIFT_ARGB_B = 0;
 	private static final int ARGB_FIELD_MAX = 0xff;
 	private static final float VALUE_CONSIDERED_TRANSPARENT_BELOW = .1f;
-	private static final int SHORT_SHIFT_RED = 11;
-	private static final int SHORT_SHIFT_GREEN = 6;
-	private static final int SHORT_SHIFT_BLUE = 1;
-	private static final int SHORT_FIELD_MAX = 0x1f;
-	private static final int SHORT_MASK_ALPHA = 1;
+	private static final int SHORT_SHIFT_RED = 12;
+	private static final int SHORT_SHIFT_GREEN = 8;
+	private static final int SHORT_SHIFT_BLUE = 4;
+	private static final int SHORT_FIELD_MAX = 15;
+	private static final int SHORT_MASK_ALPHA = 0b1111;
 
 	private final float blue;
 	private final float red;

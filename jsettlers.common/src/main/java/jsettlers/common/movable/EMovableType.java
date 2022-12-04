@@ -24,6 +24,7 @@ import jsettlers.common.selectable.ESelectionType;
  * Defines all types of movables with the tool they need, their selection level and if they need their players ground.
  *
  * @author Andreas Eberle
+ * @author MarviMarv
  *
  */
 public enum EMovableType {
@@ -55,7 +56,7 @@ public enum EMovableType {
 	PIONEER(EMaterialType.NO_MATERIAL, ESelectionType.SPECIALISTS, false, true),
 	GEOLOGIST(EMaterialType.NO_MATERIAL, ESelectionType.SPECIALISTS, false, true),
 
-	MAGE(EMaterialType.NO_MATERIAL, ESelectionType.PEOPLE, false, true, 0.7, 100f, 0f),
+	MAGE(EMaterialType.NO_MATERIAL, ESelectionType.PRIESTS, false, true, 0.7, 100f, 0f),
 
 	SWORDSMAN_L1(EMaterialType.SWORD, ESelectionType.SOLDIERS, false, true, 0.45, 100f, 10f),
 	SWORDSMAN_L2(EMaterialType.SWORD, ESelectionType.SOLDIERS, false, true, 0.45, 120f, 14f),
@@ -73,7 +74,16 @@ public enum EMovableType {
 	WHITEFLAGGED_DONKEY(EMaterialType.NO_MATERIAL, ESelectionType.PEOPLE, false, true),
 
 	FERRY(EMaterialType.NO_MATERIAL, ESelectionType.SHIPS, false, true, false),
-	CARGO_SHIP(EMaterialType.NO_MATERIAL, ESelectionType.SHIPS, false, false);
+	CARGO_SHIP(EMaterialType.NO_MATERIAL, ESelectionType.SHIPS, false, false),
+
+	BREWER(EMaterialType.NO_MATERIAL, ESelectionType.PEOPLE, true, false),
+	RICE_FARMER(EMaterialType.NO_MATERIAL, ESelectionType.PEOPLE, true, false),
+
+	BEEKEEPER(EMaterialType.NO_MATERIAL, ESelectionType.PEOPLE, true, false),
+	DISTILLER(EMaterialType.NO_MATERIAL, ESelectionType.PEOPLE, true, false),
+	ALCHEMIST(EMaterialType.NO_MATERIAL, ESelectionType.PEOPLE, true, false),
+	MEAD_BREWER(EMaterialType.NO_MATERIAL, ESelectionType.PEOPLE, true, false),
+	;
 
 	/**
 	 * All step durations will be multiplied with this speedup factor.
@@ -101,6 +111,20 @@ public enum EMovableType {
 		SWORDSMAN_L1, SWORDSMAN_L2, SWORDSMAN_L3,
 		PIKEMAN_L1, PIKEMAN_L2, PIKEMAN_L3
 	);
+
+	public static final Set<EMovableType> GENERAL = EnumSet.of(
+		SWORDSMAN_L3, PIKEMAN_L3, BOWMAN_L3
+	);
+
+	/* when adding a movable type to this enum:
+	 - add Movable#handleFrozenEffect() to movable's behaviour
+	 - notice MageMovable SEND_FOES
+	 */
+	public static final Set<EMovableType> PLAYER_CONTROLLED_HUMAN_MOVABLE_TYPES = EnumSet.of(
+			SWORDSMAN_L1, SWORDSMAN_L2, SWORDSMAN_L3,
+			BOWMAN_L1, BOWMAN_L2, BOWMAN_L3,
+			PIKEMAN_L1, PIKEMAN_L2, PIKEMAN_L3,
+			PIONEER, GEOLOGIST, THIEF, MAGE);
 
 	public static final Set<EMovableType> SHIPS = EnumSet.of(FERRY, CARGO_SHIP);
 
@@ -190,6 +214,10 @@ public enum EMovableType {
 		return INFANTRY.contains(this);
 	}
 
+	public boolean isGeneral() {
+		return GENERAL.contains(this);
+	}
+
 	public boolean isShip() {
 		return SHIPS.contains(this);
 	}
@@ -213,6 +241,17 @@ public enum EMovableType {
 			return ESoldierClass.INFANTRY;
 		} else {
 			return null;
+		}
+	}
+
+	public int getViewDistance() {
+		switch (this) {
+			case DONKEY:
+				return 0; // only padding view
+			case THIEF:
+				return 14;
+			default:
+				return 8;
 		}
 	}
 }

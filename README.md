@@ -1,15 +1,18 @@
-## For active fork as of 2022 see..
-Active Fork: [https://github.com/paulwedeck/settlers-remake] which is forked by @paulwedeck 
+# JSettlers
 
-# JSettlers   [![Build Status](https://travis-ci.org/jsettlers/settlers-remake.svg?branch=master)](https://travis-ci.org/jsettlers/settlers-remake)
+This project intends to create a remake of the famous strategy game "The Settlers 3" published by Blue Byte in 1998. The project is developed in Java and runs on PC (Windows/Linux), Mac and Android.
 
-This project intends to create a remake of the famous strategy game "The Settlers 3" published by Blue Byte in 1998. The project is developed in Java and runs on PC (Windows/Linux), Mac and Android. More information can be found on the project's website at [www.settlers-android-clone.com](http://www.settlers-android-clone.com)
+This project intends to create a remake of the famous strategy game "The Settlers 3" published by Blue Byte in 1998. The project is developed in Java and runs on PC (Windows/Linux), Mac and Android.
 
 ### Warning: Alpha Status
 The game is currently in an **alpha** status! Therefore bugs, frequent changes making saved games invalid and server abortions need to be expected. Nevertheless we will try to minimize trouble.
 
 ### Found a Bug? Report it!
-If you experience troubles / find a bug, help us fix it. The JSettlers game creates log files of your games that are essential for debugging. Therefore always include the following information in a bug report:
+If you experience troubles / find a bug, help us fix it.
+Please either report your bug as an issue or post it on the JSettlers Discord in the #support channel.
+
+The JSettlers game creates log files of your games that are essential for debugging.
+Therefore, always include the following information in a bug report:
 1. What OS and JRE are you using? If it is Android, please state your Android version.
 2. Revision of your build:
   1. In the PC/Mac version this can be found in the head of the window as "JSettlers - commit: XXXXXXX".
@@ -28,13 +31,15 @@ Many thanks in advance for helping to improve this game!
 
 In order to play the game, you need to have the "GFX" and "SND" folders of the original version of "The Settlers 3" as obtained by installing the original "The Settlers 3" game (DEMO version also works).
 
-Furthermore, you need an up to date installation of [Java 1.7 or 1.8](http://java.com/). The Java Runtime Environment (JRE) is needed to run JSettlers, as it is written in the programming language Java.
+Furthermore, you need an up-to-date installation of [Java 11 or newer](https://adoptium.net/). A Java Installation is needed to run the desktop version of JSettlers, as it is written in the programming language Java.
+
+Java is preinstalled on Android.
 
 After that, follow the detailed installation instructions for you platform.
 
 ### Windows, Linux, Mac OS
 1. Install "The Settlers III" or a demo version ([Settlers III Amazons Demo](http://www.siedler-maps.de/downloads.php?action=download&downloadid=41)) of it. Don't worry, if it is not running on your OS, we only need the graphics and sound files. In order to get them, you can also unzip the Amazons Demo exe file (yes: unzip the .exe) and copy the folders `Gfx` and `Snd` into an empty folder on your computer.
-2. Download the newest stable [release of JSettlers*.zip / JSettlers*.tar.bz2](https://github.com/jsettlers/settlers-remake/releases) (this also includes the MapEditor).
+2. Download the newest stable [release of JSettlers*.zip](https://github.com/paulwedeck/settlers-remake/releases) (this also includes the MapEditor).
 3. Unpack the downloaded archive to wherever you want JSettlers' installation to be.
 5. Run the "JSettlers.jar" file.
   1. On the first start, the game will ask you for the folder where you've installed / unziped (see step 1) the original Settlers III. Please select the respective folder and continue.
@@ -69,7 +74,7 @@ All the options above can also be specified as command line options. For this, y
 4. Install JSettlers by running the downloaded file.
 
 ## Build instructions and developer's guide
-The [build instructions](https://github.com/jsettlers/settlers-remake/wiki/Compiling-using-gradle) and the [developer's guide](https://github.com/jsettlers/settlers-remake/wiki/Developer's%20Guide) can be found in our wiki.
+The [build instructions](https://github.com/paulwedeck/settlers-remake/wiki/Compiling-using-gradle) and the [developer's guide](https://github.com/paulwedeck/settlers-remake/wiki/Developer's%20Guide) can be found in our wiki.
 
 ## Getting in Touch
 Besides the possibility to report bugs on Github you can also join our [JSettlers Discord](https://discord.gg/2hVV4u6). Here you can discuss on development questions and find other players to meet with. 

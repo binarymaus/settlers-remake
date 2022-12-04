@@ -26,6 +26,7 @@ import java.io.Serializable;
  * Created by Andreas Eberle on 03.07.2017.
  */
 class SoldierRequest implements Serializable {
+	private static final long serialVersionUID = -8310468103968353751L;
 	final ESoldierClass soldierClass;
 	final ESoldierType soldierType;
 	final OccupierPlace place;

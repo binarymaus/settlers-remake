@@ -17,7 +17,8 @@ package jsettlers.common.map;
 import jsettlers.common.landscape.ELandscapeType;
 import jsettlers.common.map.partition.IPartitionData;
 import jsettlers.common.mapobject.IMapObject;
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.movable.IGraphicsMovable;
+import jsettlers.common.player.IPlayer;
 
 /**
  * This interface specifies the methods needed by jsettlers.graphics to draw the grid and all it's content.
@@ -42,9 +43,9 @@ public interface IGraphicsGrid {
 	 *            x coordinate
 	 * @param y
 	 *            y coordinate
-	 * @return {@link IMovable} object at the given position or null if there is none.
+	 * @return {@link IGraphicsMovable} object at the given position or null if there is none.
 	 */
-	IMovable getMovableAt(int x, int y);
+	IGraphicsMovable getMovableAt(int x, int y);
 
 	/**
 	 * Gets the first map object that is placed on the given position. There may be more map objects that can be retained by using the
@@ -56,7 +57,7 @@ public interface IGraphicsGrid {
 	 *            y coordinate
 	 * @return an {@link IMapObject} that's at the given position or null if there is none.
 	 */
-	IMapObject getMapObjectsAt(int x, int y);
+	IMapObject getVisibleMapObjectsAt(int x, int y);
 
 	/**
 	 * @param x
@@ -65,7 +66,7 @@ public interface IGraphicsGrid {
 	 *            y coordinate
 	 * @return height at the given position.
 	 */
-	byte getHeightAt(int x, int y);
+	byte getVisibleHeightAt(int x, int y);
 
 	/**
 	 * @param x
@@ -74,7 +75,7 @@ public interface IGraphicsGrid {
 	 *            y coordinate
 	 * @return {@link ELandscapeType} at the given position.
 	 */
-	ELandscapeType getLandscapeTypeAt(int x, int y);
+	ELandscapeType getVisibleLandscapeTypeAt(int x, int y);
 
 	/**
 	 * @param x
@@ -101,10 +102,10 @@ public interface IGraphicsGrid {
 	 *            x coordinate
 	 * @param y
 	 *            y coordinate
-	 * @return -1 if this position has no player (for example when it is not occupied)<br>
-	 *         otherwise: the id of the player occupying this position.
+	 * @return null if this position has no player (for example when it is not occupied)<br>
+	 *         otherwise: the player occupying this position.
 	 */
-	byte getPlayerIdAt(int x, int y);
+	IPlayer getPlayerAt(int x, int y);
 
 	/**
 	 * 

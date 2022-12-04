@@ -14,19 +14,24 @@
  *******************************************************************************/
 package jsettlers.graphics.test;
 
-import java.util.ArrayList;
+import java.util.List;
 
-import jsettlers.common.buildings.EBuildingType;
+import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.common.movable.EDirection;
+import jsettlers.common.movable.EEffectType;
 import jsettlers.common.movable.EMovableAction;
 import jsettlers.common.movable.EMovableType;
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.movable.IGraphicsBuildingWorker;
+import jsettlers.common.movable.IGraphicsCargoShip;
+import jsettlers.common.movable.IGraphicsFerry;
+import jsettlers.common.movable.IGraphicsMovable;
+import jsettlers.common.movable.IGraphicsThief;
 import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.selectable.ESelectionType;
 
-public class TestSettler implements IMovable {
+public class TestSettler implements IGraphicsMovable, IGraphicsFerry, IGraphicsCargoShip, IGraphicsThief, IGraphicsBuildingWorker {
 
 	private final IPlayer      player;
 	private final EMovableType type;
@@ -40,7 +45,17 @@ public class TestSettler implements IMovable {
 		this.type = type;
 		this.setDirection(direction);
 		this.setPosition(tile);
-		this.player = new IPlayer.DummyPlayer(player);
+		this.player = IPlayer.DummyPlayer.getCached(player);
+	}
+
+	@Override
+	public void setUnitGroup(int unitGroup) {
+		
+	}
+
+	@Override
+	public int getUnitGroup() {
+		return 0;
 	}
 
 	@Override
@@ -120,12 +135,8 @@ public class TestSettler implements IMovable {
 	}
 
 	@Override
-	public final void stopOrStartWorking(boolean stop) {
-	}
-
-	@Override
-	public ArrayList<IMovable> getPassengers() {
-		return null;
+	public List<IGraphicsMovable> getPassengers() {
+		return (type == EMovableType.FERRY)? List.of() : null;
 	}
 
 	@Override
@@ -144,7 +155,7 @@ public class TestSettler implements IMovable {
 	}
 
 	@Override
-	public EBuildingType getGarrisonedBuildingType() {
+	public IBuilding getGarrisonedBuilding() {
 		return null;
 	}
 
@@ -175,5 +186,15 @@ public class TestSettler implements IMovable {
 	@Override
 	public ShortPoint2D getPosition() {
 		return position.getPosition();
+	}
+
+	@Override
+	public boolean hasEffect(EEffectType effect) {
+		return false;
+	}
+
+	@Override
+	public boolean isUncoveredBy(byte teamId) {
+		return true;
 	}
 }

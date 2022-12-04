@@ -41,11 +41,6 @@ public class SavegameLoader extends RemakeMapLoader {
 		super(file, header);
 	}
 
-	@Override
-	public MainGridWithUiSettings loadMainGrid(PlayerSetting[] playerSettings) throws MapLoadException {
-		return loadMainGrid(playerSettings, EMapStartResources.HIGH_GOODS);
-	}
-
 		@Override
 	public MainGridWithUiSettings loadMainGrid(PlayerSetting[] playerSettings, EMapStartResources startResources) throws MapLoadException {
 		try (ObjectInputStream ois = new ObjectInputStream(super.getMapDataStream())) {

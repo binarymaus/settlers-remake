@@ -81,10 +81,9 @@ public final class DatBitmapReader<T extends Image> {
 	 * @return The short array given, or null if the short array was not big enough.
 	 * @throws IOException
 	 */
-	public static <T extends Image> void uncompressImage(ByteReader reader,
-			DatBitmapTranslator<T> translator, ImageMetadata metadata,
-			ImageArrayProvider array) throws IOException {
-		long currentPos = reader.getReadBytes();
+	public static <T extends Image> void readImageHeader(ByteReader reader,
+														 DatBitmapTranslator<T> translator,
+														 ImageMetadata metadata) throws IOException {
 		HeaderType headerType = translator.getHeaderType();
 
 		if (headerType == HeaderType.DISPLACED) {
@@ -110,21 +109,6 @@ public final class DatBitmapReader<T extends Image> {
 			// uneven position => padding.
 			reader.read8();
 		}
-
-		array.startImage(metadata.width, metadata.height);
-
-		try {
-			readCompressedData(reader, translator, metadata.width,
-					metadata.height, array);
-		} catch (Throwable e) {
-			System.err.println("Error while loading image starting at "
-					+ currentPos
-					+ ". There is an error/overflow somewhere around "
-					+ reader.getReadBytes()
-					+ ". Error was: "
-					+ e.getMessage());
-			throw new IOException("Error uncompressing image", e);
-		}
 	}
 
 	/**
@@ -135,14 +119,17 @@ public final class DatBitmapReader<T extends Image> {
 	 * @return
 	 * @throws IOException
 	 */
-	private static <T extends Image> void readCompressedData(
+	public static <T extends Image> void readCompressedData(
 			ByteReader reader, DatBitmapTranslator<T> translator, int width,
-			int lines, ImageArrayProvider array) throws IOException {
+			int height, ImageArrayProvider array) throws IOException {
 		short transparent = translator.getTransparentColor();
 		// TODO: buffer the buffer but be thread safe!
 		short[] lineBuffer = new short[width];
 
-		for (int i = 0; i < lines; i++) {
+
+		array.startImage(width, height);
+
+		for (int i = 0; i < height; i++) {
 			boolean newLine = false;
 
 			int x = 0;
@@ -248,11 +235,18 @@ public final class DatBitmapReader<T extends Image> {
 	 *             If an read error occurred.
 	 */
 	public static <T extends Image> T getImage(
-			DatBitmapTranslator<T> translator, ByteReader reader, String name)
+			DatBitmapTranslator<T> translator, AdvancedDatFileReader reader, long position, String name)
 			throws IOException {
 		ImageMetadata metadata = new ImageMetadata();
-		ShortArrayWriter array = new ShortArrayWriter();
-		uncompressImage(reader, translator, metadata, array);
-		return translator.createImage(metadata, array.getArray(), name);
+		long dataPos = reader.readImageHeader(translator, metadata, position);
+		return translator.createImage(metadata, () -> {
+			ShortArrayWriter array = new ShortArrayWriter();
+			try {
+				reader.readCompressedData(translator, metadata, array, dataPos);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			return array.getArray();
+		}, name);
 	}
 }

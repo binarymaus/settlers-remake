@@ -58,9 +58,17 @@ public class PlayerSlot {
 	private ISlotListener slotListener;
 	private boolean isAvailable;
 	private boolean isReady = true;
-	private IJoinPhaseMultiplayerGameConnector gameToBeInformedAboutReady;
+	private boolean informGameAboutReady;
+	private boolean informGameAboutChanges;
+	private IJoinPhaseMultiplayerGameConnector gameToBeInformedAboutChanges;
+	private byte index;
+	private ECivilisation civilisation;
+	private EPlayerType playerType;
+	private byte team;
+	private byte slot;
 
-	public PlayerSlot() {
+	public PlayerSlot(byte index) {
+		this.index = index;
 		isAvailable = true;
 		setStyle();
 		localize();
@@ -137,15 +145,45 @@ public class PlayerSlot {
 		typeComboBox.addActionListener(e -> updateAiPlayerName());
 		civilisationComboBox.addActionListener(e -> updateAiPlayerName());
 		slotComboBox.addActionListener(e -> {
-			if (slotListener != null) {
+			// this is done server side in multiplayer
+			if (slotListener != null && gameToBeInformedAboutChanges == null) {
 				slotListener.slotHasChanged(oldSlotValue, getSlot());
 			}
 			oldSlotValue = getSlot();
 		});
 		readyButton.addActionListener(e -> {
 			setReady(!isReady());
-			if (gameToBeInformedAboutReady != null) {
-				gameToBeInformedAboutReady.setReady(isReady());
+			if (informGameAboutReady) {
+				gameToBeInformedAboutChanges.setReady(isReady());
+			}
+		});
+		civilisationComboBox.addActionListener(e -> {
+			ECivilisation newCivilisation = getCivilisation();
+			if (informGameAboutChanges && newCivilisation != civilisation) {
+				gameToBeInformedAboutChanges.setCivilisation(index, newCivilisation);
+				civilisation = newCivilisation;
+
+			}
+		});
+		typeComboBox.addActionListener(e -> {
+			EPlayerType newPlayerType = getPlayerType();
+			if (informGameAboutChanges && newPlayerType != playerType) {
+				gameToBeInformedAboutChanges.setType(index, newPlayerType);
+				playerType = newPlayerType;
+			}
+		});
+		slotComboBox.addActionListener(e -> {
+			byte newSlot = getSlot();
+			if(informGameAboutChanges && newSlot != slot) {
+				gameToBeInformedAboutChanges.setPosition(index, newSlot);
+				slot = newSlot;
+			}
+		});
+		teamComboBox.addActionListener(e -> {
+			byte newTeam = getTeam();
+			if (informGameAboutChanges && newTeam != team) {
+				gameToBeInformedAboutChanges.setTeam(index, newTeam);
+				team = newTeam;
 			}
 		});
 	}
@@ -170,7 +208,7 @@ public class PlayerSlot {
 
 	private void initializeComboBoxes() {
 		civilisationComboBox.addItem(new CivilisationUiWrapper());
-		civilisationComboBox.addItem(new CivilisationUiWrapper(ECivilisation.ROMAN));
+		for(ECivilisation civ : ECivilisation.values()) civilisationComboBox.addItem(new CivilisationUiWrapper(civ));
 	}
 
 	public void setPlayerName(String playerName) {
@@ -194,18 +232,23 @@ public class PlayerSlot {
 		}
 	}
 
-	public void setSlot(byte slot) {
+	public void setSlot(byte slot, boolean update) {
+		if(!update) {
+			this.slot = slot;
+		}
 		slotComboBox.setSelectedIndex(slot);
 		oldSlotValue = slot;
 	}
 
-	public void setTeam(byte team) {
-		setTeam(team, true);
+	public void setTeam(byte team, boolean update) {
+		if(!update) {
+			this.team = team;
+		}
+		teamComboBox.setSelectedIndex(team);
 	}
 
-	public void setTeam(byte team, boolean enabled) {
-		teamComboBox.setSelectedIndex(team);
-		teamComboBox.setEnabled(enabled);
+	public void disableTeamInput() {
+		teamComboBox.setEnabled(false);
 	}
 
 	public void setAvailable(boolean available) {
@@ -247,27 +290,37 @@ public class PlayerSlot {
 
 	public void disableAllInputs() {
 		slotComboBox.setEnabled(false);
-		civilisationComboBox.setEnabled(false);
-		teamComboBox.setEnabled(false);
-		typeComboBox.setEnabled(false);
+		disableCivilisationInput();
+		disableTeamInput();
+		disablePlayerTypeInput();
 	}
 
 	public void setReadyButtonEnabled(boolean isEnabled) {
 		readyButton.setEnabled(isEnabled);
 	}
 
-	public void setCivilisation(ECivilisation civilisation, boolean enabled) {
+	public void setCivilisation(ECivilisation civilisation, boolean update) {
+		if(!update) {
+			this.civilisation = civilisation;
+		}
+
 		for (int i = 0; i < civilisationComboBox.getItemCount(); i++) {
 			if (civilisationComboBox.getItemAt(i).getCivilisation() == civilisation) {
 				civilisationComboBox.setSelectedIndex(i);
 				break;
 			}
 		}
-
-		civilisationComboBox.setEnabled(enabled);
 	}
 
-	public void setPlayerType(EPlayerType playerType, boolean enabled) {
+	public void disableCivilisationInput() {
+		civilisationComboBox.setEnabled(false);
+	}
+
+	public void setPlayerType(EPlayerType playerType, boolean update) {
+		if(!update) {
+			this.playerType = playerType;
+		}
+
 		for (int i = 0; i < typeComboBox.getItemCount(); i++) {
 			if (typeComboBox.getItemAt(i).getPlayerType() == playerType) {
 				typeComboBox.setSelectedIndex(i);
@@ -275,12 +328,18 @@ public class PlayerSlot {
 			}
 		}
 
-		typeComboBox.setEnabled(enabled);
 		updateAiPlayerName();
 	}
 
-	public void informGameAboutReady(IJoinPhaseMultiplayerGameConnector gameToBeInformedAboutReady) {
-		this.gameToBeInformedAboutReady = gameToBeInformedAboutReady;
+	public void disablePlayerTypeInput() {
+		typeComboBox.setEnabled(false);
+	}
+
+	public void informGameAboutChanges(IJoinPhaseMultiplayerGameConnector gameToBeInformedAboutChanges, boolean informReady, boolean informOther) {
+		this.gameToBeInformedAboutChanges = gameToBeInformedAboutChanges;
+
+		this.informGameAboutReady = informReady;
+		this.informGameAboutChanges = informOther;
 	}
 
 	private static Image getReadyButtonImage(int file, int seq, int imagenumber, boolean imageIsForEnabledState) {

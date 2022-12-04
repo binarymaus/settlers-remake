@@ -15,7 +15,7 @@
 
 package jsettlers.main.android.gameplay.controlsmenu.goods;
 
-import static java8.util.J8Arrays.stream;
+import static java.util.Arrays.stream;
 
 import android.app.Activity;
 import android.arch.lifecycle.LiveData;
@@ -53,6 +53,8 @@ public class InventoryViewModel extends ViewModel {
 	}
 
 	private InventoryMaterialState[] productionStates() {
+		if(!positionControls.isInPlayerPartition()) return new InventoryMaterialState[0];
+
 		IPartitionData partitionData = positionControls.getCurrentPartitionData();
 
 		return stream(inventoryMaterials)

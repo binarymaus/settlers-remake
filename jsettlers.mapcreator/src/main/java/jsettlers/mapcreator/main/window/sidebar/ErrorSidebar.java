@@ -38,13 +38,8 @@ import jsettlers.mapcreator.mapvalidator.result.fix.FixData;
  * 
  * @author Andreas Butti
  */
-public class ErrorSidebar extends JScrollPane implements ValidationResultListener {
+public class ErrorSidebar extends JList<AbstractErrorEntry> implements ValidationResultListener {
 	private static final long serialVersionUID = 1L;
-
-	/**
-	 * List with the error entries
-	 */
-	private final JList<AbstractErrorEntry> errorList = new JList<>();
 
 	/**
 	 * Interface to scroll to position
@@ -62,7 +57,7 @@ public class ErrorSidebar extends JScrollPane implements ValidationResultListene
 	private final MouseListener mouseListener = new MouseAdapter() {
 		@Override
 		public void mouseClicked(MouseEvent e) {
-			AbstractErrorEntry value = errorList.getSelectedValue();
+			AbstractErrorEntry value = getSelectedValue();
 			if (value == null) {
 				return;
 			}
@@ -79,10 +74,10 @@ public class ErrorSidebar extends JScrollPane implements ValidationResultListene
 				if (fix.isFixAvailable()) {
 					fix.setData(fixData);
 					JPopupMenu menu = fix.getPopupMenu();
-					int selectedIndex = errorList.getSelectedIndex();
-					Rectangle bounds = errorList.getCellBounds(selectedIndex, selectedIndex);
+					int selectedIndex = getSelectedIndex();
+					Rectangle bounds = getCellBounds(selectedIndex, selectedIndex);
 
-					menu.show(errorList, 0, bounds.y + bounds.height);
+					menu.show(ErrorSidebar.this, 0, bounds.y + bounds.height);
 				}
 			}
 		}
@@ -96,10 +91,9 @@ public class ErrorSidebar extends JScrollPane implements ValidationResultListene
 	 */
 	public ErrorSidebar(IScrollToAble scrollTo) {
 		super();
-		setViewportView(errorList);
 		this.scrollTo = scrollTo;
-		this.errorList.setCellRenderer(new ErrorListRenderer());
-		errorList.addMouseListener(mouseListener);
+		setCellRenderer(new ErrorListRenderer());
+		addMouseListener(mouseListener);
 
 	}
 
@@ -129,7 +123,7 @@ public class ErrorSidebar extends JScrollPane implements ValidationResultListene
 
 	@Override
 	public void validationFinished(ValidationListModel list) {
-		errorList.setModel(list);
+		setModel(list);
 	}
 
 }

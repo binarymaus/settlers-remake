@@ -37,6 +37,7 @@ import jsettlers.logic.player.Player;
  * An extension to the worker building for dockyards
  */
 public class DockyardBuilding extends WorkerBuilding implements IBuilding.IShipConstruction, IDockBuilding {
+	private static final long serialVersionUID = -7714560004601048006L;
 	private EShipType                   orderedShipType = null;
 	private ShipInConstructionMapObject ship            = null;
 	private DockPosition                dockPosition    = null;
@@ -52,7 +53,7 @@ public class DockyardBuilding extends WorkerBuilding implements IBuilding.IShipC
 
 		List<RequestStack> newStacks = new LinkedList<>();
 
-		for (RelativeStack stack : type.getRequestStacks()) {
+		for (RelativeStack stack : getBuildingVariant().getRequestStacks()) {
 			short requiredAmount = orderedShipType.getRequiredMaterial(stack.getMaterialType());
 			if (requiredAmount > 0) {
 				newStacks.add(new RequestStack(grid.getRequestStackGrid(), stack.calculatePoint(this.pos), stack.getMaterialType(), type, getPriority(), requiredAmount));
@@ -72,14 +73,14 @@ public class DockyardBuilding extends WorkerBuilding implements IBuilding.IShipC
 
 			// make new ship
 			EDirection direction = dockPosition.getDirection().getNeighbor(-1);
-			ship = new ShipInConstructionMapObject(orderedShipType, direction);
+			ship = new ShipInConstructionMapObject(getPlayer(), orderedShipType, direction);
 			grid.getMapObjectsManager().addMapObject(getShipPosition(), ship);
 		}
 
 		ship.workOnShip();
 
 		if (ship.isFinished()) { // replace ShipInConstructionMapObject with Movable
-			Movable shipMovable = new Movable(super.grid.getMovableGrid(), orderedShipType.movableType, getShipPosition(), super.getPlayer());
+			Movable shipMovable = Movable.createMovable(orderedShipType.movableType, getPlayer(), getShipPosition(), grid.getMovableGrid());
 			shipMovable.setDirection(ship.getDirection());
 			removeShipInConstructionMapObject();
 
@@ -96,7 +97,7 @@ public class DockyardBuilding extends WorkerBuilding implements IBuilding.IShipC
 		}
 
 		ShortPoint2D shipPosition = getShipPosition();
-		Movable existingShip = (Movable) grid.getMovableGrid().getMovableAt(shipPosition.x, getShipPosition().y);
+		Movable existingShip = (Movable) grid.getMovableGrid().getMovableAt(shipPosition.x, shipPosition.y);
 		if (existingShip != null) {
 			existingShip.leavePosition();
 		}

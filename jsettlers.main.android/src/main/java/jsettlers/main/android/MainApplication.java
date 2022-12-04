@@ -15,10 +15,14 @@
 
 package jsettlers.main.android;
 
+import jsettlers.network.infrastructure.log.ConsoleLogger;
 import org.androidannotations.annotations.EApplication;
 
 import android.app.Application;
 import android.arch.lifecycle.Observer;
+import android.support.multidex.MultiDexApplication;
+
+import java.io.IOException;
 
 import jsettlers.common.menu.IJoinPhaseMultiplayerGameConnector;
 import jsettlers.common.menu.IJoiningGame;
@@ -37,9 +41,11 @@ import jsettlers.main.android.core.GameStarter;
 import jsettlers.main.android.core.controls.ControlsAdapter;
 import jsettlers.main.android.core.controls.GameMenu;
 import jsettlers.main.android.core.resources.scanner.AndroidResourcesLoader;
+import jsettlers.network.client.IClientConnection;
+import jsettlers.network.server.GameServerThread;
 
 @EApplication
-public class MainApplication extends Application implements GameStarter, GameManager {
+public class MainApplication extends MultiDexApplication implements GameStarter, GameManager {
 	static { // configure game to be better usable on Android
 		Constants.BUILDING_PLACEMENT_MAX_SEARCH_RADIUS = 10;
 	}
@@ -70,11 +76,36 @@ public class MainApplication extends Application implements GameStarter, GameMan
 		return mapList;
 	}
 
+	private GameServerThread serverHandle = null;
+
+	@Override
+	public void toggleServer() {
+		closeMultiPlayerConnector();
+		if(serverHandle == null) {
+			try {
+				serverHandle = new GameServerThread(true);
+				serverHandle.start();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} else {
+			serverHandle.shutdown();
+			serverHandle = null;
+		}
+	}
+
+	@Override
+	public boolean isServerRunning() {
+		return serverHandle!=null;
+	}
+
 	@Override
 	public IMultiplayerConnector getMultiPlayerConnector() {
 		if (multiplayerConnector == null) {
 			AndroidPreferences androidPreferences = new AndroidPreferences(this);
-			multiplayerConnector = new MultiplayerConnector(androidPreferences.getServer(), androidPreferences.getPlayerId(), androidPreferences.getPlayerName());
+			String server = androidPreferences.getServer();
+			if(serverHandle != null) server = "localhost";
+			multiplayerConnector = new MultiplayerConnector(server, androidPreferences.getPlayerId(), androidPreferences.getPlayerName(), new ConsoleLogger("jsettlers.main.android-network"));
 		}
 		return multiplayerConnector;
 	}
@@ -82,7 +113,7 @@ public class MainApplication extends Application implements GameStarter, GameMan
 	@Override
 	public void closeMultiPlayerConnector() {
 		if (multiplayerConnector != null) {
-			multiplayerConnector.shutdown();
+			((IClientConnection)multiplayerConnector).action(IClientConnection.EClientAction.CLOSE, null);
 			multiplayerConnector = null;
 		}
 	}

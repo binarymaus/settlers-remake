@@ -14,7 +14,7 @@
  *******************************************************************************/
 package jsettlers.logic.map.grid.partition.manager.datastructures;
 
-import java8.util.function.Predicate;
+import java.util.function.Predicate;
 import jsettlers.common.position.ILocatable;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.utils.MathUtils;
@@ -27,6 +27,8 @@ import jsettlers.common.utils.MathUtils;
  * @author Andreas Eberle
  */
 public class PredicatedPositionableList<T extends ILocatable> extends PositionableList<T> {
+
+	private static final long serialVersionUID = 1057546947201815516L;
 
 	/**
 	 * Finds the object that's closest to the given position and removes it.

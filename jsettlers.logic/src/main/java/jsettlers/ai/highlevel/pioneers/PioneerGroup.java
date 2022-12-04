@@ -14,11 +14,10 @@
  *******************************************************************************/
 package jsettlers.ai.highlevel.pioneers;
 
-import static java8.util.stream.StreamSupport.stream;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import jsettlers.ai.highlevel.AiStatistics;
 import jsettlers.common.movable.EMovableAction;
@@ -26,11 +25,9 @@ import jsettlers.common.movable.EMovableType;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.input.tasks.ConvertGuiTask;
 import jsettlers.logic.map.grid.movable.MovableGrid;
-import jsettlers.logic.movable.Movable;
+import jsettlers.logic.movable.MovableManager;
 import jsettlers.logic.movable.interfaces.ILogicMovable;
 import jsettlers.network.client.interfaces.ITaskScheduler;
-
-import java8.util.stream.Collectors;
 
 /**
  * @author codingberlin
@@ -60,7 +57,7 @@ public class PioneerGroup {
 	public void removeDeadPioneers() {
 		Collection<Integer> idsToRemove = new ArrayList<>(pioneerIds.size());
 		for (Integer pioneerId : pioneerIds) {
-			if (Movable.getMovableByID(pioneerId) == null) {
+			if (MovableManager.getMovableByID(pioneerId) == null) {
 				idsToRemove.add(pioneerId);
 			}
 		}
@@ -77,7 +74,7 @@ public class PioneerGroup {
 
 		int newPioneers = Math.min(getMissingPioneers(), maxNewPioneersCount);
 
-		List<Integer> newPioneerIds = stream(joblessBearers)
+		List<Integer> newPioneerIds = joblessBearers.stream()
 				.limit(newPioneers)
 				.map(position -> movableGrid.getMovableAt(position.x, position.y))
 				.map(ILogicMovable::getID)
@@ -90,7 +87,9 @@ public class PioneerGroup {
 	}
 
 	public PioneerGroup getPioneersWithNoAction() {
-		List<Integer> pioneersWithNoAction = stream(pioneerIds).filter(pioneerId -> Movable.getMovableByID(pioneerId).getAction() == EMovableAction.NO_ACTION).collect(Collectors.toList());
+		List<Integer> pioneersWithNoAction = pioneerIds.stream()
+				.filter(pioneerId -> MovableManager.getMovableByID(pioneerId).getAction() == EMovableAction.NO_ACTION)
+				.collect(Collectors.toList());
 		return new PioneerGroup(pioneersWithNoAction);
 	}
 

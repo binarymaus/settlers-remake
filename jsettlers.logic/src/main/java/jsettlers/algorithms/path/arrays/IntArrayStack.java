@@ -42,7 +42,7 @@ public class IntArrayStack {
 			System.arraycopy(values, 0, newValuesArray, 0, values.length);
 			values = newValuesArray;
 			length = newLength;
-			System.out.println("grew stack to " + newLength);
+			//System.out.println("grew stack to " + newLength);
 		}
 
 		values[insertPosition] = elementId;

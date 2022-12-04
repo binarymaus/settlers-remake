@@ -64,6 +64,7 @@ public final class SettlersFolderChecker {
 		Mutable<File> sndFolder = new Mutable<>();
 		Mutable<File> gfxFolder = new Mutable<>();
 		Mutable<File> mapsFolder = new Mutable<>();
+		Mutable<File> musicFolder = new Mutable<>();
 
 		FileUtils.iterateChildren(settlersFolder, currentFolder -> {
 			if (!currentFolder.isDirectory()) {
@@ -86,25 +87,30 @@ public final class SettlersFolderChecker {
 				});
 			} else if (FileUtils.nameEqualsIgnoringCase("MAP", currentFolder)) {
 				mapsFolder.object = currentFolder;
+			} else if (FileUtils.nameEqualsIgnoringCase("MUSIC", currentFolder) || //ultimate edition music folder
+					FileUtils.nameEqualsIgnoringCase("Theme", currentFolder)) { //history edition music folder
+				musicFolder.object = currentFolder;
 			}
 		});
 
-		return new SettlersFolderInfo(sndFolder.object, gfxFolder.object, mapsFolder.object);
+		return new SettlersFolderInfo(sndFolder.object, gfxFolder.object, mapsFolder.object, musicFolder.object);
 	}
 
 	public static class SettlersFolderInfo {
 		public final File sndFolder;
 		public final File gfxFolder;
 		public final File mapsFolder;
+		public final File musicFolder;
 
 		SettlersFolderInfo() {
-			this(null, null, null);
+			this(null, null, null, null);
 		}
 
-		SettlersFolderInfo(File sndFolder, File gfxFolder, File mapsFolder) {
+		SettlersFolderInfo(File sndFolder, File gfxFolder, File mapsFolder, File musicFolder) {
 			this.sndFolder = sndFolder;
 			this.gfxFolder = gfxFolder;
 			this.mapsFolder = mapsFolder;
+			this.musicFolder = musicFolder;
 		}
 
 		public boolean isValidSettlersFolder() {

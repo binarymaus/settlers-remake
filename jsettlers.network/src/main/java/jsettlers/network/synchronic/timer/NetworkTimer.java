@@ -32,8 +32,6 @@ import jsettlers.network.client.INetworkClientClock;
 import jsettlers.network.client.task.packets.SyncTasksPacket;
 import jsettlers.network.client.task.packets.TaskPacket;
 
-import java8.util.Comparators;
-
 /**
  * This is a basic game timer. All synchronous actions must be based on this clock. The {@link NetworkTimer} also triggers the execution of synchronous tasks in the network game.
  *
@@ -42,7 +40,7 @@ import java8.util.Comparators;
  */
 public final class NetworkTimer extends TimerTask implements INetworkClientClock {
 	public static final short TIME_SLICE = 50;
-	private static final Comparator<SyncTasksPacket> tasksByTimeComparator = Comparators.comparingInt(SyncTasksPacket::getLockstepNumber);
+	private static final Comparator<SyncTasksPacket> tasksByTimeComparator = Comparator.comparingInt(SyncTasksPacket::getLockstepNumber);
 
 	private final Timer timer;
 	private final Object lockstepLock = new Object();
@@ -272,7 +270,7 @@ public final class NetworkTimer extends TimerTask implements INetworkClientClock
 		this.speedFactor = speedFactor;
 	}
 
-	@Override
+
 	public float getGameSpeed() {
 		return speedFactor;
 	}
@@ -297,7 +295,7 @@ public final class NetworkTimer extends TimerTask implements INetworkClientClock
 			synchronized (tasks) {
 				System.out.println("Scheduled SyncTasksPacket(" + tasksPacket + " for " + getLockstepText(tasksPacket.getLockstepNumber()));
 				tasks.addLast(tasksPacket);
-				Collections.sort(tasks, tasksByTimeComparator);
+				tasks.sort(tasksByTimeComparator);
 				saveReplayIfNeeded(tasksPacket);
 			}
 		}

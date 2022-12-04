@@ -43,13 +43,7 @@ public class NewMultiPlayerSetupFragment extends MapSetupFragment {
 
 	@AfterViews
 	void disableUnavailableSpinners() {
-		numberOfPlayersSpinner.setEnabled(false);
 		startResourcesSpinner.setEnabled(false);
 		peacetimeSpinner.setEnabled(false);
-	}
-
-	@Override
-	protected int getListItemLayoutId() {
-		return R.layout.item_multiplayer_playerslot;
 	}
 }

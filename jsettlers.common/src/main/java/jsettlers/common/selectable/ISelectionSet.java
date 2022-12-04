@@ -14,9 +14,12 @@
  *******************************************************************************/
 package jsettlers.common.selectable;
 
+import java.util.Map;
+import java.util.stream.Stream;
+
 import jsettlers.common.movable.EMovableType;
 
-import java8.util.stream.Stream;
+import jsettlers.common.player.IPlayer;
 
 /**
  * Interface for sets of selectables.<br>
@@ -53,9 +56,10 @@ public interface ISelectionSet extends Iterable<ISelectable> {
 	 * counts the movables in the set of the given type.
 	 * 
 	 * @param type
+	 * @param playerStatistic
 	 * @return
 	 */
-	int getMovableCount(EMovableType type);
+	int getMovableCount(EMovableType type, Map<IPlayer, Integer> playerStatistic);
 
 	/**
 	 * gives the selected at given index.

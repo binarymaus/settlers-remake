@@ -30,6 +30,8 @@ import jsettlers.logic.map.grid.partition.manager.datastructures.PositionableLis
  */
 public class ManagingPositionableList<T extends ILocatable & IListManageable> extends PositionableList<T> {
 
+	private static final long serialVersionUID = 5373491460834642792L;
+
 	@Override
 	protected T getObjectCloseTo(ShortPoint2D position) {
 		int bestDistance = Integer.MAX_VALUE;

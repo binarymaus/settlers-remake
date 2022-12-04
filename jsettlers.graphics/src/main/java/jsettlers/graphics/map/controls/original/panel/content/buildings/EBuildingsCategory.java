@@ -35,7 +35,9 @@ public enum EBuildingsCategory {
 			EBuildingType.GOLDMELT,
 			EBuildingType.COALMINE,
 			EBuildingType.TOOLSMITH,
-			EBuildingType.CHARCOAL_BURNER),
+			EBuildingType.CHARCOAL_BURNER,
+			EBuildingType.SULFURMINE,
+			EBuildingType.GEMSMINE),
 	BUILDINGS_CATEGORY_FOOD(
 			EBuildingType.FISHER,
 			EBuildingType.FARM,
@@ -45,7 +47,12 @@ public enum EBuildingsCategory {
 			EBuildingType.BAKER,
 			EBuildingType.WATERWORKS,
 			EBuildingType.DONKEY_FARM,
-			EBuildingType.WINEGROWER),
+			EBuildingType.WINEGROWER,
+			EBuildingType.BREWERY,
+			EBuildingType.DISTILLERY,
+			EBuildingType.RICE_FARM,
+			EBuildingType.BEEKEEPING,
+			EBuildingType.MEAD_BREWERY),
 	BUILDINGS_CATEGORY_MILITARY(
 			EBuildingType.TOWER,
 			EBuildingType.BIG_TOWER,
@@ -63,7 +70,8 @@ public enum EBuildingsCategory {
 			EBuildingType.MARKET_PLACE,
 			EBuildingType.HARBOR,
 			EBuildingType.TEMPLE,
-			EBuildingType.BIG_TEMPLE);
+			EBuildingType.BIG_TEMPLE,
+			EBuildingType.LABORATORY);
 
 	public static final EBuildingsCategory[] VALUES = values();
 	public static final int NUMBER_OF_VALUES = VALUES.length;

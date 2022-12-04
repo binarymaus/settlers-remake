@@ -48,15 +48,5 @@ public interface IBordersThreadGrid {
 
 	boolean isInBounds(int x, int y);
 
-	/**
-	 * Gets the blocked partition at the given position.
-	 * 
-	 * @param x
-	 *            X coordinate.
-	 * @param y
-	 *            Y coordinate.
-	 * @return Id of the blocked partition.
-	 */
-	short getBlockedPartition(int x, int y);
-
+	boolean isBlocked(int x, int y);
 }

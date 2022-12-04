@@ -36,7 +36,16 @@ public class ValidatePlayerStartPosition extends AbstractValidationTask {
 
 		for (int player = 0; player < data.getPlayerCount(); player++) {
 			ShortPoint2D point = data.getStartPoint(player);
-			if (players[point.x][point.y] != player) {
+
+			boolean invalid;
+			if(data.hasStartBuildings()) {
+				invalid = players[point.x][point.y] != player;
+			} else {
+				// a bit rough but will do for now
+				invalid = data.getLandscape(point.x, point.y).isBlocking;
+			}
+
+			if(invalid) {
 				addErrorMessage("playerstart.text", point, player);
 			}
 

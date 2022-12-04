@@ -14,34 +14,7 @@
  *******************************************************************************/
 package jsettlers.ai.economy;
 
-import static jsettlers.common.buildings.EBuildingType.BAKER;
-import static jsettlers.common.buildings.EBuildingType.BARRACK;
-import static jsettlers.common.buildings.EBuildingType.BIG_TEMPLE;
-import static jsettlers.common.buildings.EBuildingType.BIG_TOWER;
-import static jsettlers.common.buildings.EBuildingType.CASTLE;
-import static jsettlers.common.buildings.EBuildingType.COALMINE;
-import static jsettlers.common.buildings.EBuildingType.FARM;
-import static jsettlers.common.buildings.EBuildingType.FISHER;
-import static jsettlers.common.buildings.EBuildingType.FORESTER;
-import static jsettlers.common.buildings.EBuildingType.GOLDMELT;
-import static jsettlers.common.buildings.EBuildingType.GOLDMINE;
-import static jsettlers.common.buildings.EBuildingType.IRONMELT;
-import static jsettlers.common.buildings.EBuildingType.IRONMINE;
-import static jsettlers.common.buildings.EBuildingType.LUMBERJACK;
-import static jsettlers.common.buildings.EBuildingType.MEDIUM_LIVINGHOUSE;
-import static jsettlers.common.buildings.EBuildingType.MILL;
-import static jsettlers.common.buildings.EBuildingType.PIG_FARM;
-import static jsettlers.common.buildings.EBuildingType.SAWMILL;
-import static jsettlers.common.buildings.EBuildingType.SLAUGHTERHOUSE;
-import static jsettlers.common.buildings.EBuildingType.SMALL_LIVINGHOUSE;
-import static jsettlers.common.buildings.EBuildingType.STOCK;
-import static jsettlers.common.buildings.EBuildingType.STONECUTTER;
-import static jsettlers.common.buildings.EBuildingType.TEMPLE;
-import static jsettlers.common.buildings.EBuildingType.TOOLSMITH;
-import static jsettlers.common.buildings.EBuildingType.TOWER;
-import static jsettlers.common.buildings.EBuildingType.WATERWORKS;
-import static jsettlers.common.buildings.EBuildingType.WEAPONSMITH;
-import static jsettlers.common.buildings.EBuildingType.WINEGROWER;
+import static jsettlers.common.buildings.EBuildingType.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -52,6 +25,7 @@ import jsettlers.ai.highlevel.AiStatistics;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.common.movable.EMovableType;
+import jsettlers.common.player.ECivilisation;
 import jsettlers.common.player.IPlayer;
 import jsettlers.logic.player.Player;
 
@@ -65,7 +39,7 @@ import jsettlers.logic.player.Player;
 public class BuildingListEconomyMinister implements EconomyMinister {
 
 	private static final Collection<EBuildingType> RUSH_DEFENCE_BUILDINGS = EnumSet.of(LUMBERJACK, SAWMILL, STONECUTTER, IRONMELT, WEAPONSMITH, BARRACK, SMALL_LIVINGHOUSE, COALMINE, IRONMINE,
-			MEDIUM_LIVINGHOUSE);
+			MEDIUM_LIVINGHOUSE, HOSPITAL);
 	private static final Collection<EBuildingType> BUILDING_INDUSTRY = EnumSet.of(LUMBERJACK, FORESTER, SAWMILL, STONECUTTER);
 
 	private final AiStatistics aiStatistics;
@@ -107,8 +81,9 @@ public class BuildingListEconomyMinister implements EconomyMinister {
 	@Override
 	public void update() {
 		buildingsToBuild.clear();
-		this.mapBuildingCounts = aiStatistics.getAiMapInformation().getBuildingCounts(player.getPlayerId());
+		this.mapBuildingCounts = aiStatistics.getBuildingCounts(player);
 		addMinimalBuildingMaterialBuildings();
+		addHospitals();
 		if (isVerySmallMap()) {
 			addSmallWeaponProduction();
 			addFoodAndBuildingMaterialAndWeaponAndGoldIndustry();
@@ -120,6 +95,16 @@ public class BuildingListEconomyMinister implements EconomyMinister {
 		}
 	}
 
+	private void addHospitals() {
+		if(aiStatistics.getBuildingPositionsOfTypeForPlayer(COALMINE, playerId).size() >= 2) buildingsToBuild.add(HOSPITAL);
+		if(aiStatistics.getBuildingPositionsOfTypeForPlayer(COALMINE, playerId).size() >= 3) buildingsToBuild.add(HOSPITAL);
+
+		int armySize = aiStatistics.getCountOfMovablesOfPlayer(player, EMovableType.SOLDIERS);
+		if(armySize > 200) buildingsToBuild.add(HOSPITAL);
+		if(armySize > 300) buildingsToBuild.add(HOSPITAL);
+		if(armySize > 400) buildingsToBuild.add(HOSPITAL);
+	}
+
 	private void addSecondToolSmith() {
 		if (mapBuildingCounts[WEAPONSMITH.ordinal] * weaponSmithFactor >= 16) {
 			buildingsToBuild.add(80, TOOLSMITH);
@@ -129,10 +114,10 @@ public class BuildingListEconomyMinister implements EconomyMinister {
 
 	@Override
 	public boolean isEndGame() {
-		double remainingGrass = aiStatistics.getAiMapInformation().getRemainingGrassTiles(aiStatistics, playerId)
+		double remainingGrass = aiStatistics.getRemainingGrassTiles(aiStatistics, player)
 				- aiStatistics.getTreesForPlayer(playerId).size()
 				- aiStatistics.getStonesForPlayer(playerId).size();
-		double availableGrass = aiStatistics.getAiMapInformation().getGrassTilesOf(playerId);
+		double availableGrass = aiStatistics.getGrassTilesOf(playerId);
 		return remainingGrass / availableGrass <= 0.6F;
 	}
 
@@ -156,19 +141,48 @@ public class BuildingListEconomyMinister implements EconomyMinister {
 			}
 		}
 
-		numberOfMidGameStoneCutters = (currentCountOf(STONECUTTER) / 2);
+		if(player.getCivilisation() != ECivilisation.EGYPTIAN) {
+			numberOfMidGameStoneCutters = (currentCountOf(STONECUTTER) / 2);
+		} else {
+			numberOfMidGameStoneCutters = currentCountOf(STONECUTTER);
+		}
 	}
 
 	private List<EBuildingType> determineBuildingMaterialBuildings() {
 		List<EBuildingType> buildingMaterialBuildings = new ArrayList<>();
-		for (int i = 0; i < Math.ceil(mapBuildingCounts[LUMBERJACK.ordinal] * buildingIndustryFactor) - 8; i++) {
-			buildingMaterialBuildings.add(LUMBERJACK);
-			if (i % 3 == 1)
-				buildingMaterialBuildings.add(FORESTER);
-			if (i % 2 == 1)
-				buildingMaterialBuildings.add(SAWMILL);
-			if (i % 2 == 1)
+
+		if (player.getCivilisation() == ECivilisation.EGYPTIAN) {
+			for (int i = 0; i < Math.ceil(mapBuildingCounts[STONECUTTER.ordinal] * buildingIndustryFactor); i++) {
 				buildingMaterialBuildings.add(STONECUTTER);
+				buildingMaterialBuildings.add(LUMBERJACK);
+				if (i % 3 == 1)
+					buildingMaterialBuildings.add(FORESTER);
+				if (i % 2 == 1)
+					buildingMaterialBuildings.add(SAWMILL);
+			}
+		} else {
+			int stoneCutterMod = -1;
+			switch (player.getCivilisation()) {
+				case ROMAN:
+					stoneCutterMod = 2;
+					break;
+				case AMAZON:
+					stoneCutterMod = 3;
+					break;
+				case ASIAN:
+					stoneCutterMod = 8;
+					break;
+			}
+
+			for (int i = 0; i < Math.ceil(mapBuildingCounts[LUMBERJACK.ordinal] * buildingIndustryFactor) - 8; i++) {
+				buildingMaterialBuildings.add(LUMBERJACK);
+				if (i % 3 == 1)
+					buildingMaterialBuildings.add(FORESTER);
+				if (i % 2 == 1)
+					buildingMaterialBuildings.add(SAWMILL);
+				if (i % stoneCutterMod == 1)
+					buildingMaterialBuildings.add(STONECUTTER);
+			}
 		}
 		return buildingMaterialBuildings;
 	}
@@ -276,12 +290,37 @@ public class BuildingListEconomyMinister implements EconomyMinister {
 	}
 
 	private void addManaBuildings() {
-		for (int i = 0; i < mapBuildingCounts[WINEGROWER.ordinal]; i++) {
-			addIfPossible(WINEGROWER);
+		if(RICE_FARM.getVariant(player.getCivilisation()) != null) {
+			for (int i = 0; i < mapBuildingCounts[RICE_FARM.ordinal]; i++) {
+				addIfPossible(RICE_FARM);
+			}
 		}
-		for (int i = 0; i < mapBuildingCounts[WINEGROWER.ordinal]; i++) {
+
+		EBuildingType mannaProducer = player.getCivilisation().getMannaBuilding();
+
+		int mannaProducerCount = mapBuildingCounts[mannaProducer.ordinal];
+
+		if(mannaProducer == BREWERY) {
+			mannaProducerCount = Math.min(mannaProducerCount, aiStatistics.getNumberOfBuildingTypeForPlayer(FARM, playerId));
+		}
+
+		int beekeepingCount = 0;
+		float beekeepingPerMeadBrewery = mapBuildingCounts[BEEKEEPING.ordinal] / (float) mannaProducerCount;
+		for (int i = 0; i < mannaProducerCount; i++) {
+			if(mannaProducer == MEAD_BREWERY) {
+				while(beekeepingPerMeadBrewery*i > beekeepingCount) {
+					addIfPossible(BEEKEEPING);
+					addIfPossible(BEEKEEPING);
+					addIfPossible(BEEKEEPING);
+					beekeepingCount++;
+				}
+				addIfPossible(WATERWORKS);
+			}
+
+			addIfPossible(mannaProducer);
 			addIfPossible(TEMPLE);
 		}
+
 		if (mapBuildingCounts[BIG_TEMPLE.ordinal] > 0) {
 			addIfPossible(BIG_TEMPLE);
 		}
@@ -312,90 +351,164 @@ public class BuildingListEconomyMinister implements EconomyMinister {
 		}
 	}
 
+	private void addMinimalBuildingsHighGoods() {
+		switch (player.getCivilisation()) {
+			case AMAZON:
+			case ROMAN:
+			case ASIAN:
+				addIfPossible(LUMBERJACK);
+				addIfPossible(SAWMILL);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(FORESTER);
+				buildingsToBuild.add(MEDIUM_LIVINGHOUSE);
+				addIfPossible(STONECUTTER);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(SAWMILL);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(FORESTER);
+				addIfPossible(FORESTER);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(SAWMILL);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(FORESTER);
+				addIfPossible(STONECUTTER);
+				if(player.getCivilisation() != ECivilisation.ASIAN) {
+					addIfPossible(STONECUTTER);
+					addIfPossible(STONECUTTER);
+					addIfPossible(STONECUTTER);
+				} else {
+					addIfPossible(LUMBERJACK);
+					addIfPossible(SAWMILL);
+					addIfPossible(LUMBERJACK);
+					addIfPossible(LUMBERJACK);
+					addIfPossible(FORESTER);
+				}
+				break;
+			case EGYPTIAN:
+				addIfPossible(STONECUTTER);
+				addIfPossible(STONECUTTER);
+				addIfPossible(STONECUTTER);
+				buildingsToBuild.add(MEDIUM_LIVINGHOUSE);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(SAWMILL);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(STONECUTTER);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(FORESTER);
+				addIfPossible(STONECUTTER);
+				addIfPossible(STONECUTTER);
+				addIfPossible(IRONMELT);
+				addIfPossible(TOOLSMITH);
+				addIfPossible(STONECUTTER);
+				addIfPossible(STONECUTTER);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(SAWMILL);
+				addIfPossible(STONECUTTER);
+				addIfPossible(FORESTER);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(STONECUTTER);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(FISHER);
+				break;
+		}
+	}
+
+	private void addMinimalBuildingsMediumGoods() {
+		switch (player.getCivilisation()) {
+			case ROMAN:
+			case AMAZON:
+			case ASIAN:
+				addIfPossible(LUMBERJACK);
+				addIfPossible(SAWMILL);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(FORESTER);
+				buildingsToBuild.add(MEDIUM_LIVINGHOUSE);
+				addIfPossible(STONECUTTER);
+				buildingsToBuild.add(MEDIUM_LIVINGHOUSE);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(SAWMILL);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(FORESTER);
+				addIfPossible(STONECUTTER);
+				addIfPossible(IRONMELT);
+				addIfPossible(TOOLSMITH);
+				addIfPossible(FORESTER);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(SAWMILL);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(FORESTER);
+				if(player.getCivilisation() != ECivilisation.ASIAN) {
+					addIfPossible(STONECUTTER);
+					addIfPossible(STONECUTTER);
+					addIfPossible(STONECUTTER);
+				}
+				break;
+			case EGYPTIAN:
+				addIfPossible(STONECUTTER);
+				buildingsToBuild.add(MEDIUM_LIVINGHOUSE);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(SAWMILL);
+				addIfPossible(STONECUTTER);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(STONECUTTER);
+				buildingsToBuild.add(MEDIUM_LIVINGHOUSE);
+				addIfPossible(LUMBERJACK);
+				addIfPossible(FORESTER);
+				addIfPossible(STONECUTTER);
+				addIfPossible(STONECUTTER);
+				break;
+		}
+	}
+
+	private void addMinimalBuildingsLowGoods() {
+		addIfPossible(LUMBERJACK);
+		addIfPossible(SAWMILL);
+		addIfPossible(LUMBERJACK);
+		buildingsToBuild.add(SMALL_LIVINGHOUSE);
+		addIfPossible(STONECUTTER);
+		addIfPossible(LUMBERJACK);
+		addIfPossible(FORESTER);
+		buildingsToBuild.add(MEDIUM_LIVINGHOUSE);
+		buildingsToBuild.add(MEDIUM_LIVINGHOUSE);
+		addIfPossible(IRONMELT);
+		addIfPossible(TOOLSMITH);
+		addIfPossible(COALMINE);
+		addIfPossible(IRONMINE);
+		addIfPossible(FISHER);
+		addIfPossible(FARM);
+		addIfPossible(WATERWORKS);
+		addIfPossible(MILL);
+		addIfPossible(BAKER);
+		addIfPossible(COALMINE);
+		addIfPossible(SAWMILL);
+		addIfPossible(LUMBERJACK);
+		addIfPossible(FORESTER);
+		addIfPossible(STONECUTTER);
+		addIfPossible(LUMBERJACK);
+		addIfPossible(LUMBERJACK);
+		addIfPossible(FORESTER);
+		addIfPossible(LUMBERJACK);
+		addIfPossible(SAWMILL);
+		addIfPossible(LUMBERJACK);
+		addIfPossible(FORESTER);
+		buildingsToBuild.add(MEDIUM_LIVINGHOUSE);
+		addIfPossible(STONECUTTER);
+		addIfPossible(STONECUTTER);
+		addIfPossible(STONECUTTER);
+	}
+
 	private void addMinimalBuildingMaterialBuildings() {
 		buildingsToBuild.add(TOWER); // Start Tower
 		if (isHighGoodsGame) {
-			addIfPossible(LUMBERJACK);
-			addIfPossible(SAWMILL);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(FORESTER);
-			buildingsToBuild.add(MEDIUM_LIVINGHOUSE);
-			addIfPossible(STONECUTTER);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(SAWMILL);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(FORESTER);
-			addIfPossible(FORESTER);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(SAWMILL);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(FORESTER);
-			addIfPossible(STONECUTTER);
-			addIfPossible(STONECUTTER);
-			addIfPossible(STONECUTTER);
-			addIfPossible(STONECUTTER);
+			addMinimalBuildingsHighGoods();
 		} else if (isMiddleGoodsGame) {
-			addIfPossible(LUMBERJACK);
-			addIfPossible(SAWMILL);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(FORESTER);
-			buildingsToBuild.add(MEDIUM_LIVINGHOUSE);
-			addIfPossible(STONECUTTER);
-			buildingsToBuild.add(MEDIUM_LIVINGHOUSE);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(SAWMILL);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(FORESTER);
-			addIfPossible(STONECUTTER);
-			addIfPossible(IRONMELT);
-			addIfPossible(TOOLSMITH);
-			addIfPossible(FORESTER);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(SAWMILL);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(FORESTER);
-			addIfPossible(STONECUTTER);
-			addIfPossible(STONECUTTER);
-			addIfPossible(STONECUTTER);
+			addMinimalBuildingsMediumGoods();
 		} else {
-			addIfPossible(LUMBERJACK);
-			addIfPossible(SAWMILL);
-			addIfPossible(LUMBERJACK);
-			buildingsToBuild.add(SMALL_LIVINGHOUSE);
-			addIfPossible(STONECUTTER);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(FORESTER);
-			buildingsToBuild.add(MEDIUM_LIVINGHOUSE);
-			buildingsToBuild.add(MEDIUM_LIVINGHOUSE);
-			addIfPossible(IRONMELT);
-			addIfPossible(TOOLSMITH);
-			addIfPossible(COALMINE);
-			addIfPossible(IRONMINE);
-			addIfPossible(FISHER);
-			addIfPossible(FARM);
-			addIfPossible(WATERWORKS);
-			addIfPossible(MILL);
-			addIfPossible(BAKER);
-			addIfPossible(COALMINE);
-			addIfPossible(SAWMILL);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(FORESTER);
-			addIfPossible(STONECUTTER);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(FORESTER);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(SAWMILL);
-			addIfPossible(LUMBERJACK);
-			addIfPossible(FORESTER);
-			buildingsToBuild.add(MEDIUM_LIVINGHOUSE);
-			addIfPossible(STONECUTTER);
-			addIfPossible(STONECUTTER);
-			addIfPossible(STONECUTTER);
+			addMinimalBuildingsLowGoods();
 		}
 	}
 
@@ -416,6 +529,13 @@ public class BuildingListEconomyMinister implements EconomyMinister {
 			weaponsBuildings.add(GOLDMINE);
 			for (int ii = 0; ii < mapBuildingCounts[GOLDMELT.ordinal]; ii++) {
 				weaponsBuildings.add(GOLDMELT);
+				weaponsBuildings.add(STOCK);
+			}
+		}
+
+		if(player.getCivilisation() == ECivilisation.EGYPTIAN) {
+			for (int i = 0; i < mapBuildingCounts[GEMSMINE.ordinal]; i++) {
+				weaponsBuildings.add(GEMSMINE);
 				weaponsBuildings.add(STOCK);
 			}
 		}

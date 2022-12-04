@@ -15,7 +15,10 @@
 package jsettlers.logic.player;
 
 import jsettlers.common.ai.EPlayerType;
+import jsettlers.common.menu.UIState;
 import jsettlers.common.player.ECivilisation;
+import jsettlers.input.PlayerState;
+import jsettlers.logic.map.loading.data.IMapData;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -160,5 +163,13 @@ public class PlayerSetting {
 		System.out.println("created player settings: " + Arrays.toString(playerSettings));
 
 		return playerSettings;
+	}
+
+	public static PlayerState[] getStates(PlayerSetting[] playerSettings, IMapData mapData) {
+		PlayerState[] playerStates = new PlayerState[playerSettings.length];
+		for (byte playerId = 0; playerId < playerSettings.length; playerId++) {
+			playerStates[playerId] = new PlayerState(playerId, new UIState(mapData.getStartPoint(playerId)));
+		}
+		return playerStates;
 	}
 }

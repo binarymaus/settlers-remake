@@ -14,7 +14,7 @@
  *******************************************************************************/
 package jsettlers.common.map.shapes;
 
-import java8.util.Optional;
+import java.util.Optional;
 import jsettlers.common.map.shapes.HexGridArea.HexGridAreaIterator;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.utils.mutables.MutableInt;

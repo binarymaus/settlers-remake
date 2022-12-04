@@ -16,6 +16,7 @@
 package jsettlers.graphics.map.controls.original.panel.content.updaters;
 
 import jsettlers.common.map.IGraphicsGrid;
+import jsettlers.common.player.IInGamePlayer;
 import jsettlers.common.position.ShortPoint2D;
 
 public class UiLocationDependingContentUpdater<T> extends UiContentUpdater<T> {
@@ -28,9 +29,15 @@ public class UiLocationDependingContentUpdater<T> extends UiContentUpdater<T> {
 
 	private IGraphicsGrid grid;
 	private ShortPoint2D position;
+	private IInGamePlayer player;
 
 	public UiLocationDependingContentUpdater(IUiLocationDependingContentProvider<T> freshDataProvider) {
 		this.freshDataProvider = freshDataProvider;
+	}
+
+	public void setPlayer(IInGamePlayer player) {
+		this.player = player;
+		updateUi();
 	}
 
 	public void updatePosition(IGraphicsGrid grid, ShortPoint2D position) {
@@ -41,7 +48,7 @@ public class UiLocationDependingContentUpdater<T> extends UiContentUpdater<T> {
 
 	@Override
 	protected T getUpdatedData() {
-		if (grid != null && position != null) {
+		if (grid != null && position != null && player != null && grid.getPlayerAt(position.x, position.y) == player) {
 			return freshDataProvider.getData(grid, position);
 		} else {
 			return null;

@@ -18,7 +18,7 @@ import java.io.Serializable;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-import java8.util.function.Consumer;
+import java.util.function.Consumer;
 import jsettlers.common.position.ILocatable;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.utils.MathUtils;
@@ -40,7 +40,10 @@ public class PositionableList<T extends ILocatable> implements Serializable {
 	}
 
 	public void insert(T object) {
-		data.add(object);
+		if(!data.contains(object)) {
+			// TODO fix double inserts from the root
+			data.add(object);
+		}
 	}
 
 	public T removeObjectAt(ShortPoint2D position) {
@@ -69,6 +72,14 @@ public class PositionableList<T extends ILocatable> implements Serializable {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 *
+	 * @return Returns any object in this list or null if this list is empty
+	 */
+	public T getAnyObject() {
+		return data.peekFirst();
 	}
 
 	/**
@@ -132,6 +143,8 @@ public class PositionableList<T extends ILocatable> implements Serializable {
 	}
 
 	public void moveObjectsAtPositionTo(ShortPoint2D position, PositionableList<T> newList, Consumer<T> movedVisitor) {
+		if(data.isEmpty()) return;
+
 		Iterator<T> iterator = data.iterator();
 		while (iterator.hasNext()) {
 			T curr = iterator.next();

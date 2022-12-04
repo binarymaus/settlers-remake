@@ -25,8 +25,8 @@ public class ClientOfMultiplayerPlayerSlotFactory implements IPlayerSlotFactory 
 
 	@Override
 	public PlayerSlot createPlayerSlot(byte slot, MapLoader mapLoader) {
-		PlayerSlot playerSlot = new PlayerSlot();
-		playerSlot.setPossibleTypes(new EPlayerType[] { EPlayerType.HUMAN, EPlayerType.AI_VERY_HARD });
+		PlayerSlot playerSlot = new PlayerSlot(slot);
+		playerSlot.setPossibleTypes(EPlayerType.VALUES_HUMAN_FIRST);
 		playerSlot.setSlotAndTeams((byte) mapLoader.getMaxPlayers());
 		playerSlot.setReady(false);
 		playerSlot.setReadyButtonEnabled(false);

@@ -1,17 +1,16 @@
 package jsettlers.main.android.mainmenu.gamesetup;
 
-import static java8.util.stream.StreamSupport.stream;
-
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import android.app.Activity;
 import android.arch.lifecycle.ViewModel;
 import android.arch.lifecycle.ViewModelProvider;
 
-import java8.util.Optional;
 import jsettlers.common.ai.EPlayerType;
 import jsettlers.logic.map.loading.MapLoader;
+import jsettlers.logic.player.InitialGameState;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.main.JSettlersGame;
 import jsettlers.main.android.core.AndroidPreferences;
@@ -49,7 +48,7 @@ public class NewSinglePlayerSetupViewModel extends MapSetupViewModel {
 		for (int i = 0; i < maxPlayers; i++) {
 			final int position = i;
 
-			Optional<PlayerSlotPresenter> player = stream(playerSlotPresenters)
+			Optional<PlayerSlotPresenter> player = playerSlotPresenters.stream()
 					.filter(playerSlotPresenter -> playerSlotPresenter.getStartPosition().asByte() == position)
 					.findFirst();
 
@@ -60,7 +59,10 @@ public class NewSinglePlayerSetupViewModel extends MapSetupViewModel {
 			}
 		}
 
-		JSettlersGame game = new JSettlersGame(mapLoader, 4711L, humanPlayerId, playerSettings);
+		//TODO start resources
+		InitialGameState initialGameState = new InitialGameState(humanPlayerId, playerSettings, 4711L);
+
+		JSettlersGame game = new JSettlersGame(mapLoader, initialGameState);
 
 		gameStarter.setStartingGame(game.start());
 		showMapEvent.call();

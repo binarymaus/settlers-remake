@@ -159,4 +159,13 @@
 	<string name="good_distribution_title">Distribution</string>
 	<string name="confirm_destory_ships">Destroy ships?</string>
 	<string name="notification_channel_id">gameplay</string>
+	<string name="ask_workarea">Choose work area</string>
+	<string name="ask_dock">Choose dock position</string>
+	<string name="ask_spell">Choose spell position</string>
+	<string name="force_move">Force moving to location</string>
+	<string name="menu_multi_player_start_server">Start server</string>
+	<string name="settings_server_address">Server address</string>
+	<string name="settings_address">Address</string>
+	<string name="menu_multi_player_stop_server">Stop server</string>
+	<string name="settings_play_all_music">play all music</string>
 </resources>

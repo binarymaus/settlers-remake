@@ -1,33 +1,66 @@
-apply plugin: 'application'
+plugins {
+	id 'com.github.johnrengelman.shadow' version '7.1.2'
+	id 'application'
+}
+
+/*add music dependencies
+ * ogg libraries: vorbisspi1.0.2.jar, tritonus_share.jar, jorbis-0.0.15.jar, jogg-0.0.7.jar
+ * mp3 libraries: jl1.0.1.jar, tritonus_share.jar, mp3spi1.9.5.jar
+ * jaxb (map editor only)
+ */
+String[] lgplDependencies = new String[] {
+		"javazoom:jlayer:1.0.1",
+		"com.googlecode.soundlibs:tritonus-share:0.3.7.4",
+		"com.googlecode.soundlibs:mp3spi:1.9.5.4",
+		"com.googlecode.soundlibs:vorbisspi:1.0.3.3",
+		"org.jcraft:jorbis:0.0.17",
+		"de.jarnbjo:j-ogg-all:1.0.0",
+		"javax.xml.bind:jaxb-api:2.3.1",
+		"com.sun.xml.bind:jaxb-impl:2.3.2",
+		"com.sun.xml.bind:jaxb-core:2.3.0.1",
+}
+
+configurations {
+	lgplDeps
+}
 
 startScripts {
-    applicationName = "JSettlers"
+	applicationName = "jsettlers.main.swing"
 }
 
 mainClassName = 'jsettlers.main.swing.SwingManagedJSettlers'
 
-jar {
-    manifest {
-        attributes 'Main-Class': mainClassName
-    }
-}
-
-task releaseJar(type: Jar) {
-    baseName = 'JSettlers'
-    manifest {
-        attributes 'Main-Class': mainClassName
-    }
-    from {
-        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-    with jar
-}
-
 dependencies {
-    compile project(':go.graphics')
-    compile project(':go.graphics.swing')
-    compile project(':jsettlers.common')
-    compile project(':jsettlers.graphics')
-    compile project(':jsettlers.logic')
-    compile project(':jsettlers.network')
+	implementation project(':go.graphics')
+	implementation project(':go.graphics.swing')
+	implementation project(':jsettlers.common')
+	implementation project(':jsettlers.graphics')
+	implementation project(':jsettlers.logic')
+	implementation project(':jsettlers.network')
+	runtimeOnly project(':jsettlers.testutils')
+	implementation 'com.google.code.gson:gson:2.9.0'
+
+	for (String lpglDependency : lgplDependencies) {
+		lgplDeps lpglDependency
+	}
+}
+
+task copyDependencies(type: Copy) {
+	from configurations.lgplDeps
+	into new File(buildDir, 'libs/dependencies')
+}
+
+jar {
+	manifest {
+		attributes 'Main-Class': mainClassName
+		attributes 'Class-Path' : configurations.lgplDeps.collect() {"dependencies/" + it.getName()}.join(' ');
+
+	}
+}
+
+shadowJar {
+	archiveBaseName = 'JSettlers'
+	classifier = ''
+
+	dependsOn copyDependencies
 }

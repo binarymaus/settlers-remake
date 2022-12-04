@@ -16,42 +16,47 @@ package jsettlers.logic.buildings.military.occupying;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import jsettlers.algorithms.path.IPathCalculatable;
 import jsettlers.algorithms.path.Path;
 import jsettlers.algorithms.path.dijkstra.DijkstraAlgorithm.DijkstraContinuableRequest;
 import jsettlers.common.CommonConstants;
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.buildings.IBuildingOccupier;
 import jsettlers.common.buildings.OccupierPlace;
 import jsettlers.common.map.shapes.FreeMapArea;
 import jsettlers.common.map.shapes.MapCircle;
+import jsettlers.common.map.shapes.MapCircleIterator;
 import jsettlers.common.mapobject.EMapObjectType;
 import jsettlers.common.mapobject.IAttackableTowerMapObject;
 import jsettlers.common.movable.EMovableType;
 import jsettlers.common.movable.ESoldierClass;
 import jsettlers.common.movable.ESoldierType;
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.movable.IGraphicsMovable;
+import jsettlers.common.player.ECivilisation;
+import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.utils.collections.map.ArrayListMap;
-import jsettlers.common.utils.collections.map.ArrayListMap.Entry;
 import jsettlers.common.menu.messages.SimpleMessage;
 import jsettlers.logic.buildings.Building;
 import jsettlers.logic.buildings.IBuildingsGrid;
-import jsettlers.logic.buildings.military.IBuildingOccupyableMovable;
 import jsettlers.logic.constants.Constants;
 import jsettlers.logic.constants.MatchConstants;
+import jsettlers.logic.map.grid.movable.MovableGrid;
+import jsettlers.logic.movable.interfaces.AbstractMovableGrid;
 import jsettlers.logic.movable.interfaces.IAttackable;
 import jsettlers.logic.movable.interfaces.IAttackableMovable;
 import jsettlers.logic.movable.interfaces.ILogicMovable;
+import jsettlers.logic.movable.interfaces.ISoldierMovable;
 import jsettlers.logic.objects.StandardMapObject;
 import jsettlers.logic.player.Player;
-
-import java8.util.Comparators;
 
 /**
  * This is a tower building that can request soldiers and let them defend the building.
@@ -65,9 +70,10 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 
 	private final LinkedList<OccupierPlace> emptyPlaces = new LinkedList<>();
 	private final SoldierRequests searchedSoldiers = new SoldierRequests();
-	private final ArrayListMap<IBuildingOccupyableMovable, SoldierRequest> comingSoldiers = new ArrayListMap<>();
+	private final Map<ISoldierMovable, SoldierRequest> comingSoldiers = new ArrayListMap<>();
 	private final LinkedList<TowerOccupier> sortedOccupiers = new LinkedList<>();
 	private final LinkedList<TowerOccupier> toBeReleasedOccupiers = new LinkedList<>();
+	private final ECivilisation civilisation;
 
 	private DijkstraContinuableRequest dijkstraRequest;
 
@@ -78,12 +84,18 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 
 	public OccupyingBuilding(EBuildingType type, Player player, ShortPoint2D position, IBuildingsGrid buildingsGrid) {
 		super(type, player, position, buildingsGrid);
+		civilisation = player.getCivilisation();
 
 		initSoldierRequests();
 	}
 
+	@Override
+	public BuildingVariant getBuildingVariant() {
+		return type.getVariant(civilisation);
+	}
+
 	private void initSoldierRequests() {
-		final OccupierPlace[] occupierPlaces = super.getBuildingType().getOccupierPlaces();
+		final OccupierPlace[] occupierPlaces = getBuildingVariant().getOccupierPlaces();
 		if (occupierPlaces.length > 0) {
 			emptyPlaces.addAll(Arrays.asList(occupierPlaces));
 			requestSoldier(ESoldierClass.INFANTRY);
@@ -125,19 +137,21 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 			occupyAreaIfNeeded();
 		}
 
+		ISoldierMovable attackingSoldier = (ISoldierMovable)attacker;
 		initSoldierRequests();
-		IBuildingOccupyableMovable newOccupier = attacker.setOccupyableBuilding(this);
-		comingSoldiers.put(newOccupier, searchedSoldiers.removeOne(newOccupier.getMovableType().getSoldierType()));
+		attackingSoldier.moveToTower(this);
+		comingSoldiers.put(attackingSoldier, searchedSoldiers.removeOne(attackingSoldier.getMovableType().getSoldierType()));
 
 		doorHealth = 0.1f;
 		inFight = false;
+		setOccupied(false);
 
 		super.showFlag(true);
 		setAttackableTowerObject(true);
 	}
 
 	private FreeMapArea getGroundArea() {
-		return new FreeMapArea(super.pos, getBuildingType().getProtectedTiles());
+		return new FreeMapArea(super.pos, getBuildingVariant().getProtectedTiles());
 	}
 
 	private void resetSoldierSearch() {
@@ -178,8 +192,8 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 				TowerOccupier releasedOccupier = toBeReleasedOccupiers.pop();
 				sortedOccupiers.remove(releasedOccupier);
 				emptyPlaces.add(releasedOccupier.place);
-				IBuildingOccupyableMovable soldier = releasedOccupier.soldier;
-				soldier.leaveOccupyableBuilding(super.getDoor());
+				ISoldierMovable soldier = releasedOccupier.soldier;
+				soldier.leaveTower(super.getDoor());
 			} else {
 				movableAtDoor.leavePosition();
 			}
@@ -196,12 +210,12 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 
 			Path path = super.grid.getDijkstra().find(dijkstraRequest);
 			if (path != null) {
-				ILogicMovable soldier = super.grid.getMovable(path.getTargetPosition());
-				if (soldier != null) {
-					IBuildingOccupyableMovable occupier = soldier.setOccupyableBuilding(this);
-					if (occupier != null) {
-						SoldierRequest soldierRequest = searchedSoldiers.removeOne(occupier.getMovableType().getSoldierType());
-						comingSoldiers.put(occupier, soldierRequest);
+				ILogicMovable soldierMovable = super.grid.getMovable(path.getTargetPosition());
+				if (soldierMovable instanceof ISoldierMovable) {
+					ISoldierMovable soldier = (ISoldierMovable)soldierMovable;
+					if(soldier.moveToTower(this)) {
+						SoldierRequest soldierRequest = searchedSoldiers.removeOne(soldier.getMovableType().getSoldierType());
+						comingSoldiers.put(soldier, soldierRequest);
 						dijkstraRequest.reset();
 					} // else soldier wasn't able to take the job to go to this building
 				} // else { soldier wasn't at the position
@@ -221,15 +235,16 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 			for (TowerOccupier curr : sortedOccupiers) {
 				addInformableMapObject(curr, false);// if curr is a bowman, this removes the informable map object.
 
-				curr.getSoldier().leaveOccupyableBuilding(buildingArea.get(idx));
+				curr.getMovable().leaveTower(buildingArea.get(idx));
 				idx++;
 			}
 
 			sortedOccupiers.clear();
+			if(!inFight) setOccupied(false);
 		}
 
 		if (attackableTowerObject != null && attackableTowerObject.currDefender != null) {
-			attackableTowerObject.currDefender.soldier.leaveOccupyableBuilding(attackableTowerObject.getPosition());
+			attackableTowerObject.currDefender.soldier.leaveTower(attackableTowerObject.getPosition());
 		}
 
 		setAttackableTowerObject(false);
@@ -255,7 +270,7 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 	}
 
 	@Override
-	public final OccupierPlace addSoldier(IBuildingOccupyableMovable soldier) {
+	public final OccupierPlace addSoldier(ISoldierMovable soldier) {
 		SoldierRequest soldierRequest = comingSoldiers.remove(soldier);
 		OccupierPlace place = soldierRequest.place;
 
@@ -272,12 +287,13 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 	}
 
 	private void addOccupier(TowerOccupier towerOccupier) {
+		if(sortedOccupiers.isEmpty()) setOccupied(true);
 		sortedOccupiers.add(towerOccupier);
-		Collections.sort(sortedOccupiers, Comparators.comparingInt(occupier -> occupier.place.getSoldierClass().ordinal));
+		sortedOccupiers.sort(Comparator.comparingInt(occupier -> occupier.place.getSoldierClass().ordinal));
 	}
 
 	@Override
-	public void removeSoldier(IBuildingOccupyableMovable soldier) {
+	public void removeSoldier(ISoldierMovable soldier) {
 		TowerOccupier occupier = null;
 		for (TowerOccupier currOccupier : sortedOccupiers) {
 			if (currOccupier.soldier == soldier) {
@@ -293,6 +309,7 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 
 		// removeOne the soldier and dijkstraRequest a new one
 		sortedOccupiers.remove(occupier);
+		if(sortedOccupiers.isEmpty() && !inFight) setOccupied(false);
 		emptyPlaces.add(occupier.place);
 		requestSoldier(occupier.place.getSoldierClass());
 	}
@@ -319,7 +336,7 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 			ShortPoint2D position = getTowerBowmanSearchPosition(soldier.place);
 
 			if (add) {
-				super.grid.getMapObjectsManager().addInformableMapObjectAt(position, soldier.getSoldier().getMovable());
+				super.grid.getMapObjectsManager().addInformableMapObjectAt(position, soldier.getMovable());
 			} else {
 				super.grid.getMapObjectsManager().removeMapObjectType(position.x, position.y, EMapObjectType.INFORMABLE_MAP_OBJECT);
 			}
@@ -342,7 +359,7 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 	}
 
 	@Override
-	public final void requestFailed(IBuildingOccupyableMovable soldier) {
+	public final void requestFailed(ISoldierMovable soldier) {
 		SoldierRequest soldierRequest = comingSoldiers.remove(soldier);
 		addSoldierToSearch(soldierRequest);
 	}
@@ -355,9 +372,9 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 	}
 
 	@Override
-	public final ShortPoint2D getPosition(IBuildingOccupyableMovable soldier) {
+	public final ShortPoint2D getPosition(ISoldierMovable soldier) {
 		for (TowerOccupier curr : sortedOccupiers) {
-			if (curr.getSoldier() == soldier) {
+			if (curr.getMovable() == soldier) {
 				return curr.place.getPosition().calculatePoint(super.pos);
 			}
 		}
@@ -368,22 +385,18 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 	public final void setSelected(boolean selected) {
 		super.setSelected(selected);
 		for (TowerOccupier curr : sortedOccupiers) {
-			curr.getSoldier().setSelected(selected);
+			curr.getMovable().setSelected(selected);
 		}
 
 		if (attackableTowerObject != null && attackableTowerObject.currDefender != null) {
-			attackableTowerObject.currDefender.getSoldier().setSelected(selected);
+			attackableTowerObject.currDefender.getMovable().setSelected(selected);
 		}
 	}
 
 	@Override
-	public final boolean isOccupied() {
-		return !sortedOccupiers.isEmpty() || inFight;
-	}
-
-	@Override
-	public void towerDefended(IBuildingOccupyableMovable soldier) {
+	public void towerDefended(ISoldierMovable soldier) {
 		inFight = false;
+		if(sortedOccupiers.isEmpty()) setOccupied(false);
 		if (attackableTowerObject.currDefender == null) {
 			System.err.println("ERROR: WHAT? No defender in a defended tower!");
 		} else {
@@ -403,7 +416,7 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 	@Override
 	public int getComingSoldiers(ESoldierClass soldierClass) {
 		int numberOfComingSoldiers = 0;
-		for (Entry<IBuildingOccupyableMovable, SoldierRequest> comingSoldier : comingSoldiers.entrySet()) {
+		for (Map.Entry<ISoldierMovable, SoldierRequest> comingSoldier : comingSoldiers.entrySet()) {
 			if (comingSoldier.getValue().isOfTypeOrClass(soldierClass)) {
 				numberOfComingSoldiers++;
 			}
@@ -412,11 +425,38 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 	}
 
 	@Override
-	public void requestSoldier(ILogicMovable soldier) {
-		if (!soldier.getMovableType().isSoldier()) {
-			return;
-		}
+	public Map<ESoldierType, Integer> calculateAvailableSoldiers() {
+		Map<ESoldierType, Integer> types = new EnumMap<>(ESoldierType.class);
+		for(ESoldierType type : ESoldierType.VALUES) types.put(type, 0);
 
+		AbstractMovableGrid movGrid = grid.getMovableGrid();
+		MapCircleIterator iter = new MapCircleIterator(new MapCircle(pos, Constants.TOWER_SEARCH_SOLDIERS_RADIUS));
+
+		int width = grid.getWidth();
+		int height = grid.getHeight();
+
+		while(iter.hasNext()) {
+			int y = iter.nextY();
+			int x = iter.nextX();
+
+			if(x < 0 || y < 0 || x >= width || y >= height) continue;
+
+			ILogicMovable movable = movGrid.getMovableAt(x,y);
+			if(movable == null) continue;
+
+			if(!getPlayer().equals(movable.getPlayer())) continue;
+
+			ESoldierType type = movable.getMovableType().getSoldierType();
+			if(type == null) continue;
+
+
+			types.computeIfPresent(type, (k,v) -> v+1);
+		}
+		return types;
+	}
+
+	@Override
+	public void requestSoldier(ISoldierMovable soldier) {
 		ESoldierClass soldierClass = soldier.getMovableType().getSoldierClass();
 		OccupierPlace emptyPlace = getEmptyPlaceForSoldierClass(soldierClass);
 
@@ -424,8 +464,8 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 			return;
 		}
 
-		IBuildingOccupyableMovable occupier = soldier.setOccupyableBuilding(this);
-		comingSoldiers.put(occupier, new SoldierRequest(soldierClass, emptyPlace));
+		soldier.moveToTower(this);
+		comingSoldiers.put(soldier, new SoldierRequest(soldierClass, emptyPlace));
 	}
 
 	public void requestFullSoldiers() {
@@ -463,8 +503,8 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 		emptyPlaces.addAll(searchedSoldiers.getPlaces());
 		searchedSoldiers.clear();
 
-		for (Entry<IBuildingOccupyableMovable, SoldierRequest> commingSoldierEntry : comingSoldiers.entrySet()) {
-			commingSoldierEntry.getKey().leaveOccupyableBuilding(super.getDoor());
+		for (Map.Entry<ISoldierMovable, SoldierRequest> commingSoldierEntry : comingSoldiers.entrySet()) {
+			commingSoldierEntry.getKey().leaveTower(super.getDoor());
 			emptyPlaces.add(commingSoldierEntry.getValue().place);
 		}
 		comingSoldiers.clear();
@@ -477,9 +517,9 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 			return;
 		}
 
-		for (Entry<IBuildingOccupyableMovable, SoldierRequest> commingSoldierEntry : comingSoldiers.entrySet()) {
+		for (Map.Entry<ISoldierMovable, SoldierRequest> commingSoldierEntry : comingSoldiers.entrySet()) {
 			if (commingSoldierEntry.getValue().isOfTypeOrClass(soldierType)) {
-				commingSoldierEntry.getKey().leaveOccupyableBuilding(super.getDoor());
+				commingSoldierEntry.getKey().leaveTower(super.getDoor());
 				emptyPlaces.add(commingSoldierEntry.getValue().place);
 				comingSoldiers.remove(commingSoldierEntry.getKey());
 				return;
@@ -507,6 +547,7 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 	}
 
 	private static class AttackableTowerMapObject extends StandardMapObject implements IAttackable, IAttackableTowerMapObject {
+		private static final long serialVersionUID = -2172130724577350091L;
 		private OccupyingBuilding occupyingBuilding;
 		private TowerOccupier currDefender;
 
@@ -521,7 +562,7 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 		}
 
 		@Override
-		public void receiveHit(float strength, ShortPoint2D attackerPos, byte attackingPlayer) {
+		public void receiveHit(float strength, ShortPoint2D attackerPos, IPlayer attackingPlayer) {
 			if (occupyingBuilding.isDestroyed()) {
 				return; // building is destroyed => do nothing
 			}
@@ -537,13 +578,14 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 				if (occupyingBuilding.doorHealth <= 0) {
 					occupyingBuilding.doorHealth = 0;
 					occupyingBuilding.inFight = true;
+					occupyingBuilding.setOccupied(true);
 
 					occupyingBuilding.grid.getMapObjectsManager().addSelfDeletingMapObject(getPosition(), EMapObjectType.GHOST, Constants.GHOST_PLAY_DURATION, getPlayer());
 
 					pullNewDefender(attackerPos);
 				}
 			} else if (currDefender != null) {
-				IAttackableMovable movable = currDefender.getSoldier().getMovable();
+				IAttackableMovable movable = currDefender.getMovable();
 				movable.receiveHit(strength, attackerPos, attackingPlayer);
 
 				if (!movable.isAlive()) {
@@ -554,7 +596,7 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 				}
 			}
 
-			occupyingBuilding.getPlayer().showMessage(SimpleMessage.attacked(attackingPlayer, attackerPos));
+			occupyingBuilding.getPlayer().showMessage(SimpleMessage.attacked(attackingPlayer.getPlayerId(), attackerPos));
 		}
 
 		private void pullNewDefender(ShortPoint2D attackerPos) {
@@ -563,7 +605,7 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 				occupyingBuilding.changePlayerTo(attackerPos);
 			} else {
 				currDefender = occupyingBuilding.removeSoldier();
-				currDefender.getSoldier().setDefendingAt(getPosition());
+				currDefender.getMovable().defendTowerAt();
 			}
 		}
 
@@ -578,8 +620,8 @@ public class OccupyingBuilding extends Building implements IBuilding.IOccupied, 
 		}
 
 		@Override
-		public IMovable getMovable() {
-			return currDefender == null ? null : currDefender.getSoldier().getMovable();
+		public IGraphicsMovable getMovable() {
+			return currDefender == null ? null : currDefender.getMovable();
 		}
 
 		@Override

@@ -1,11 +1,19 @@
 package jsettlers.logic.map.loading;
 
+import jsettlers.common.buildings.EBuildingType;
+import jsettlers.common.player.ECivilisation;
+import jsettlers.common.position.RelativePoint;
+import jsettlers.common.position.ShortPoint2D;
+import jsettlers.logic.map.loading.data.IMutableMapData;
+import jsettlers.logic.map.loading.data.objects.BuildingMapDataObject;
 import jsettlers.logic.map.loading.data.objects.MapDataObject;
 import jsettlers.logic.map.loading.data.objects.MovableObject;
 import jsettlers.logic.map.loading.data.objects.StackMapDataObject;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.common.movable.EMovableType;
+import jsettlers.logic.player.PlayerSetting;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
@@ -29,7 +37,7 @@ public enum EMapStartResources {
 				return EMapStartResources.values()[i];
 		}
 
-		System.err.println("wrong value for 'EOriginalMapStartResources' " + Integer.toString(mapValue) + "!");
+		System.err.println("wrong value for 'EOriginalMapStartResources' " + mapValue + "!");
 
 		return EMapStartResources.HIGH_GOODS;
 	}
@@ -156,5 +164,72 @@ public enum EMapStartResources {
 			break;
 		}
 		return movables;
+	}
+
+	public void addStartTowerMaterialsAndSettlers(PlayerSetting[] playerSettings, IMutableMapData map) {
+		// start resources were already placed during map creation
+		if(map.hasStartBuildings()) return;
+
+		for (byte playerId = 0; playerId < playerSettings.length; playerId++) {
+			if (!playerSettings[playerId].isAvailable()) continue;
+
+			ShortPoint2D startPoint = map.getStartPoint(playerId);
+
+			// - add the start Tower for this player
+			map.setMapObject(startPoint.x, startPoint.y, new BuildingMapDataObject(EBuildingType.TOWER, playerId));
+
+			// - list of all objects that have to be added for this player
+			List<MapDataObject> mapObjects = EMapStartResources.generateStackObjects(this);
+			mapObjects.addAll(EMapStartResources.generateMovableObjects(this, playerId));
+
+			// - blocking area of the tower
+			ECivilisation playerCiv = playerSettings[playerId].getCivilisation();
+			List<RelativePoint> towerTiles = Arrays.asList(EBuildingType.TOWER.getVariant(playerCiv).getProtectedTiles());
+
+			RelativePoint relativeMapObjectPoint = new RelativePoint(-3, 3);
+
+			for (MapDataObject currentMapObject : mapObjects) {
+				do {
+					// - get next point
+					relativeMapObjectPoint = nextPointOnSpiral(relativeMapObjectPoint);
+
+					// - don't put things under the tower
+					if (towerTiles.contains(relativeMapObjectPoint)) {
+						continue;
+					}
+
+					// - get absolute position
+					int x = relativeMapObjectPoint.calculateX(startPoint.x);
+					int y = relativeMapObjectPoint.calculateY(startPoint.y);
+
+					// - is this place free?
+					if (map.getMapObject(x, y) == null) {
+						// - add Object
+						map.setMapObject(x, y, currentMapObject);
+						// - break DO: next object...
+						break;
+					}
+				} while (true);
+			}
+		}
+	}
+
+	private RelativePoint nextPointOnSpiral(RelativePoint previousPoint) {
+		short previousX = previousPoint.getDx();
+		short previousY = previousPoint.getDy();
+
+		short basis = (short) Math.max(Math.abs(previousX), Math.abs(previousY));
+
+		if (previousX == basis && previousY > -basis) {
+			return new RelativePoint(previousX, previousY - 1);
+		} else if (previousX == -basis && previousY <= basis) {
+			return new RelativePoint(previousX, previousY + 1);
+		} else if (previousX < basis && previousY == basis) {
+			return new RelativePoint(previousX + 1, previousY);
+		} else if (previousX > -basis && previousY == -basis) {
+			return new RelativePoint(previousX - 1, previousY);
+		} else {
+			return null;
+		}
 	}
 }

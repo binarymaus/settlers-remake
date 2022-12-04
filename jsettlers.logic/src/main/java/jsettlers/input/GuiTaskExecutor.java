@@ -18,16 +18,19 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-import java8.util.Objects;
-import java8.util.Optional;
-import java8.util.function.Consumer;
-import java8.util.stream.Collectors;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
 import jsettlers.common.CommonConstants;
+import jsettlers.common.action.EMoveToType;
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.map.shapes.HexGridArea;
 import jsettlers.common.movable.EMovableType;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.utils.mutables.MutableInt;
+import jsettlers.input.tasks.CastSpellGuiTask;
 import jsettlers.input.tasks.ChangeTowerSoldiersGuiTask;
 import jsettlers.input.tasks.ChangeTradingRequestGuiTask;
 import jsettlers.input.tasks.ConstructBuildingTask;
@@ -42,6 +45,8 @@ import jsettlers.input.tasks.SetDockGuiTask;
 import jsettlers.input.tasks.SetMaterialDistributionSettingsGuiTask;
 import jsettlers.input.tasks.SetMaterialPrioritiesGuiTask;
 import jsettlers.input.tasks.SetMaterialProductionGuiTask;
+import jsettlers.input.tasks.ChangeMovableSettingsTask;
+import jsettlers.input.tasks.SetMovableLimitTypeTask;
 import jsettlers.input.tasks.SetTradingWaypointGuiTask;
 import jsettlers.input.tasks.SimpleBuildingGuiTask;
 import jsettlers.input.tasks.SimpleGuiTask;
@@ -56,11 +61,15 @@ import jsettlers.logic.buildings.trading.TradingBuilding;
 import jsettlers.logic.buildings.workers.DockyardBuilding;
 import jsettlers.logic.map.grid.partition.manager.settings.MaterialProductionSettings;
 import jsettlers.logic.movable.Movable;
+import jsettlers.logic.movable.MovableManager;
+import jsettlers.logic.movable.interfaces.IAttackableHumanMovable;
+import jsettlers.logic.movable.interfaces.IBearerMovable;
+import jsettlers.logic.movable.interfaces.IFerryMovable;
 import jsettlers.logic.movable.interfaces.ILogicMovable;
+import jsettlers.logic.movable.interfaces.IMageMovable;
+import jsettlers.logic.movable.interfaces.IPioneerMovable;
 import jsettlers.network.client.task.packets.TaskPacket;
 import jsettlers.network.synchronic.timer.ITaskExecutor;
-
-import static java8.util.stream.StreamSupport.stream;
 
 /**
  * @author Andreas Eberle
@@ -92,12 +101,16 @@ class GuiTaskExecutor implements ITaskExecutor {
 			return;
 		}
 
-		System.out.println("executeTask(GuiTask): " + guiTask.getGuiAction());
+		//System.out.println("executeTask(GuiTask): " + guiTask.getGuiAction());
 		switch (guiTask.getGuiAction()) {
 			case SET_WORK_AREA: {
 				setWorkArea((WorkAreaGuiTask) guiTask);
 				break;
 			}
+
+			case CAST_SPELL:
+				castSpell((CastSpellGuiTask) guiTask);
+				break;
 
 			case BUILD: {
 				ConstructBuildingTask task = (ConstructBuildingTask) guiTask;
@@ -107,7 +120,7 @@ class GuiTaskExecutor implements ITaskExecutor {
 
 			case MOVE_TO: {
 				MoveToGuiTask task = (MoveToGuiTask) guiTask;
-				moveSelectedTo(task.getPosition(), task.getSelection());
+				moveSelectedTo(task.getPosition(), task.getSelection(), task.getMoveToType());
 				break;
 			}
 
@@ -216,6 +229,20 @@ class GuiTaskExecutor implements ITaskExecutor {
 				unloadFerry((MovableGuiTask) guiTask);
 				break;
 
+			case CHANGE_MOVABLE_SETTINGS: {
+				ChangeMovableSettingsTask task = (ChangeMovableSettingsTask) guiTask;
+				grid.changeMovableSettings(task.getPosition(), task.getMovableType(), task.isRelative(),
+						task.getAmount());
+				break;
+			}
+
+			case SET_MOVABLE_LIMIT_TYPE: {
+				SetMovableLimitTypeTask task = (SetMovableLimitTypeTask) guiTask;
+
+				grid.setMovableLimitType(task.getPosition(), task.getMovableType(), task.isRelative());
+				break;
+			}
+
 			default:
 				break;
 
@@ -279,9 +306,22 @@ class GuiTaskExecutor implements ITaskExecutor {
 
 	private void convertMovables(ConvertGuiTask guiTask) {
 		for (Integer currID : guiTask.getSelection()) {
-			ILogicMovable movable = Movable.getMovableByID(currID);
-			if (movable != null) {
-				movable.convertTo(guiTask.getTargetType());
+			ILogicMovable movable = MovableManager.getMovableByID(currID);
+			switch(guiTask.getTargetType()) {
+				case GEOLOGIST:
+				case PIONEER:
+				case THIEF:
+					if(movable instanceof IBearerMovable) {
+						((IBearerMovable)movable).convertTo(guiTask.getTargetType());
+					}
+					break;
+				case BEARER:
+					if(movable instanceof IPioneerMovable) {
+						((IPioneerMovable)movable).convertToBearer();
+					}
+					break;
+				default:
+					System.err.println("Illegal conversion from " + movable.getMovableType() + " to " + guiTask.getTargetType());
 			}
 		}
 		guiInterface.renewSelection();
@@ -289,7 +329,7 @@ class GuiTaskExecutor implements ITaskExecutor {
 
 	private void stopOrStartWorking(List<Integer> selectedMovables, boolean stop) {
 		for (Integer currID : selectedMovables) {
-			ILogicMovable movable = Movable.getMovableByID(currID);
+			ILogicMovable movable = MovableManager.getMovableByID(currID);
 			if (movable != null) {
 				movable.stopOrStartWorking(stop);
 			}
@@ -298,7 +338,7 @@ class GuiTaskExecutor implements ITaskExecutor {
 
 	private void killSelectedMovables(List<Integer> selectedMovables) {
 		for (Integer currID : selectedMovables) {
-			ILogicMovable curr = Movable.getMovableByID(currID);
+			ILogicMovable curr = MovableManager.getMovableByID(currID);
 			if (curr != null) {
 				curr.kill();
 			}
@@ -312,9 +352,11 @@ class GuiTaskExecutor implements ITaskExecutor {
 	 *            position to move to
 	 * @param movableIds
 	 *            A list of the id's of the movables.
+	 * @param moveToType 
+	 *            How to move there.
 	 */
-	private void moveSelectedTo(ShortPoint2D targetPosition, List<Integer> movableIds) {
-		List<ILogicMovable> movables = stream(movableIds).map(Movable::getMovableByID).filter(Objects::nonNull).collect(Collectors.toList());
+	private void moveSelectedTo(ShortPoint2D targetPosition, List<Integer> movableIds, EMoveToType moveToType) {
+		List<ILogicMovable> movables = movableIds.stream().map(MovableManager::getMovableByID).filter(Objects::nonNull).collect(Collectors.toList());
 
 		if (movables.isEmpty()) {
 			return;
@@ -328,13 +370,22 @@ class GuiTaskExecutor implements ITaskExecutor {
 		}
 
 		if (ferryEntrance != null) { // enter a ferry
-			stream(movables).forEach(movable -> movable.moveToFerry(ferryEntrance.ferry, ferryEntrance.entrance));
+			movables.stream().filter(movable -> movable instanceof IAttackableHumanMovable)
+					.forEach(movable -> ((IAttackableHumanMovable)movable).moveToFerry(ferryEntrance.ferry, ferryEntrance.entrance));
 		} else {
-			sendManyMovables(targetPosition, movables);
+			sendManyMovables(targetPosition, movables, moveToType);
 		}
 	}
 
-	private void sendManyMovables(ShortPoint2D targetPosition, List<ILogicMovable> movables) {
+	private void castSpell(CastSpellGuiTask castSpellGuiTask) {
+		ILogicMovable priest = MovableManager.getMovableByID(castSpellGuiTask.getSelection().get(0));
+
+		if(!(priest instanceof IMageMovable)) return;
+
+		((IMageMovable)priest).moveToCast(castSpellGuiTask.getAt(), castSpellGuiTask.getSpell());
+	}
+
+	private void sendManyMovables(ShortPoint2D targetPosition, List<ILogicMovable> movables, EMoveToType moveToType) {
 		for (int radius = 0, ringsWithoutSuccessCtr = 0; ringsWithoutSuccessCtr <= Math.max(5, 15 - radius + ringsWithoutSuccessCtr) && !movables.isEmpty(); radius++) {
 			MutableInt numberOfSendMovables = new MutableInt(0);
 
@@ -346,7 +397,7 @@ class GuiTaskExecutor implements ITaskExecutor {
 					Optional<ILogicMovable> movableOptional = removeMovableThatCanMoveTo(movables, x, y);
 
 					movableOptional.ifPresent(movable -> {
-						movable.moveTo(new ShortPoint2D(x, y));
+						movable.moveTo(new ShortPoint2D(x, y), moveToType);
 						numberOfSendMovables.value++;
 					});
 				});
@@ -371,8 +422,8 @@ class GuiTaskExecutor implements ITaskExecutor {
 	}
 
 	private boolean canMoveTo(ILogicMovable movable, int x, int y) {
-		return (movable.isShip() && grid.isNavigable(x, y))
-			|| (!grid.isBlocked(x, y) && grid.getBlockedPartition(movable.getPosition().x, movable.getPosition().y) == grid.getBlockedPartition(x, y));
+		ShortPoint2D movablePosition = movable.getPosition();
+		return (movable.isShip() || !grid.isBlocked(x, y)) && grid.isReachable(movablePosition.x, movablePosition.y, x, y, movable.isShip());
 	}
 
 	private void setWorkArea(WorkAreaGuiTask task) {
@@ -388,14 +439,15 @@ class GuiTaskExecutor implements ITaskExecutor {
 	}
 
 	private void unloadFerry(MovableGuiTask task) {
-		forMovables(task, ILogicMovable::unloadFerry);
+		forFerries(task, IFerryMovable::unloadFerry);
 	}
 
-	private void forMovables(MovableGuiTask task, Consumer<ILogicMovable> movableConsumer) {
-		stream(task.getSelection())
-			.map(Movable::getMovableByID)
+	private void forFerries(MovableGuiTask task, Consumer<IFerryMovable> movableConsumer) {
+		task.getSelection().stream()
+			.map(MovableManager::getMovableByID)
 			.filter(ILogicMovable::isAlive)
 			.filter(movable -> movable.getMovableType() == EMovableType.FERRY)
+			.map(movable -> (IFerryMovable)movable)
 			.forEach(movableConsumer);
 	}
 

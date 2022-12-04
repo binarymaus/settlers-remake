@@ -2,27 +2,27 @@
 apply plugin: 'java'
 
 ext {
-    streamSupportVersion = '1.5.4'
 
-    androidAnnotationsVersion = '4.4.0'
-    androidSupportLibraryVersion = '27.1.0'
+    androidAnnotationsVersion = '4.8.0'
+    androidSupportLibraryVersion = '28.0.0'
 
-    androidBuildToolsVersion = '27.0.3'
-    androidCompileSdkVersion = 27
+    androidBuildToolsVersion = '30.0.3'
+    androidCompileSdkVersion = 30
     androidMinSdkVersion = 19
     androidTargetSdkVersion = 26
+
+    lwjglVersion = "3.3.0"
 }
 
 buildscript {
     repositories {
-        jcenter()
         mavenCentral()
         google()
     }
     dependencies {
-        classpath 'org.eclipse.jgit:org.eclipse.jgit:3.1.0.201310021548-r'
+        classpath 'org.eclipse.jgit:org.eclipse.jgit:6.1.0.202203080745-r'
         if (findProject(':jsettlers.main.android')) {
-            classpath 'com.android.tools.build:gradle:3.1.3'
+            classpath 'com.android.tools.build:gradle:7.0.0'
         }
     }
 }
@@ -30,9 +30,10 @@ buildscript {
 allprojects {
     repositories {
         mavenCentral()
-        jcenter()
         google()
-        maven { url "https://raw.github.com/laenger/maven-releases/master/releases" }
+        jcenter()
+        // fallback for vbps
+        //maven { url "https://raw.github.com/laenger/maven-releases/master/releases" }
         maven { url "https://maven.google.com" }
         maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
     }
@@ -43,23 +44,25 @@ subprojects {
 
     plugins.withType(JavaPlugin).whenPluginAdded {
         compileJava {
-            sourceCompatibility = JavaVersion.VERSION_1_8
-            targetCompatibility = JavaVersion.VERSION_1_8
+            sourceCompatibility = JavaVersion.VERSION_11
+            targetCompatibility = JavaVersion.VERSION_11
+            options.release = 11
         }
         compileTestJava {
-            sourceCompatibility = JavaVersion.VERSION_1_8
-            targetCompatibility = JavaVersion.VERSION_1_8
+            sourceCompatibility = JavaVersion.VERSION_11
+            targetCompatibility = JavaVersion.VERSION_11
+            options.release = 11
         }
 
         task copyMainResources(type: Copy) {
             from sourceSets.main.resources
-            into sourceSets.main.output.classesDir
+            into sourceSets.main.output.classesDirs[0]
         }
         processResources.dependsOn copyMainResources
 
         task copyTestResources(type: Copy) {
             from sourceSets.test.resources
-            into sourceSets.test.output.classesDir
+            into sourceSets.test.output.classesDirs[0]
         }
         processTestResources.dependsOn copyTestResources
     }
@@ -82,63 +85,64 @@ subprojects {
     }
 
     tasks.withType(Jar) {
-        duplicatesStrategy 'exclude'
+        duplicatesStrategy DuplicatesStrategy.EXCLUDE
     }
 
-    // Add streamsupport dependency
     def addGlobalDependencies = {
         dependencies {
-            implementation 'net.sourceforge.streamsupport:streamsupport:' + rootProject.ext.streamSupportVersion
-            implementation 'net.sourceforge.streamsupport:streamsupport-cfuture:' + rootProject.ext.streamSupportVersion
-            implementation 'net.sourceforge.streamsupport:streamsupport-atomic:' + rootProject.ext.streamSupportVersion
-            implementation 'net.sourceforge.streamsupport:streamsupport-flow:' + rootProject.ext.streamSupportVersion
-            implementation 'net.sourceforge.streamsupport:streamsupport-literal:' + rootProject.ext.streamSupportVersion
-
             testImplementation 'junit:junit:4.12'
         }
     }
 
     plugins.withId('java', addGlobalDependencies)
+    plugins.withId('java-library', addGlobalDependencies)
     plugins.withId('application', addGlobalDependencies)
     plugins.withId('com.android.application', addGlobalDependencies)
     plugins.withId('com.android.library', addGlobalDependencies)
 }
 
 // This is a hack to make ./gradlew run only run the swing version.
-task run(dependsOn: ':jsettlers.main.swing:run') << {
-    // We do not need any more tasks.
-    tasks.getAsMap().values().each { Task task ->
-        if (!task.state.executed && task != tasks.getByPath(":run")) task.onlyIf {
-            false
+task run(dependsOn: ':jsettlers.main.swing:run') {
+    doLast {
+        // We do not need any more tasks.
+        tasks.getAsMap().values().each { task ->
+            if (!task.state.executed && task != tasks.getByPath(":run")) task.onlyIf {
+                false
+            }
         }
     }
 }
 tasks.getByPath(":jsettlers.mapcreator:run").onlyIf { !gradle.taskGraph.hasTask(":run") }
 tasks.getByPath(":jsettlers.network:run").onlyIf { !gradle.taskGraph.hasTask(":run") }
+tasks.getByPath(":jsettlers.tools:run").onlyIf { !gradle.taskGraph.hasTask(":run") }
 
 task runMapCreator(dependsOn: ':jsettlers.mapcreator:run') {}
 
+task runTools(dependsOn: ':jsettlers.tools:run') {}
+
 if (findProject(':jsettlers.main.android')) {
     // Android is present.
-    task runAndroid(dependsOn: ':jsettlers.main.android:assembleDebug') << {
-        def androidHome = System.env.ANDROID_HOME;
-        if (!androidHome) {
-            Properties local = new Properties()
-            local.load(new FileInputStream("local.properties"))
-            androidHome = local.getProperty('sdk.dir');
+    task runAndroid(dependsOn: ':jsettlers.main.android:assembleDebug') {
+        doLast {
+            def androidHome = System.env.ANDROID_HOME;
+            if (!androidHome) {
+                Properties local = new Properties()
+                local.load(new FileInputStream("local.properties"))
+                androidHome = local.getProperty('sdk.dir');
+            }
+            def adb = androidHome + '/platform-tools/adb'
+            println 'Copy files to your device...'
+            exec {
+                commandLine adb, 'uninstall', 'jsettlers.main.android'
+            }
+            exec {
+                commandLine adb, 'install', '-r', './jsettlers.main.android/build/outputs/apk/jsettlers.main.android-debug.apk'
+            }
+            exec {
+                commandLine adb, 'shell', 'am', 'start', '-n', 'jsettlers.main.android/jsettlers.main.android.JsettlersActivity'
+            }
+            println 'The application should have started now.'
         }
-        def adb = androidHome + '/platform-tools/adb'
-        println 'Copy files to your device...'
-        exec {
-            commandLine adb, 'uninstall', 'jsettlers.main.android'
-        }
-        exec {
-            commandLine adb, 'install', '-r', './jsettlers.main.android/build/outputs/apk/jsettlers.main.android-debug.apk'
-        }
-        exec {
-            commandLine adb, 'shell', 'am', 'start', '-n', 'jsettlers.main.android/jsettlers.main.android.JsettlersActivity'
-        }
-        println 'The application should have started now.'
     }
 }
 
@@ -151,21 +155,26 @@ def releaseDir = project.file('release')
 task releaseJSettlers(type: Zip) {
     into('JSettlers') {
         from { project.getRootProject().file('LICENSE.txt') }
-        from tasks.getByPath(':jsettlers.main.swing:releaseJar')
-        from tasks.getByPath(':jsettlers.mapcreator:releaseJar')
+        from tasks.getByPath(':jsettlers.main.swing:shadowJar')
+        from tasks.getByPath(':jsettlers.mapcreator:jar')
+        from tasks.getByPath(':jsettlers.tools:jar')
 
         into('maps') {
             from project.getRootProject().file('maps/release')
         }
+
+        into('dependencies') {
+            from tasks.getByPath(':jsettlers.main.swing:copyDependencies')
+        }
     }
 
-    destinationDir releaseDir
-    baseName "JSettlers"
+    destinationDirectory.set(releaseDir);
+    archiveBaseName.set("JSettlers");
 }
 
 
 task releaseDedicatedServer(type: Copy) {
-    from tasks.getByPath(':jsettlers.network:jar')
+    from tasks.getByPath(':jsettlers.network:shadowJar')
     into releaseDir
 }
 
@@ -178,8 +187,8 @@ if (findProject(':jsettlers.main.android')) {
             rename 'jsettlers.main.android-debug.apk', 'JSettlers-Android.apk'
         }
 
-        destinationDir releaseDir
-        baseName "JSettlers-Android"
+        destinationDirectory.set(releaseDir);
+        archiveBaseName.set("JSettlers-Android");
     }
 }
 

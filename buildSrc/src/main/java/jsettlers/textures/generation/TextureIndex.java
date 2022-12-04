@@ -71,7 +71,7 @@ public class TextureIndex {
 		textureConstantsOut.println("		return indexes[arrindex];");
 		textureConstantsOut.println("	}");
 		textureConstantsOut.println();
-		System.out.println("Opened texture index");
+		//System.out.println("Opened texture index");
 	}
 
 	public int registerTexture(String name, int textureFile, int offsetX, int offsetY, int width, int height, Integer torsoIndex, boolean isTorso, TexturePosition position) throws IOException {
@@ -93,7 +93,7 @@ public class TextureIndex {
 			textureIndexOut.writeShort(toShort(position.getRight()));
 			textureIndexOut.writeShort(toShort(position.getBottom()));
 
-			System.out.println("Added image " + imageIndexCounter + " to texture " + textureFile + " and added to constant index as " + safename);
+			//System.out.println("Added image " + imageIndexCounter + " to texture " + textureFile + " and added to constant index as " + safename);
 
 			return imageIndexCounter++;
 		}
@@ -119,7 +119,7 @@ public class TextureIndex {
 		textureConstantsOut.println("}");
 		textureConstantsOut.close();
 
-		System.out.println("Closed texture index");
+		//System.out.println("Closed texture index");
 	}
 
 	private static int toShort(float left) {

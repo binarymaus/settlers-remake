@@ -50,6 +50,13 @@ public class SimpleDijkstraTester {
 			@Override
 			public void setDijkstraSearched(int x, int y) {
 			}
+
+			@Override
+			public boolean isGeneralAt(int x, int y, Set<ESearchType> types, IPathCalculatable requester,
+					IPlayer player) {
+				// TODO Auto-generated method stub
+				return false;
+			}
 		};
 		DummyEmptyAStarMap aStarMap = new DummyEmptyAStarMap(WIDTH, HEIGHT);
 		aStarMap.setBlocked(120, 100, true);
@@ -64,7 +71,7 @@ public class SimpleDijkstraTester {
 
 			@Override
 			public IPlayer getPlayer() {
-				return new IPlayer.DummyPlayer();
+				return IPlayer.DEFAULT_DUMMY_PLAYER0;
 			}
 
 			@Override

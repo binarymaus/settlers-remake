@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2015, 2016
+ * Copyright (c) 2015 - 2020
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -20,6 +20,7 @@ import java.awt.Insets;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.plaf.basic.BasicTabbedPaneUI;
 
 import jsettlers.main.swing.lookandfeel.factory.BackgroundPanelUiFactory;
 import jsettlers.main.swing.lookandfeel.factory.ButtonUiFactory;
@@ -29,6 +30,7 @@ import jsettlers.main.swing.lookandfeel.factory.PanelUiFactory;
 import jsettlers.main.swing.lookandfeel.factory.ProgressBarUiFactory;
 import jsettlers.main.swing.lookandfeel.factory.ScrollPaneUiFactory;
 import jsettlers.main.swing.lookandfeel.factory.ScrollbarUiFactory;
+import jsettlers.main.swing.lookandfeel.factory.TableUiFactory;
 import jsettlers.main.swing.lookandfeel.factory.TextAreaUiFactory;
 import jsettlers.main.swing.lookandfeel.factory.TextFieldUiFactory;
 import jsettlers.main.swing.lookandfeel.factory.ToggleButtonUiFactory;
@@ -67,6 +69,7 @@ public class JSettlersLookAndFeel {
 			TextFieldUiFactory.FORWARD.loadFromType("TextFieldUI");
 			ButtonUiFactory.FORWARD.loadFromType("ButtonUI");
 			LabelUiFactory.FORWARD.loadFromType("LabelUI");
+			TableUiFactory.FORWARD.loadFromType("TableUI");
 			// Panel handles all UI types
 			// PanelUiFactory.FORWARD.loadFromType("PanelUI");
 			// ScrollPane handles all UI types
@@ -90,6 +93,9 @@ public class JSettlersLookAndFeel {
 			UIManager.put("ComboBox.squareButton", true);
 			UIManager.put("ComboBox.padding", new Insets(2, 2, 2, 2));
 
+			UIManager.put("TabbedPane.foreground", UIDefaults.LABEL_TEXT_COLOR);
+			UIManager.put("TabbedPane.font", UIDefaults.FONT_SMALL);
+
 			Object[] uiFactories = {
 					"ScrollBarUI", ScrollbarUiFactory.class.getName(),
 					"BackgroundPanelUI", BackgroundPanelUiFactory.class.getName(),
@@ -102,14 +108,31 @@ public class JSettlersLookAndFeel {
 					"ProgressBarUI", ProgressBarUiFactory.class.getName(),
 					"TextAreaUI", TextAreaUiFactory.class.getName(),
 					"ComboBoxUI", ComboboxUiFactory.class.getName(),
+					"TableUI", TableUiFactory.class.getName(),
+					"TabbedPaneUI", BasicTabbedPaneUI.class.getName(),
 			};
 			UIManager.getDefaults().putDefaults(uiFactories);
 
 			// Map Cell renderer
-			UIManager.put("MapListCellRenderer.backgroundColor1", new Color(0xff, 0xff, 0xff, 40));
+			UIManager.put("MapListCellRenderer.backgroundColor1", new Color(0xff, 120, 120, 40));
 			UIManager.put("MapListCellRenderer.backgroundColor2", new Color(0, 0, 0, 60));
 			UIManager.put("MapListCellRenderer.backgroundSelected", new Color(0xff, 0xff, 0, 80));
 			UIManager.put("MapListCellRenderer.foregroundColor", Color.WHITE);
+
+			// ServerEntry Cell renderer
+			UIManager.put("ServerEntryCellRenderer.backgroundColorEven", new Color(0xff, 0xff, 0xff, 40));
+			UIManager.put("ServerEntryCellRenderer.backgroundColorOdd", new Color(0, 0, 0, 60));
+			UIManager.put("ServerEntryCellRenderer.backgroundSelected", new Color(0xff, 0xff, 0, 80));
+			UIManager.put("ServerEntryCellRenderer.foregroundColor", Color.WHITE);
+
+			UIManager.put("ServerEntryCellRenderer.featureMissing", Color.GRAY);
+			UIManager.put("ServerEntryCellRenderer.featurePresent", Color.GREEN);
+
+			// AgingServerList Cell renderer (ServerListCellRenderer)
+			UIManager.put("ServerListCellRenderer.backgroundColorEven", new Color(0xff, 0xff, 0xff, 40));
+			UIManager.put("ServerListCellRenderer.backgroundColorOdd", new Color(0, 0, 0, 60));
+			UIManager.put("ServerListCellRenderer.backgroundSelected", new Color(0xff, 0xff, 0, 80));
+			UIManager.put("ServerListCellRenderer.foregroundColor", Color.WHITE);
 
 			// Search Field
 			UIManager.put("ClearSearchIcon.foregroundColor", Color.WHITE);

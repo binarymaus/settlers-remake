@@ -69,7 +69,7 @@ public class BordersThread implements Runnable {
 		byte player = grid.getPlayerIdAt(x, y);
 		boolean isBorder = false;
 
-		if (grid.getBlockedPartition(x, y) > 0) { // the position is not a blocked landscape
+		if (!grid.isBlocked(x, y)) { // the position is not a blocked landscape
 			for (EDirection currDir : EDirection.VALUES) {
 				int currNeighborX = currDir.getNextTileX(x);
 				int currNeighborY = currDir.getNextTileY(y);
@@ -77,7 +77,7 @@ public class BordersThread implements Runnable {
 				if (!grid.isInBounds(currNeighborX, currNeighborY)) {
 					continue;
 				}
-				if (grid.getBlockedPartition(currNeighborX, currNeighborY) <= 0) {
+				if (grid.isBlocked(currNeighborX, currNeighborY)) {
 					continue; // this neighbor is in the sea => it can never be set.
 				}
 
@@ -94,7 +94,7 @@ public class BordersThread implements Runnable {
 						int nextY = currNeighborDir.getNextTileY(currNeighborY);
 
 						if (grid.isInBounds(nextX, nextY) && grid.getPlayerIdAt(nextX, nextY) != neighborPlayer
-								&& grid.getBlockedPartition(nextX, nextY) > 0) {
+								&& !grid.isBlocked(nextX, nextY)) {
 							neighborIsBorder = true;
 							break;
 						}

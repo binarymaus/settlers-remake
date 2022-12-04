@@ -25,6 +25,8 @@ import jsettlers.mapcreator.tools.icons.ToolIcon;
 import jsettlers.mapcreator.tools.shapes.EShapeType;
 import jsettlers.mapcreator.tools.shapes.ShapeType;
 
+import java.util.stream.Stream;
+
 /**
  * Tool to place resources
  * 
@@ -41,14 +43,17 @@ public class PlaceResource extends AbstractTool implements ResourceTool {
 	 *            Type to place, <code>null</code> to delete resources
 	 */
 	public PlaceResource(EResourceType type) {
-		super(type == null ? ToolIcon.loadIcon("remove-resource.png") : null,
-				type == null ? EditorLabels.getLabel("tool.remove-resource") : Labels.getName(type));
+		super(null, type == EResourceType.NOTHING ? EditorLabels.getLabel("tool.remove-resource") : Labels.getName(type));
 		this.type = type;
 		shapeTypes.add(EShapeType.POINT);
 		shapeTypes.add(EShapeType.LINE);
 		shapeTypes.add(EShapeType.LINE_CIRCLE);
 		shapeTypes.add(EShapeType.NOISY_LINE_CIRCLE);
 		shapeTypes.add(EShapeType.GRID_CIRCLE);
+	}
+
+	public static PlaceResource[] createArray(EResourceType... types) {
+		return Stream.of(types).map(PlaceResource::new).toArray(PlaceResource[]::new);
 	}
 
 	@Override
@@ -65,11 +70,8 @@ public class PlaceResource extends AbstractTool implements ResourceTool {
 	}
 
 	private void placeAt(MapData map, byte[][] influence, int x, int y) {
-		if (type != null) {
-			if (ValidateResources
-					.mayHoldResource(map.getLandscape(x, y), type)) {
-				map.addResource(x, y, type, influence[x][y]);
-			}
+		if (type != EResourceType.NOTHING) {
+			map.addResource(x, y, type, influence[x][y]);
 		} else {
 			map.decreaseResourceTo(x, y,
 					(byte) (Byte.MAX_VALUE - influence[x][y]));

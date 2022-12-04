@@ -24,6 +24,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Enumeration;
 
+import jsettlers.network.NetworkConstants;
 import jsettlers.network.server.GameServerThread;
 
 import org.junit.Ignore;
@@ -35,8 +36,9 @@ import org.junit.Test;
  * @author Andreas Eberle
  * 
  */
-@Ignore
 public class GameServerThreadIT {
+
+	private static final int MIN_WAIT_TIME = NetworkConstants.Server.BROADCAST_DELAY*2;
 
 	@Test
 	public void testStartAndShutdownGameServer() throws IOException, InterruptedException {
@@ -61,7 +63,7 @@ public class GameServerThreadIT {
 
 		Thread.sleep(100L);
 
-		String serverAddress = GameServerThread.retrieveLanServerAddress(1);
+		InetAddress serverAddress = GameServerThread.retrieveLanServerAddress(MIN_WAIT_TIME);
 
 		assertNotNull(serverAddress);
 
@@ -72,7 +74,7 @@ public class GameServerThreadIT {
 			Enumeration<InetAddress> addresses = curr.getInetAddresses();
 
 			while (addresses.hasMoreElements()) {
-				if (addresses.nextElement().getHostAddress().equals(serverAddress)) {
+				if (addresses.nextElement().equals(serverAddress)) {
 					found = true;
 				}
 			}
@@ -85,11 +87,11 @@ public class GameServerThreadIT {
 	@Test
 	public void testRetrieveLanAddressWithNoSuccess() {
 		long start = System.currentTimeMillis();
-		String noAddress = GameServerThread.retrieveLanServerAddress(1);
+		InetAddress noAddress = GameServerThread.retrieveLanServerAddress(MIN_WAIT_TIME);
 		assertNull(noAddress);
 
 		long diff = System.currentTimeMillis() - start;
 
-		assertTrue(diff < 1100);
+		assertTrue(diff < MIN_WAIT_TIME+100);
 	}
 }

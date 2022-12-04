@@ -14,6 +14,8 @@
  */
 package jsettlers.common.action;
 
+import jsettlers.common.movable.EMovableType;
+
 /**
  * This enum defines the type of the action.
  *
@@ -217,6 +219,13 @@ public enum EActionType {
 	ASK_SET_WORK_AREA,
 
 	/**
+	 * Ask the user where to cast a spell
+	 */
+	ASK_CAST_SPELL,
+
+	CAST_SPELL,
+
+	/**
 	 * Aborts the current user action, attempts to reset the GUI state to the default state.
 	 */
 	ABORT,
@@ -361,6 +370,16 @@ public enum EActionType {
 	 *
 	 * @see ChangeTradingRequestAction
 	 */
-	CHANGE_TRADING_REQUEST
+	CHANGE_TRADING_REQUEST,
+	
+	/**
+	 * Increase or decrease the amount of {@link EMovableType}s should be recruited if possible.
+	 */
+	CHANGE_MOVABLE_SETTINGS,
+	SET_MOVABLE_LIMIT_TYPE,
 
+	TOGGLE_MUSIC,
+	MUSIC_VOLUME_UP,
+	MUSIC_VOLUME_DOWN, 
+	SELECT_MOVABLES;
 }

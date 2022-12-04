@@ -16,6 +16,7 @@ package jsettlers.graphics.map;
 
 import java.util.List;
 
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.buildings.IBuildingMaterial;
@@ -23,7 +24,6 @@ import jsettlers.common.mapobject.EMapObjectType;
 import jsettlers.common.mapobject.IMapObject;
 import jsettlers.common.material.EPriority;
 import jsettlers.common.player.IPlayer;
-import jsettlers.common.player.IPlayer.DummyPlayer;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.selectable.ESelectionType;
 
@@ -34,8 +34,7 @@ import jsettlers.common.selectable.ESelectionType;
  *
  */
 public class PlacementBuilding implements IBuilding, IBuilding.IMill, IBuilding.ISoundRequestable {
-	private final DummyPlayer player = new DummyPlayer();
-	private final EBuildingType typeToPlace;
+	private final BuildingVariant buildingToPlace;
 
 	/**
 	 * Create a new, fake {@link PlacementBuilding}.
@@ -43,8 +42,8 @@ public class PlacementBuilding implements IBuilding, IBuilding.IMill, IBuilding.
 	 * @param type
 	 *            The type.
 	 */
-	public PlacementBuilding(EBuildingType type) {
-		this.typeToPlace = type;
+	public PlacementBuilding(BuildingVariant type) {
+		this.buildingToPlace = type;
 	}
 
 	@Override
@@ -53,8 +52,8 @@ public class PlacementBuilding implements IBuilding, IBuilding.IMill, IBuilding.
 	}
 
 	@Override
-	public EBuildingType getBuildingType() {
-		return typeToPlace;
+	public BuildingVariant getBuildingVariant() {
+		return buildingToPlace;
 	}
 
 	@Override
@@ -84,7 +83,7 @@ public class PlacementBuilding implements IBuilding, IBuilding.IMill, IBuilding.
 
 	@Override
 	public IPlayer getPlayer() {
-		return player;
+		return IPlayer.DEFAULT_DUMMY_PLAYER0;
 	}
 
 	@Override

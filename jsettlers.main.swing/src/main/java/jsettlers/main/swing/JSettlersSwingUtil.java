@@ -14,7 +14,9 @@
  *******************************************************************************/
 package jsettlers.main.swing;
 
-import java.awt.*;
+import java.awt.AlphaComposite;
+import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
 import jsettlers.logic.map.loading.MapLoader;

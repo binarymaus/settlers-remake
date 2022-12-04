@@ -14,20 +14,23 @@
  */
 package jsettlers.common.buildings;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import jsettlers.common.buildings.stacks.ConstructionStack;
+import jsettlers.common.movable.EDirection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import jsettlers.common.buildings.stacks.RelativeStack;
+import jsettlers.common.player.ECivilisation;
 import jsettlers.common.position.RelativePoint;
 
 @RunWith(Parameterized.class)
@@ -37,48 +40,88 @@ public class BuildingConfigurationsTest {
 	public static Collection<Object[]> buildingTypes() {
 		List<Object[]> result = new ArrayList<>();
 		for (EBuildingType buildingType : EBuildingType.VALUES) {
-			result.add(new Object[] { buildingType });
+			for(ECivilisation civilisation : ECivilisation.VALUES) {
+				BuildingVariant building = buildingType.getVariant(civilisation);
+				if(building != null) {
+					result.add(new Object[]{building});
+				}
+			}
 		}
 		return result;
 	}
 
-	private final EBuildingType buildingType;
+	private final BuildingVariant building;
 
-	public BuildingConfigurationsTest(EBuildingType buildingType) {
-		this.buildingType = buildingType;
+	public BuildingConfigurationsTest(BuildingVariant building) {
+		this.building = building;
 	}
 
 	@Test
 	public void testDoorIsNotBlockedButProtected() {
-		assumeTrue(EBuildingType.TEMPLE != buildingType); // temple uses door location for the wine bowl
-		assumeTrue(EBuildingType.MARKET_PLACE != buildingType); // market place does not use the door
+		assumeFalse(building.isVariantOf(EBuildingType.TEMPLE)); // temple uses door location for the wine bowl
+		assumeFalse(building.isVariantOf(EBuildingType.MARKET_PLACE)); // market place does not use the door
 
-		assertFalse(isBlocked(buildingType.getDoorTile()));
-		assertTrue(isProtected(buildingType.getDoorTile()));
+		assertFalse(isBlocked(building.getDoorTile()));
+		assertTrue(isProtected(building.getDoorTile()));
+	}
+
+	@Test
+	public void isMineValid() {
+		assumeTrue(building.isMine());
+		// mine may only have one offer stack
+		assertEquals(building.getOfferStacks().length, 1);
+		assertTrue(building.getMineSettings().getFoodOrder().length > 0);
 	}
 
 	@Test
 	public void testStacksAreNotBlockedButProtected() {
-		for (RelativeStack stack : buildingType.getConstructionStacks()) {
-			assertFalse(buildingType + "", isBlocked(stack));
-			assertTrue(buildingType + "", isProtected(stack));
+		for (RelativeStack stack : building.getConstructionStacks()) {
+			assertFalse(building + "", isBlocked(stack));
+			assertTrue(building + "", isProtected(stack));
 		}
-		for (RelativeStack stack : buildingType.getRequestStacks()) {
-			assertFalse(buildingType + "", isBlocked(stack));
-			assertTrue(buildingType + "", isProtected(stack));
+		for (RelativeStack stack : building.getRequestStacks()) {
+			assertFalse(building + "", isBlocked(stack));
+			assertTrue(building + "", isProtected(stack));
 		}
-		for (RelativeStack stack : buildingType.getOfferStacks()) {
-			assertFalse(buildingType + "", isBlocked(stack));
-			assertTrue(buildingType + "", isProtected(stack));
+		for (RelativeStack stack : building.getOfferStacks()) {
+			assertFalse(building + "", isBlocked(stack));
+			assertTrue(building + "", isProtected(stack));
+		}
+	}
+
+	@Test
+	public void testConstructionStacksHaveValidSize() {
+		for(ConstructionStack stack : building.getConstructionStacks()) {
+			assertTrue(stack + " has " + stack.requiredForBuild() + " elements but can only have 8", stack.requiredForBuild() <= 8);
+			assertTrue(stack + " must have at least one element", stack.requiredForBuild() > 0);
+		}
+	}
+
+	@Test
+	public void testBricklayerPositionsAreNotBlockedButProtected() {
+		for(RelativePoint bricklayerPosition : building.getBricklayers()) {
+			assertTrue(building + ": " + bricklayerPosition + " is not protected!", isProtected(bricklayerPosition));
+			assumeFalse(building + ": " + bricklayerPosition + " is blocked!", isBlocked(bricklayerPosition));
+		}
+	}
+
+	@Test
+	public void testBuildingsAreSurroundedByProtectedPositions() {
+		for(RelativePoint pos : building.getBlockedTiles()) {
+			for(EDirection dir : new EDirection[] {EDirection.NORTH_EAST, EDirection.SOUTH_EAST, EDirection.NORTH_WEST, EDirection.SOUTH_WEST, EDirection.EAST, EDirection.WEST}) {
+				RelativePoint neighbour = new RelativePoint(pos.getDx() + dir.getGridDeltaX(), pos.getDy() + dir.getGridDeltaY());
+
+				assertTrue(pos + " has a non protected neighbour!", isProtected(neighbour));
+			}
 		}
 	}
 
 	private boolean isBlocked(RelativePoint position) {
-		return contains(buildingType.getBlockedTiles(), position);
+		return contains(building.getBlockedTiles(), position);
 	}
 
 	private boolean isProtected(RelativePoint position) {
-		return contains(buildingType.getProtectedTiles(), position);
+		return contains(building.getProtectedTiles(), position);
 	}
 
 	private static boolean contains(RelativePoint[] positions, RelativePoint positionToCheck) {

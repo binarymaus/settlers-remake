@@ -83,7 +83,7 @@ public class SearchTextField extends JTextField {
 	}
 
 	@Override
-	public void layout() {
+	public void doLayout() {
 		int x = getWidth() - 4 - clearIcon.getIconWidth();
 		int y = (this.getHeight() - searchIcon.getIconHeight()) / 2;
 		lbClear.setBounds(x, y, clearIcon.getIconWidth(), clearIcon.getIconHeight());

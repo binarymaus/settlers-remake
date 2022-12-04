@@ -18,12 +18,16 @@ import java.io.File;
 
 import android.content.res.AssetManager;
 
+import jsettlers.logic.map.loading.list.DirectoryMapLister;
 import jsettlers.logic.map.loading.list.MapList.DefaultMapListFactory;
 
 public class AndroidMapListFactory extends DefaultMapListFactory {
 
-	public AndroidMapListFactory(AssetManager manager, File writeableDir) {
+	public AndroidMapListFactory(AssetManager manager, File originalMapsDirectory, File writeableDir) {
 		super();
+		if(originalMapsDirectory != null) {
+			directories.add(new DirectoryMapLister(originalMapsDirectory, false));
+		}
 		directories.add(new AndroidAssetsMapLister(manager, ""));
 		addResourcesDirectory(writeableDir);
 	}

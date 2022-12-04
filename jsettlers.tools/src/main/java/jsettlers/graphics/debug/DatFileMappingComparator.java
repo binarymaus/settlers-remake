@@ -5,8 +5,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import java8.util.stream.Collectors;
 import jsettlers.common.utils.Tuple;
 import jsettlers.graphics.image.reader.AdvancedDatFileReader;
 import jsettlers.graphics.image.reader.DatFileType;
@@ -15,7 +15,6 @@ import jsettlers.graphics.image.reader.versions.IndexingDatFileMapping;
 import jsettlers.graphics.image.reader.versions.IndexingGfxFolderMapping;
 import jsettlers.graphics.image.reader.versions.SettlersVersionMapping;
 
-import static java8.util.stream.StreamSupport.stream;
 import static jsettlers.graphics.image.reader.DatFileUtils.distinctFileNames;
 import static jsettlers.graphics.image.reader.DatFileUtils.getDatFileIndex;
 import static jsettlers.graphics.image.reader.DatFileUtils.getDatFileName;
@@ -64,7 +63,7 @@ public class DatFileMappingComparator {
 
 		String settlersVersionHash = DatFileUtils.generateOriginalVersionId(gfxFolder2);
 
-		Map<String, File> datFiles2ByName = stream(datFiles2).map(file -> new Tuple<>(getDatFileName(file), file)).collect(Collectors.toMap(Tuple::getE1, Tuple::getE2));
+		Map<String, File> datFiles2ByName = datFiles2.stream().map(file -> new Tuple<>(getDatFileName(file), file)).collect(Collectors.toMap(Tuple::getE1, Tuple::getE2));
 
 		int highestIndex = datFiles1.stream().mapToInt(DatFileUtils::getDatFileIndex).max().orElse(0);
 		IndexingDatFileMapping[] datFileMappings = new IndexingDatFileMapping[highestIndex + 1];

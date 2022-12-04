@@ -16,49 +16,38 @@ package jsettlers.logic.movable.interfaces;
 
 import java.io.Serializable;
 
-import jsettlers.algorithms.fogofwar.IViewDistancable;
+import jsettlers.algorithms.fogofwar.MovableFoWTask;
 import jsettlers.algorithms.path.IPathCalculatable;
-import jsettlers.algorithms.path.Path;
-import jsettlers.common.movable.EMovableType;
+import jsettlers.common.movable.EEffectType;
+import jsettlers.common.action.EMoveToType;
+import jsettlers.common.movable.IGraphicsMovable;
+import jsettlers.common.position.ILocatable;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.input.IGuiMovable;
-import jsettlers.logic.buildings.military.IBuildingOccupyableMovable;
-import jsettlers.logic.buildings.military.occupying.IOccupyableBuilding;
 import jsettlers.logic.player.Player;
 import jsettlers.logic.timer.IScheduledTimerable;
 
-public interface ILogicMovable extends IScheduledTimerable, IPathCalculatable, IDebugable, Serializable, IViewDistancable, IGuiMovable, IAttackableMovable {
-	boolean push(ILogicMovable pushingMovable);
-
-	Path getPath();
-
-	void goSinglePathStep();
+public interface ILogicMovable extends IScheduledTimerable, IPathCalculatable, IDebugable, Serializable, IGuiMovable, ILocatable, IGraphicsMovable, MovableFoWTask {
+	void push(ILogicMovable pushingMovable);
 
 	ShortPoint2D getPosition();
 
-	ILogicMovable getPushedFrom();
-
-	boolean isProbablyPushable(ILogicMovable pushingMovable);
-
 	void leavePosition();
-
-	boolean canOccupyBuilding();
-
-	void checkPlayerOfPosition(Player playerOfPosition);
-
-	void convertTo(EMovableType newMovableType);
 
 	Player getPlayer();
 
-	IBuildingOccupyableMovable setOccupyableBuilding(IOccupyableBuilding building);
+	void moveTo(ShortPoint2D targetPosition, EMoveToType moveToType);
+	void addEffect(EEffectType effect);
 
-	void moveTo(ShortPoint2D targetPosition);
+	void setPosition(ShortPoint2D to);
 
-	void unloadFerry();
 
-	boolean addPassenger(ILogicMovable movable);
-
-	void moveToFerry(ILogicMovable ferry, ShortPoint2D entrancePosition);
-
-	void leaveFerryAt(ShortPoint2D position);
+	/**
+	 * Lets this movable stop or start its work.
+	 *
+	 * @param stop
+	 * 		if true this selectable should stop working<br>
+	 * 		if false, it should stop working.
+	 */
+	void stopOrStartWorking(boolean stop);
 }

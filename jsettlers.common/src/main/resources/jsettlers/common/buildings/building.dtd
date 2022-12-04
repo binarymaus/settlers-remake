@@ -34,7 +34,8 @@
 	SULFUR|
 	RICE|
 	KEG|
-	BOX|
+	LIQUOR|
+	GUN_POWDER|
 	CANNON_AMMO|
 	BALLISTA_AMMO|
 	CATAPULT_AMMO|
@@ -42,48 +43,11 @@
 	BASKET|
 	TREE|
 	PLANT|
+	HONEY|
+	MEAD|
 	EMPTY_BUCKET)
 ">
-<!ENTITY % jobtype "(
-	WAIT|
-	WALK|
-	SHOW|
-	HIDE|
-	SET_MATERIAL|
-	TAKE|
-	TAKE_REQUESTED|
-	DROP|
-	PRE_SEARCH|
-	PRE_SEARCH_IN_AREA|
-	REQUEST|
-	FOLLOW_SEARCHED|
-	GO_TO|
-	GO_TO_DOCK|
-	BUILD_SHIP|
-	LOOK_AT|
-	PLAY_ACTION1|
-	PLAY_ACTION2|
-	PLAY_ACTION3|
-	EXECUTE|
-	AVAILABLE|
-	NOT_FULL|
-	LOOK_AT_SEARCHED|
-	TRY_TAKING_RESOURCE|
-	TRY_TAKING_FOOD|
-	SMOKE_ON|
-	SMOKE_OFF|
-	START_WORKING|
-	STOP_WORKING|
-	REMOTETAKE|
-	PIG_PLACE|
-	PIG_REMOVE|
-	PIG_IS_ADULT|
-	PIG_IS_THERE|
-	POP_TOOL|
-	POP_WEAPON|
-	DROP_POPPED|
-	GROW_DONKEY)
-">
+
 <!ENTITY % direction "(EAST| SOUTH_EAST| SOUTH_WEST| WEST | NORTH_WEST | NORTH_EAST)">
 
 <!ENTITY % searchtype "(
@@ -95,6 +59,10 @@
 	CUTTABLE_CORN|
 	PLANTABLE_WINE|
 	HARVESTABLE_WINE|
+	PLANTABLE_RICE|
+	HARVESTABLE_RICE|
+	PLANTABLE_HIVE|
+	HARVESTABLE_HIVE|
 	FISHABLE|
 	RIVER|
 	ENEMY)
@@ -114,16 +82,21 @@
 	RIVER3|
 	RIVER4|
 	MOUNTAINBORDER|
-	MOUNTAINBORDEROUTER
+	MOUNTAINBORDEROUTER|
+	DESERTBORDER|
+	DESERTBORDEROUTER|
+	DRY_GRASS|
+	SHARP_FLATTENED_DESERT|
+	FLATTENED_DESERT
 )">
 <!ENTITY % boolean "(true|false)">
 
-<!ELEMENT building (ground+, blocked+, door, constructionStack+, requestStack*, offerStack*, bricklayer+, flag, buildmark*, workcenter?, image*, occupyer*, startjob?, job*) >
+<!ELEMENT building (ground+, blocked+, door, constructionStack+, requestStack*, offerStack*, bricklayer+, flag, buildmark*, workcenter?, smokePosition?, healspot?, pigFeedPosition?, donkeyFeedPosition*, sawmillerWorkPosition?, ovenPosition?, animalPosition*, mine?, moltenMetal?, meltInput?, meltOutput?, anvilPosition?, smithDropPosition?, image*, occupyer*) >
 
 <!ATTLIST building
    	worker CDATA #REQUIRED
 	workradius CDATA #IMPLIED
-	viewdistance CDATA #IMPLIED
+	viewdistance CDATA "5"
 	mine (true|false) "false"
 >
 
@@ -199,27 +172,6 @@
    looksRight (true|false) "true"
 >
 
-<!ELEMENT startjob EMPTY>
-<!ATTLIST startjob
-   name IDREF #REQUIRED
->
-
-<!ELEMENT job EMPTY>
-<!ATTLIST job
-   name ID #REQUIRED
-   type %jobtype; #REQUIRED
-   successjob IDREF #REQUIRED
-   failjob IDREF #REQUIRED
-   dx CDATA #IMPLIED
-   dy CDATA #IMPLIED
-   time CDATA #IMPLIED
-   material %material; #IMPLIED
-   direction %direction; #IMPLIED
-   search %searchtype; #IMPLIED
-   takeMaterialFromMap %boolean; #IMPLIED
-   foodOrder CDATA #IMPLIED
->
-
 <!ELEMENT image EMPTY>
 <!ATTLIST image
    for (GUI|BUILD|FINAL) #REQUIRED
@@ -236,4 +188,92 @@
    dy CDATA #REQUIRED
 >
 
+<!ELEMENT smokePosition EMPTY>
+<!ATTLIST smokePosition
+   dx CDATA #REQUIRED
+   dy CDATA #REQUIRED
+   fire (true|false) "false"
+>
 
+
+<!ELEMENT healspot EMPTY>
+<!ATTLIST healspot
+   dx CDATA #REQUIRED
+   dy CDATA #REQUIRED
+>
+
+<!ELEMENT animalPosition EMPTY>
+<!ATTLIST animalPosition
+   dx CDATA #REQUIRED
+   dy CDATA #REQUIRED
+>
+
+<!ELEMENT pigFeedPosition EMPTY>
+<!ATTLIST pigFeedPosition
+   dx CDATA #REQUIRED
+   dy CDATA #REQUIRED
+>
+
+<!ELEMENT donkeyFeedPosition EMPTY>
+<!ATTLIST donkeyFeedPosition
+	dx CDATA #REQUIRED
+	dy CDATA #REQUIRED
+	direction %direction; #REQUIRED
+>
+
+<!ELEMENT sawmillerWorkPosition EMPTY>
+<!ATTLIST sawmillerWorkPosition
+	dx CDATA #REQUIRED
+	dy CDATA #REQUIRED
+	direction %direction; #REQUIRED
+>
+
+
+<!ELEMENT ovenPosition EMPTY>
+<!ATTLIST ovenPosition
+   dx CDATA #REQUIRED
+   dy CDATA #REQUIRED
+   direction %direction; #REQUIRED
+>
+
+<!ELEMENT mine EMPTY>
+<!ATTLIST mine
+	dropDirection %direction; #REQUIRED
+	miningInterval CDATA #REQUIRED
+	foodOrder CDATA #REQUIRED
+>
+
+<!ELEMENT moltenMetal EMPTY>
+<!ATTLIST moltenMetal
+	dx CDATA #REQUIRED
+	dy CDATA #REQUIRED
+>
+
+<!ELEMENT meltInput EMPTY>
+<!ATTLIST meltInput
+	dx CDATA #REQUIRED
+	dy CDATA #REQUIRED
+	direction %direction; #REQUIRED
+	material %material; #REQUIRED
+>
+
+<!ELEMENT meltOutput EMPTY>
+<!ATTLIST meltOutput
+	dx CDATA #REQUIRED
+	dy CDATA #REQUIRED
+	direction %direction; #REQUIRED
+	material %material; #REQUIRED
+>
+
+<!ELEMENT anvilPosition EMPTY>
+<!ATTLIST anvilPosition
+		dx CDATA #REQUIRED
+		dy CDATA #REQUIRED
+		direction %direction; #REQUIRED
+>
+
+<!ELEMENT smithDropPosition EMPTY>
+<!ATTLIST smithDropPosition
+		dx CDATA #REQUIRED
+		dy CDATA #REQUIRED
+>

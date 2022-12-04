@@ -18,8 +18,10 @@ import java.io.Serializable;
 
 import jsettlers.logic.constants.MatchConstants;
 
-public class RelativeSettings<T extends Enum> implements Serializable {
-	public interface OrdinalToTypeMapper<T extends Enum> extends Serializable {
+public class RelativeSettings<T extends Enum<T>> implements Serializable {
+	private static final long serialVersionUID = 224069136424765967L;
+
+	public interface OrdinalToTypeMapper<T extends Enum<T>> extends Serializable {
 		T map(int ordinal);
 	}
 

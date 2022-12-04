@@ -1,33 +1,84 @@
 apply plugin: 'java'
 
-def lwjgl_version="3.1.6"
+import jsettlers.shaders.compile.ShaderCompilationTask
+
+String[] variants = new String[] {
+		"natives-linux",
+		"natives-linux-arm32",
+		"natives-linux-arm64",
+		"natives-macos",
+		"natives-macos-arm64",
+		"natives-windows",
+		"natives-windows-x86",
+		"natives-windows-arm64",
+};
+
+String[] modules = new String[] {
+		"lwjgl",
+		"lwjgl-opengl",
+		"lwjgl-openal",
+		"lwjgl-glfw",
+		"lwjgl-vma",
+}
 
 dependencies {
-    implementation project(':go.graphics')
+	implementation project(':go.graphics')
 
-    compile "org.lwjgl:lwjgl:"+lwjgl_version
-    compile "org.lwjgl:lwjgl-opengl:"+lwjgl_version
-    compile "org.lwjgl:lwjgl-glfw:"+lwjgl_version
-    compile "org.lwjgl:lwjgl-egl:"+lwjgl_version
-    compile "org.lwjgl:lwjgl-jawt:"+lwjgl_version
+	def lwjglVersion = rootProject.ext.lwjglVersion
 
-    compile "org.lwjgl:lwjgl:"+lwjgl_version+":natives-linux"
-    compile "org.lwjgl:lwjgl:"+lwjgl_version+":natives-macos"
-    compile "org.lwjgl:lwjgl:"+lwjgl_version+":natives-windows"
+	for(String module : modules) {
+		implementation "org.lwjgl:" + module + ":" + lwjglVersion
 
-    compile "org.lwjgl:lwjgl-opengl:"+lwjgl_version+":natives-linux"
-    compile "org.lwjgl:lwjgl-opengl:"+lwjgl_version+":natives-macos"
-    compile "org.lwjgl:lwjgl-opengl:"+lwjgl_version+":natives-windows"
+		for(String variant : variants) {
+			runtimeOnly "org.lwjgl:" + module + ":" + lwjglVersion + ":" + variant
+		}
+	}
 
-    compile "org.lwjgl:lwjgl-glfw:"+lwjgl_version+":natives-linux"
-    compile "org.lwjgl:lwjgl-glfw:"+lwjgl_version+":natives-macos"
-    compile "org.lwjgl:lwjgl-glfw:"+lwjgl_version+":natives-windows"
+	implementation "org.lwjgl:lwjgl-vulkan:" + lwjglVersion + ":natives-macos"
+	implementation "org.lwjgl:lwjgl-vulkan:" + lwjglVersion
+	implementation "org.lwjgl:lwjgl-egl:" + lwjglVersion
+	implementation "org.lwjgl:lwjgl-jawt:" + lwjglVersion
+
+	implementation "org.joml:joml:1.9.17"
+	implementation "org.lwjglx:lwjgl3-awt:0.1.8"
 
 
-    // macos support
-    compile "org.jogamp.gluegen:gluegen-rt:2.3.2"
-    compile "org.jogamp.jogl:jogl-all:2.3.2"
-    runtime "org.jogamp.gluegen:gluegen-rt:2.3.2:natives-macosx-universal"
-    runtime "org.jogamp.jogl:jogl-all:2.3.2:natives-macosx-universal"
-    compile 'org.joml:joml:1.9.11'
+	// macos support
+	implementation "org.jogamp.gluegen:gluegen-rt:2.3.2"
+	implementation "org.jogamp.jogl:jogl-all:2.3.2"
+	runtimeOnly "org.jogamp.gluegen:gluegen-rt:2.3.2:natives-macosx-universal"
+	runtimeOnly "org.jogamp.jogl:jogl-all:2.3.2:natives-macosx-universal"
+}
+
+def shaderDefinitionDir = 'src/main/glsl/'
+def shaderJavaOutputDir = 'src/generated/java'
+def shaderResOutputDir = 'src/generated/resources'
+
+sourceSets {
+	main.java.srcDirs += [shaderJavaOutputDir]
+	main.resources.srcDirs += [shaderResOutputDir]
+}
+
+clean {
+	delete file(shaderJavaOutputDir)
+	delete file(shaderResOutputDir)
+}
+
+task compileShaders(type: ShaderCompilationTask) {
+	inputDirectory = file(shaderDefinitionDir).toPath()
+	generatedSourcesDirectory = file(shaderJavaOutputDir).toPath()
+	generatedResourcesDirectory = file(shaderResOutputDir).toPath()
+}
+
+compileJava {
+	dependsOn compileShaders
+}
+
+copyMainResources {
+	dependsOn compileShaders
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_11
+	targetCompatibility = JavaVersion.VERSION_11
 }

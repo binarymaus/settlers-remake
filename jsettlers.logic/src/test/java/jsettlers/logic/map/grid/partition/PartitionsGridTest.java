@@ -19,6 +19,7 @@ import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.map.shapes.FreeMapArea;
 import jsettlers.common.map.shapes.MapCircle;
 import jsettlers.common.material.EMaterialType;
+import jsettlers.common.player.ECivilisation;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.logic.map.grid.partition.manager.PartitionManager;
 import jsettlers.logic.map.grid.partition.manager.materials.offers.EOfferPriority;
@@ -263,7 +264,7 @@ public class PartitionsGridTest {
 	}
 
 	private FreeMapArea getGroundArea(ShortPoint2D pos) {
-		return new FreeMapArea(pos, EBuildingType.TOWER.getProtectedTiles());
+		return new FreeMapArea(pos, EBuildingType.TOWER.getVariant(ECivilisation.ROMAN).getProtectedTiles());
 	}
 
 	private MapCircle getTowerCircle(int x, int y, int radius) {

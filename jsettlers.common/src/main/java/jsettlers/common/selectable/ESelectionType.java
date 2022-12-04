@@ -23,15 +23,30 @@ package jsettlers.common.selectable;
  */
 public enum ESelectionType {
 	BUILDING(1),
-	PEOPLE(Integer.MAX_VALUE),
-	SPECIALISTS(Integer.MAX_VALUE),
-	SOLDIERS(Integer.MAX_VALUE),
-	SHIPS(Integer.MAX_VALUE);
+	PEOPLE(),
+	PRIESTS(true),
+	SPECIALISTS(),
+	SOLDIERS(),
+	SHIPS();
 
 	public final int priority;
 	public final int maxSelected;
+	public boolean perPlayer;
+
+	ESelectionType() {
+		this(Integer.MAX_VALUE, false);
+	}
 
 	ESelectionType(int maxSelected) {
+		this(maxSelected, false);
+	}
+
+	ESelectionType(boolean perPlayer) {
+		this(Integer.MAX_VALUE, perPlayer);
+	}
+
+	ESelectionType(int maxSelected, boolean perPlayer) {
+		this.perPlayer = perPlayer;
 		this.maxSelected = maxSelected;
 		this.priority = super.ordinal();
 	}

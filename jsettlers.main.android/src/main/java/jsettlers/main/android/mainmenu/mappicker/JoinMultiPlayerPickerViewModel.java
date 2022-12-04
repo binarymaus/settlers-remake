@@ -1,7 +1,5 @@
 package jsettlers.main.android.mainmenu.mappicker;
 
-import static java8.util.stream.StreamSupport.stream;
-
 import java.util.List;
 
 import android.app.Activity;
@@ -140,8 +138,7 @@ public class JoinMultiPlayerPickerViewModel extends ViewModel implements IJoinin
 		}
 
 		private IJoinableGame[] sortedMaps(List<? extends IJoinableGame> items) {
-			return stream(items)
-					.toArray(IJoinableGame[]::new);
+			return items.toArray(new IJoinableGame[0]);
 		}
 	}
 

@@ -1,0 +1,5 @@
+entryPoint = main
+compilerOutput = SPIRV_BINARY
+targetApi = VULKAN
+saveOutput = true
+copySource = true

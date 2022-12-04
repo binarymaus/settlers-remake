@@ -44,9 +44,4 @@ public class JoinMultiPlayerSetupFragment extends MapSetupFragment {
 		startResourcesSpinner.setEnabled(false);
 		peacetimeSpinner.setEnabled(false);
 	}
-
-	@Override
-	protected int getListItemLayoutId() {
-		return R.layout.item_multiplayer_playerslot;
-	}
 }

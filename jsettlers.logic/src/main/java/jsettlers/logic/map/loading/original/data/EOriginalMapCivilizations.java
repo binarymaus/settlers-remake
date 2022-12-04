@@ -14,7 +14,7 @@
  *******************************************************************************/
 package jsettlers.logic.map.loading.original.data;
 
-import static java8.util.J8Arrays.stream;
+import static java.util.Arrays.stream;
 
 /**
  * The civilization the player is of

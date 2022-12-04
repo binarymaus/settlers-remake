@@ -85,7 +85,7 @@ public final class MaterialsForBuildingsRequestPriorityQueue extends AbstractMat
 	protected DoubleLinkedList<MaterialRequestObject> getQueue(EPriority priority, EBuildingType buildingType) {
 		int buildingIndex = buildingTypesToIndex[buildingType.ordinal];
 
-		assert buildingIndex >= 0 : "Unknown building for this queue: " + buildingType;
+		if (buildingIndex < 0) throw new AssertionError("Unknown building for this queue: " + buildingType);
 
 		return queues[priority.ordinal][buildingIndex];
 	}

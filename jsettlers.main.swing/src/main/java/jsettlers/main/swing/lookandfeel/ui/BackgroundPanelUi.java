@@ -37,7 +37,7 @@ public class BackgroundPanelUi extends PanelUI {
 	/**
 	 * Background texture
 	 */
-	private final BufferedImage backgroundTexture = UiImageLoader.get("ui_bg/ui_background.png");
+	private final BufferedImage backgroundTexture = UiImageLoader.get("ui_bg/ui_background.jpg");
 
 	/**
 	 * Border texture for the border line

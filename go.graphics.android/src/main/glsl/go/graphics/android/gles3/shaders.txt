@@ -1,0 +1,5 @@
+entryPoint = main
+compilerOutput = DO_NOT_COMPILE
+targetApi = LEGACY_OPENGL
+saveOutput = false
+copySource = true

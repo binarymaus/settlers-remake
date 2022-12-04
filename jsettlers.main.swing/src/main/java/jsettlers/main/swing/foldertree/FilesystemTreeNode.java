@@ -17,6 +17,7 @@ package jsettlers.main.swing.foldertree;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.List;
 
@@ -25,7 +26,6 @@ import javax.swing.tree.TreeNode;
 
 import jsettlers.common.resources.SettlersFolderChecker;
 
-import java8.util.Comparators;
 
 /**
  * Node to display file / folders
@@ -210,7 +210,7 @@ public class FilesystemTreeNode implements TreeNode {
 			settlersFolder = false;
 		}
 
-		Collections.sort(list, Comparators.comparing(node -> node.getFile().getName()));
+		Collections.sort(list, Comparator.comparing(node -> node.getFile().getName()));
 
 		return list;
 	}
@@ -253,7 +253,7 @@ public class FilesystemTreeNode implements TreeNode {
 	}
 
 	@Override
-	public Enumeration<?> children() {
+	public Enumeration<? extends TreeNode> children() {
 		return Collections.enumeration(children);
 	}
 }

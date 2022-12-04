@@ -15,10 +15,9 @@
 package jsettlers.logic.buildings.military.occupying;
 
 import jsettlers.common.buildings.OccupierPlace;
-import jsettlers.logic.buildings.military.IBuildingOccupyableMovable;
-import jsettlers.logic.movable.interfaces.ILogicMovable;
 import jsettlers.common.position.ILocatable;
 import jsettlers.common.position.ShortPoint2D;
+import jsettlers.logic.movable.interfaces.ISoldierMovable;
 import jsettlers.logic.player.Player;
 
 /**
@@ -34,13 +33,13 @@ public interface IOccupyableBuilding extends ILocatable{
 	 * @param soldier
 	 * @return
 	 */
-	OccupierPlace addSoldier(IBuildingOccupyableMovable soldier);
+	OccupierPlace addSoldier(ISoldierMovable soldier);
 
 	ShortPoint2D getDoor();
 
-	void requestFailed(IBuildingOccupyableMovable soldier);
+	void requestFailed(ISoldierMovable soldier);
 
-	ShortPoint2D getPosition(IBuildingOccupyableMovable soldier);
+	ShortPoint2D getPosition(ISoldierMovable soldier);
 
 	boolean isDestroyed();
 
@@ -50,7 +49,7 @@ public interface IOccupyableBuilding extends ILocatable{
 	 * @param soldier
 	 *            The soldier that defended the tower.
 	 */
-	void towerDefended(IBuildingOccupyableMovable soldier);
+	void towerDefended(ISoldierMovable soldier);
 
 	ShortPoint2D getTowerBowmanSearchPosition(OccupierPlace place);
 
@@ -66,11 +65,11 @@ public interface IOccupyableBuilding extends ILocatable{
 	 * @param soldier
 	 *            The soldier that will be removed.
 	 */
-	void removeSoldier(IBuildingOccupyableMovable soldier);
+	void removeSoldier(ISoldierMovable soldier);
 
 	/**
 	 * Request this soldier to enter the tower
 	 * @param soldier
 	 */
-	void requestSoldier(ILogicMovable soldier);
+	void requestSoldier(ISoldierMovable soldier);
 }

@@ -19,6 +19,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import jsettlers.network.NetworkConstants;
 
@@ -32,10 +33,7 @@ public final class LanServerAddressBroadcastListener extends Thread {
 
 	private final ILanServerAddressListener listener;
 
-	private boolean foundServer = false;
-	private InetAddress serverAddress = null;
-
-	private boolean canceled;
+	private final AtomicBoolean canceled = new AtomicBoolean(false);
 	private DatagramSocket socket;
 
 	public LanServerAddressBroadcastListener(ILanServerAddressListener listener) {
@@ -44,16 +42,13 @@ public final class LanServerAddressBroadcastListener extends Thread {
 		super.setDaemon(true);
 	}
 
-	public LanServerAddressBroadcastListener() {
-		this(null);
-	}
-
 	@Override
 	public void run() {
 		try {
 			socket = new DatagramSocket(NetworkConstants.Server.BROADCAST_PORT);
 
-			while (!foundServer && !canceled) {
+			boolean cancelListener = false;
+			while (!canceled.get() && !cancelListener) {
 				try {
 					DatagramPacket packet = new DatagramPacket(new byte[NetworkConstants.Server.BROADCAST_BUFFER_LENGTH],
 							NetworkConstants.Server.BROADCAST_BUFFER_LENGTH);
@@ -62,16 +57,10 @@ public final class LanServerAddressBroadcastListener extends Thread {
 
 					String receivedMessage = new String(packet.getData(), packet.getOffset(), packet.getLength());
 
-					System.out.println("sender: " + packet.getAddress() + " port: " + packet.getPort() + " length: " + packet.getData().length
-							+ " data: " + receivedMessage);
-
 					if (NetworkConstants.Server.BROADCAST_MESSAGE.equals(receivedMessage)) {
-						System.out.println("received broadcast info for jsettlers");
-						foundServer = true;
-						serverAddress = packet.getAddress();
 
 						if (listener != null) {
-							listener.foundServerAddress();
+							cancelListener = listener.foundServerAddress(packet.getAddress());
 						}
 					}
 				} catch (SocketException e) {
@@ -86,26 +75,18 @@ public final class LanServerAddressBroadcastListener extends Thread {
 		}
 	}
 
-	/**
-	 * 
-	 * @return true if a LAN server has been found, <br>
-	 *         false otherwise.
-	 * 
-	 */
-	public boolean hasFoundServer() {
-		return foundServer;
-	}
-
-	public InetAddress getServerAddress() {
-		return serverAddress;
-	}
-
 	public interface ILanServerAddressListener {
-		void foundServerAddress();
+
+		/**
+		 *
+		 * @param address the last found address
+		 * @return if the listener broadcast thread should be shut down
+		 */
+		boolean foundServerAddress(InetAddress address);
 	}
 
 	public void shutdown() {
-		canceled = true;
+		canceled.set(true);
 		socket.close();
 	}
 }

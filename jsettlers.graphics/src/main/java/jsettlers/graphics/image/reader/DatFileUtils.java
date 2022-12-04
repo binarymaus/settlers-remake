@@ -16,13 +16,11 @@
 package jsettlers.graphics.image.reader;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
-
-import java8.util.stream.Collectors;
-
-import static java8.util.stream.StreamSupport.stream;
 
 public class DatFileUtils {
 
@@ -31,18 +29,22 @@ public class DatFileUtils {
 		List<File> distinctGfxDatFiles = distinctFileNames(gfxDatFiles);
 
 		// F-1 because we dont know the dat file index
-		Hashes hashes = new Hashes(stream(distinctGfxDatFiles)
-			.filter(file -> file.getName().toLowerCase().endsWith(".dat"))
-			.map(datFile -> new AdvancedDatFileReader(datFile, DatFileType.getForPath(datFile) , "F-1"))
-			.flatMap(reader -> stream(Arrays.asList(reader.getSettlersHashes(), reader.getGuiHashes())))
-			.flatMap(hash -> stream(hash.getHashes()))
-			.collect(Collectors.toList()));
+		List<Long> list = new ArrayList<>();
+		for (File file : distinctGfxDatFiles) {
+			if (file.getName().toLowerCase().endsWith(".dat")) {
+				AdvancedDatFileReader reader = new AdvancedDatFileReader(file, DatFileType.getForPath(file), "F-1");
+
+				list.addAll(reader.getSettlersHashes().getHashes());
+				list.addAll(reader.getGuiHashes().getHashes());
+			}
+		}
+		Hashes hashes = new Hashes(list);
 
 		return Long.toString(hashes.hash());
 	}
 
 	public static List<File> distinctFileNames(File[] files) {
-		Arrays.sort(files);
+		Arrays.sort(files, Comparator.comparing(file -> file.getName().toUpperCase()));
 		LinkedList<File> distinct = new LinkedList<>();
 		for (File file : files) {
 			if (distinct.isEmpty() || !getDatFileName(distinct.getLast()).equalsIgnoreCase(getDatFileName(file))) {

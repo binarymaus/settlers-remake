@@ -16,11 +16,14 @@ package jsettlers.graphics.map.controls.original.panel.content.buildings;
 
 import java.util.ArrayList;
 
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.map.IGraphicsGrid;
 import jsettlers.common.map.partition.IBuildingCounts;
 import jsettlers.common.action.EActionType;
 import jsettlers.common.action.IAction;
+import jsettlers.common.player.ECivilisation;
+import jsettlers.common.player.IInGamePlayer;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.graphics.action.ActionFireable;
 import jsettlers.common.action.BuildAction;
@@ -36,21 +39,31 @@ public class BuildingBuildContent extends AbstractContentProvider {
 	private static final int ROWS = 6;
 	private static final int COLUMNS = 2;
 
-	private final UIPanel panel;
+	private UIPanel panel;
 	private final UiLocationDependingContentUpdater<IBuildingCounts> uiContentUpdater = new UiLocationDependingContentUpdater<>((grid, position) -> grid.getPartitionData(position.x, position.y).getBuildingCounts());
 
 	private final ArrayList<BuildingButton> buttons = new ArrayList<>();
 	private EBuildingType activeBuilding;
+	private EBuildingsCategory buildingsCategory;
 
 	public BuildingBuildContent(EBuildingsCategory buildingsCategory) {
+		this.buildingsCategory = buildingsCategory;
+	}
+
+	public void setPlayer(IInGamePlayer player) {
 		panel = new UIPanel();
 
 		float colWidth = 1f / COLUMNS;
 		float rowHeight = 1f / ROWS;
 
+		ECivilisation civilisation = player.getCivilisation();
+
 		int i = 0;
 		for (EBuildingType buildingType : buildingsCategory.buildingTypes) {
-			BuildingButton button = new BuildingButton(buildingType);
+			BuildingVariant building = buildingType.getVariant(civilisation);
+			if(building == null) continue;
+
+			BuildingButton button = new BuildingButton(building);
 			int row = i / COLUMNS;
 			int col = i % COLUMNS;
 			panel.addChild(button, col * colWidth, 1 - (row + 1) * rowHeight, (col + 1) * colWidth, 1 - row * rowHeight);
@@ -58,6 +71,8 @@ public class BuildingBuildContent extends AbstractContentProvider {
 			uiContentUpdater.addListener(button);
 			i++;
 		}
+
+		uiContentUpdater.setPlayer(player);
 	}
 
 	/**
@@ -69,7 +84,7 @@ public class BuildingBuildContent extends AbstractContentProvider {
 	private void setActiveBuilding(EBuildingType type) {
 		activeBuilding = null;
 		for (BuildingButton button : buttons) {
-			boolean isActive = button.getBuildingType() == type;
+			boolean isActive = button.getBuilding().isVariantOf(type);
 			button.setActive(isActive);
 			if (isActive) {
 				activeBuilding = type;

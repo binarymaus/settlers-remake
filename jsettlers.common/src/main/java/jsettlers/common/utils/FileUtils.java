@@ -16,8 +16,8 @@ package jsettlers.common.utils;
 
 import java.io.File;
 
-import java8.util.function.Consumer;
-import java8.util.function.Predicate;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 import jsettlers.common.utils.mutables.Mutable;
 
 public class FileUtils {

@@ -17,33 +17,44 @@ package go.graphics.swing.contextcreator;
 import org.lwjgl.system.Platform;
 import org.lwjgl.system.linux.X11;
 import org.lwjgl.system.windows.GDI32;
+import org.lwjgl.vulkan.VK;
+
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
+
+import go.graphics.swing.ContextContainer;
 
 
 public enum EBackendType implements Comparable<EBackendType> {
 
-	DEFAULT(null, "default", null, null, null, null),
+	DEFAULT(null, "default", null, null, null),
 
-	GLX(GLXContextCreator.class, "glx", null, Platform.LINUX, X11.class, null),
-	EGL(EGLContextCreator.class, "egl", null, null, org.lwjgl.egl.EGL.class, "getFunctionProvider"),
-	WGL(WGLContextCreator.class, "wgl", null, Platform.WINDOWS, GDI32.class, null),
-	JOGL(JOGLContextCreator.class, "jogl", Platform.MACOSX, Platform.MACOSX, null, null),
+	GLX(GLXContextCreator::new, "glx", null, Platform.LINUX, X11::getLibrary),
+	EGL(EGLContextCreator::new, "egl", null, null, org.lwjgl.egl.EGL::getFunctionProvider),
+	WGL(WGLContextCreator::new, "wgl", null, Platform.WINDOWS, GDI32::getLibrary),
+	JOGL(JOGLContextCreator::new, "jogl", Platform.MACOSX, null, null),
+	VULKAN(VulkanContextCreator::new, "vulkan", null, null, VK::getFunctionProvider),
 
-	GLFW(GLFWContextCreator.class, "glfw", null, null, org.lwjgl.glfw.GLFW.class, null);
+	GLFW(GLFWContextCreator::new, "glfw", null, null, org.lwjgl.glfw.GLFW::getLibrary),
+	GLFW_VULKAN(GLFWVulkanContextCreator::new, "glfw-vulkan", null, null, VK::getFunctionProvider),
+	LWJGLX_GL(LWJGLXContextCreator::new, "lwjglx-gl", null, Platform.MACOSX, null),
+	LWJGLX_VK(VkLWJGLXContextCreator::new, "lwjglx-vk", null, null, VK::getFunctionProvider),
 
-	EBackendType(Class<? extends ContextCreator> cc_class, String cc_name, Platform platform, Platform default_for, Class<?> probe_class, String probe_method) {
-		this.cc_class = cc_class;
+	VULKAN_OFFSCREEN(OffscreenVulkanContextCreator::new, "vulkan-offscreen", null, null, VK::getFunctionProvider),
+	;
+
+	EBackendType(BiFunction<ContextContainer, Boolean, ContextCreator<?>> creator, String cc_name, Platform platform, Platform default_for, Supplier<?> probe_function) {
+		this.creator = creator;
 		this.cc_name = cc_name;
 		this.platform = platform;
 		this.default_for = default_for;
-		this.probe_class = probe_class;
-		this.probe_method = probe_method;
+		this.probe_function = probe_function;
 	}
 
-	public Class<? extends ContextCreator> cc_class;
-	public Platform platform, default_for;
-	public String cc_name;
-	private Class<?> probe_class;
-	private String probe_method;
+	public final BiFunction<ContextContainer, Boolean, ContextCreator<?>> creator;
+	public final Platform platform, default_for;
+	public final String cc_name;
+	private final Supplier<?> probe_function;
 
 	@Override
 	public String toString() {
@@ -51,9 +62,9 @@ public enum EBackendType implements Comparable<EBackendType> {
 	}
 
 	public boolean available(Platform platform) {
-		if(probe_class != null) {
+		if(probe_function != null) {
 			try {
-				probe_class.getDeclaredMethod(probe_method != null ? probe_method : "getLibrary").invoke(null);
+				probe_function.get();
 			} catch (Throwable thrown) {
 				return false;
 			}
@@ -62,5 +73,9 @@ public enum EBackendType implements Comparable<EBackendType> {
 		}
 
 		return true;
+	}
+
+	public ContextCreator<?> createContext(ContextContainer container, boolean debug) {
+		return creator.apply(container, debug);
 	}
 }

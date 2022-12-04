@@ -2,6 +2,8 @@ package jsettlers.logic.map.grid.partition.manager.settings;
 
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.material.EMaterialType;
+import jsettlers.common.player.ECivilisation;
+
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -14,7 +16,7 @@ public class MaterialDistributionSettingsTest {
 
     @Test
     public void testGetUserConfiguredDistributionValue() {
-        MaterialDistributionSettings settings = new MaterialDistributionSettings(TEST_MATERIAL);
+        MaterialDistributionSettings settings = new MaterialDistributionSettings(TEST_MATERIAL, ECivilisation.EGYPTIAN);
         float testValue = 0.5f;
         settings.setUserConfiguredDistributionValue(TEST_BUILDING_TYPE, testValue);
 
@@ -26,7 +28,7 @@ public class MaterialDistributionSettingsTest {
 
     @Test
     public void testGetDistributionProbability() {
-        MaterialDistributionSettings settings = new MaterialDistributionSettings(TEST_MATERIAL);
+        MaterialDistributionSettings settings = new MaterialDistributionSettings(TEST_MATERIAL, ECivilisation.EGYPTIAN);
         settings.setUserConfiguredDistributionValue(TEST_BUILDING_TYPE, 1f);
         settings.setUserConfiguredDistributionValue(EBuildingType.TOOLSMITH, 0.7f);
         settings.setUserConfiguredDistributionValue(EBuildingType.DOCKYARD, 0.3f);
@@ -38,7 +40,7 @@ public class MaterialDistributionSettingsTest {
 
     @Test
     public void testGetMaterialType() {
-        MaterialDistributionSettings settings = new MaterialDistributionSettings(TEST_MATERIAL);
+        MaterialDistributionSettings settings = new MaterialDistributionSettings(TEST_MATERIAL, ECivilisation.EGYPTIAN);
 
         EMaterialType result = settings.getMaterialType();
 

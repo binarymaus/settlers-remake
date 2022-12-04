@@ -17,6 +17,7 @@ package jsettlers.main.android.core.resources.scanner;
 
 import java.io.File;
 
+import jsettlers.graphics.sound.MusicManager;
 import org.androidannotations.annotations.EBean;
 
 import android.content.Context;
@@ -66,8 +67,9 @@ public class AndroidResourcesLoader {
 
 		ImageProvider.setLookupPath(settlersFolders.gfxFolder, settlersVersionId);
 		SoundManager.setLookupPath(settlersFolders.sndFolder);
+		MusicManager.setLookupPath(settlersFolders.musicFolder);
 
-		MapList.setDefaultListFactory(new AndroidMapListFactory(context.getAssets(), outputDirectory));
+		MapList.setDefaultListFactory(new AndroidMapListFactory(context.getAssets(), settlersFolders.mapsFolder, outputDirectory));
 		ResourceManager.setProvider(new AndroidResourceProvider(context, outputDirectory));
 		return true;
 	}

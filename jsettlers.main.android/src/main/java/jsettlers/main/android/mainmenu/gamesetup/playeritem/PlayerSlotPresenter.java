@@ -15,6 +15,7 @@
 
 package jsettlers.main.android.mainmenu.gamesetup.playeritem;
 
+import java.util.Objects;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.main.android.mainmenu.gamesetup.PlayerSlotView;
 
@@ -30,7 +31,9 @@ public class PlayerSlotPresenter {
 	private boolean ready = false;
 	private boolean showReadyControl = false;
 	private boolean controlsEnabled = true;
-	private ReadyListener readyListener;
+	private SlotStateListener slotStateListener;
+	private boolean informReady;
+	private boolean informOther;
 
 	private Civilisation[] possibleCivilisations;
 	private Civilisation civilisation;
@@ -44,7 +47,10 @@ public class PlayerSlotPresenter {
 	private Team[] possibleTeams;
 	private Team team;
 
-	public PlayerSlotPresenter(PositionChangedListener positionChangedListener) {
+	private final byte slot;
+
+	public PlayerSlotPresenter(byte slot, PositionChangedListener positionChangedListener) {
+		this.slot = slot;
 		this.positionChangedListener = positionChangedListener;
 	}
 
@@ -60,10 +66,16 @@ public class PlayerSlotPresenter {
 			view.hideReadyControl();
 		}
 
-		if (controlsEnabled) {
-			view.setControlsEnabled();
+		if(slotStateListener != null) {
+			view.setReadyControlsEnabled();
 		} else {
-			view.setControlsDisabled();
+			view.setReadyControlsDisabled();
+		}
+
+		if (controlsEnabled) {
+			view.setPlayerControlsEnabled();
+		} else {
+			view.setPlayerControlsDisabled();
 		}
 
 		view.setPossibleCivilisations(possibleCivilisations);
@@ -90,6 +102,15 @@ public class PlayerSlotPresenter {
 		this.possibleCivilisations = possibleCivilisations;
 	}
 
+	public void civilisationSelected(Civilisation civilisation) {
+		Civilisation oldCivilisation = this.civilisation;
+		setCivilisation(civilisation);
+
+		if(!Objects.equals(civilisation, oldCivilisation) && informOther) {
+			slotStateListener.civilisationChanged(slot, civilisation.getType());
+		}
+	}
+
 	public void setCivilisation(Civilisation civilisation) {
 		this.civilisation = civilisation;
 	}
@@ -99,6 +120,15 @@ public class PlayerSlotPresenter {
 	 */
 	public void setPossiblePlayerTypes(PlayerType[] ePlayerTypes) {
 		this.possiblePlayerTypes = ePlayerTypes;
+	}
+
+	public void playerTypeSelected(PlayerType playerType) {
+		PlayerType oldPlayerType = this.playerType;
+		setPlayerType(playerType);
+
+		if(!Objects.equals(playerType, oldPlayerType) && informOther) {
+			slotStateListener.playerTypeChanged(slot, playerType.getType());
+		}
 	}
 
 	public void setPlayerType(PlayerType playerType) {
@@ -117,14 +147,17 @@ public class PlayerSlotPresenter {
 
 	public void setStartPosition(StartPosition startPosition) {
 		this.startPosition = startPosition;
-		if (view != null) {
-			view.setStartPosition(startPosition);
-		}
 	}
 
 	public void startPositionSelected(StartPosition position) {
 		positionChangedListener.positionChanged(this, this.startPosition, position);
-		this.startPosition = position;
+
+		StartPosition oldStartPosition = this.startPosition;
+		setStartPosition(position);
+
+		if(!Objects.equals(position, oldStartPosition) && informOther) {
+			slotStateListener.positionChanged(slot, position.asByte());
+		}
 	}
 
 	public StartPosition getStartPosition() {
@@ -150,7 +183,12 @@ public class PlayerSlotPresenter {
 	}
 
 	public void teamSelected(Team team) {
-		this.team = team;
+		Team oldTeam = this.team;
+		setTeam(team);
+
+		if(!Objects.equals(oldTeam, team) && informOther) {
+			slotStateListener.teamChanged(slot, team.asByte());
+		}
 	}
 
 	/**
@@ -168,16 +206,18 @@ public class PlayerSlotPresenter {
 	}
 
 	public void readyChanged(boolean ready) {
-		if (readyListener != null)
-			readyListener.readyChanged(ready);
+		if (informReady)
+			slotStateListener.readyChanged(ready);
 	}
 
 	public void setShowReadyControl(boolean showReadyControl) {
 		this.showReadyControl = showReadyControl;
 	}
 
-	public void setReadyListener(ReadyListener readyListener) {
-		this.readyListener = readyListener;
+	public void setSlotStateListener(SlotStateListener slotStateListener, boolean informReady, boolean informOther) {
+		this.slotStateListener = slotStateListener;
+		this.informReady = informReady;
+		this.informOther = informOther;
 	}
 
 	/**

@@ -65,8 +65,8 @@
 	<string name="filechoser_message">Wo sind die GFX und SND Ordner?</string>
 	<string name="cancel">Abbrechen</string>
 	<string name="confirm_kill">Soldaten töten?</string>
-	<string name="convert_all">Alle konvertieren</string>
-	<string name="convert_one">Einen konvertieren</string>
+	<string name="convert_all">Alle umwandeln</string>
+	<string name="convert_one">Einen umwandeln</string>
 	<string name="convert_to_carriers">Konvertiere zu Trägern</string>
 	<string name="empty_directory">Dieses Verzeichnis ist leer</string>
 	<string name="game_menu_pause">Pause</string>
@@ -117,10 +117,15 @@
 	<string name="normal">Normale Geschwindigkeit</string>
 
 	<string name="service_description">JSettlers Spiel-Service, welcher das aktuelle Spiel ausführt.</string>
-	<string name="dock">Dock</string>
+	<string name="dock">Steg</string>
 	<string name="destination">Ziel</string>
 	<string name="global_stock_message">Die globalen Lagereinstellungen können nur in einer eigenen Siedlung gesetzt werden.</string>
 	<string name="goods_stock_title">Globale Lagereinstellungen</string>
 
 	<string name="game_menu_skip_minute">Eine Minute vorspulen</string>
+	<string name="ask_workarea">Arbeitsbereich auswählen</string>
+	<string name="ask_dock">Stegposition auswählen</string>
+	<string name="ask_spell">Zauberstelle auswählen</string>
+	<string name="force_move">Zielpunkt erzwingen</string>
+	<string name="settings_play_all_music">Alle Musikdateien abspielen</string>
 </resources>

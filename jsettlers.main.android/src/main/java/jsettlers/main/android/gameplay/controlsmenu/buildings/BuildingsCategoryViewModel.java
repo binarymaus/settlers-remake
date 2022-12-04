@@ -1,7 +1,5 @@
 package jsettlers.main.android.gameplay.controlsmenu.buildings;
 
-import static java8.util.stream.StreamSupport.stream;
-
 import android.app.Activity;
 import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.Transformations;
@@ -62,7 +60,7 @@ public class BuildingsCategoryViewModel extends ViewModel {
 			buildingCounts = null;
 		}
 
-		return stream(buildingsCategory.buildingTypes)
+		return buildingsCategory.buildingTypes.stream()
 				.map(buildingType -> new BuildingViewState(buildingType, buildingCounts))
 				.toArray(BuildingViewState[]::new);
 	}

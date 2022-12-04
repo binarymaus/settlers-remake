@@ -17,6 +17,7 @@ package jsettlers.main.android.gameplay.controlsmenu.buildings;
 
 import org.androidannotations.annotations.AfterViews;
 import org.androidannotations.annotations.EFragment;
+import org.androidannotations.annotations.FragmentArg;
 import org.androidannotations.annotations.ViewById;
 
 import android.support.v4.app.Fragment;
@@ -25,6 +26,8 @@ import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 
 import biz.laenger.android.vpbs.BottomSheetUtils;
+import jsettlers.common.player.ECivilisation;
+import jsettlers.common.player.IInGamePlayer;
 import jsettlers.graphics.map.controls.original.panel.content.buildings.EBuildingsCategory;
 import jsettlers.main.android.R;
 import me.relex.circleindicator.CircleIndicator;
@@ -34,14 +37,19 @@ import me.relex.circleindicator.CircleIndicator;
  */
 @EFragment(R.layout.menu_view_pager)
 public class BuildingsMenuFragment extends Fragment {
-	public static BuildingsMenuFragment newInstance() {
-		return new BuildingsMenuFragment_();
+	private static final String ARG_BUILDINGSMENU_CIVILISATION = "arg_buildingsmenu_civilisation";
+
+	public static BuildingsMenuFragment newInstance(ECivilisation playerCivilisation) {
+		return BuildingsMenuFragment_.builder().playerCivilisation(playerCivilisation).build();
 	}
 
 	@ViewById(R.id.view_pager)
 	ViewPager viewPager;
 	@ViewById(R.id.circle_indicator)
 	CircleIndicator circleIndicator;
+
+	@FragmentArg(ARG_BUILDINGSMENU_CIVILISATION)
+	ECivilisation playerCivilisation;
 
 	@AfterViews
 	void setupBottomSheet() {
@@ -65,7 +73,7 @@ public class BuildingsMenuFragment extends Fragment {
 
 		@Override
 		public Fragment getItem(int position) {
-			return BuildingsCategoryFragment.newInstance(EBuildingsCategory.VALUES[position]);
+			return BuildingsCategoryFragment.newInstance(EBuildingsCategory.VALUES[position], playerCivilisation);
 		}
 	}
 }

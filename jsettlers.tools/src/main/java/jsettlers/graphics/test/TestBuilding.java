@@ -17,6 +17,7 @@ package jsettlers.graphics.test;
 import java.util.Collections;
 import java.util.List;
 
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.buildings.IBuildingMaterial;
@@ -31,9 +32,9 @@ public class TestBuilding implements IBuilding {
 
 	private final ShortPoint2D position;
 	private float constructed;
-	private final EBuildingType image;
+	private final BuildingVariant image;
 
-	TestBuilding(ShortPoint2D position, EBuildingType image) {
+	TestBuilding(ShortPoint2D position, BuildingVariant image) {
 		this.position = position;
 		this.image = image;
 		this.constructed = (float) Math.random();
@@ -44,7 +45,7 @@ public class TestBuilding implements IBuilding {
 	}
 
 	@Override
-	public EBuildingType getBuildingType() {
+	public BuildingVariant getBuildingVariant() {
 		return this.image;
 	}
 
@@ -55,7 +56,7 @@ public class TestBuilding implements IBuilding {
 
 	@Override
 	public IPlayer getPlayer() {
-		return new IPlayer.DummyPlayer();
+		return IPlayer.DEFAULT_DUMMY_PLAYER0;
 	}
 
 	@Override

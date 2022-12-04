@@ -57,9 +57,13 @@ public abstract class AbstractMovableGrid extends AbstractStrategyGrid {
 	 */
 	public abstract void enterPosition(ShortPoint2D position, ILogicMovable movable, boolean informFullArea);
 
-	public abstract void notifyAttackers(ShortPoint2D position, ILogicMovable movable, boolean informFullArea);
+	public abstract void notifyAttackers(ShortPoint2D position, IAttackableMovable movable, boolean informFullArea);
 
 	public abstract Path calculatePathTo(IPathCalculatable pathCalculatable, ShortPoint2D targetPos);
+	public abstract Path calculatePathTo(IPathCalculatable pathCalculatable, ShortPoint2D targetPos, ShortPoint2D startPos);
+
+
+	public abstract boolean isReachable(ShortPoint2D pos1, ShortPoint2D pos2, boolean ship);
 
 	public abstract Path searchDijkstra(IPathCalculatable pathCalculateable, short centerX, short centerY, short radius, ESearchType searchType);
 
@@ -85,6 +89,10 @@ public abstract class AbstractMovableGrid extends AbstractStrategyGrid {
 	 */
 	public abstract void addSelfDeletingMapObject(ShortPoint2D position, EMapObjectType mapObjectType, float duration, Player player);
 
+	public abstract void addSelfDeletingMapObject(ShortPoint2D point, int sound, int animation, float duration, Player player);
+
+	public abstract void addEyeMapObject(ShortPoint2D position, short radius, float duration, Player player);
+
 	public abstract boolean isInBounds(int x, int y);
 
 	public abstract ShortPoint2D calcDecentralizeVector(short x, short y);
@@ -100,4 +108,6 @@ public abstract class AbstractMovableGrid extends AbstractStrategyGrid {
 	public abstract int getHeight();
 
 	public abstract boolean isWater(int x, int y);
+
+	public abstract void playHealAnimation(ShortPoint2D point, int sound, int animation, float duration, Player player);
 }

@@ -15,6 +15,7 @@
 
 package jsettlers.main.android.gameplay.controlsmenu.selection;
 
+import org.androidannotations.annotations.CheckedChange;
 import org.androidannotations.annotations.Click;
 import org.androidannotations.annotations.EFragment;
 import org.androidannotations.annotations.ViewById;
@@ -27,14 +28,21 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Switch;
 import android.widget.TextView;
 
+import java.util.EnumSet;
+import java.util.Set;
+
+import go.graphics.event.command.EModifier;
 import jsettlers.common.action.EActionType;
 import jsettlers.common.movable.EMovableType;
+import jsettlers.common.player.ECivilisation;
+import jsettlers.graphics.map.draw.ECommonLinkType;
+import jsettlers.graphics.map.draw.ImageLinkMap;
 import jsettlers.main.android.R;
 import jsettlers.main.android.core.controls.ActionControls;
 import jsettlers.main.android.core.controls.ControlsResolver;
-import jsettlers.main.android.core.resources.ImageLinkFactory;
 import jsettlers.main.android.core.resources.OriginalImageProvider;
 
 /**
@@ -54,7 +62,7 @@ public class SoldiersSelectionFragment extends SelectionFragment {
 			EMovableType.BOWMAN_L3,
 	};
 
-	public static Fragment newInstance() {
+	public static SoldiersSelectionFragment newInstance() {
 		return new SoldiersSelectionFragment_();
 	}
 
@@ -64,6 +72,9 @@ public class SoldiersSelectionFragment extends SelectionFragment {
 	LinearLayout soldiers2Layout;
 	@ViewById(R.id.layout_soldiers_level_3)
 	LinearLayout soldiers3Layout;
+
+	@ViewById(R.id.force_move)
+	Switch forceMove;
 
 	private ActionControls actionControls;
 
@@ -75,17 +86,19 @@ public class SoldiersSelectionFragment extends SelectionFragment {
 		LayoutInflater layoutInflater = LayoutInflater.from(getActivity());
 
 		for (EMovableType movableType : soldierTypes) {
-			int count = getSelection().getMovableCount(movableType);
+			int count = getSelection().getMovableCount(movableType, null);
 
 			if (count > 0) {
 				LinearLayout soldiersLayout = getLevelLayout(movableType);
 
 				View view = layoutInflater.inflate(R.layout.view_specialist, soldiersLayout, false);
-				ImageView imageView = (ImageView) view.findViewById(R.id.image_view_specialist);
-				TextView textView = (TextView) view.findViewById(R.id.text_view_specialist_count);
+				ImageView imageView = view.findViewById(R.id.image_view_specialist);
+				TextView textView = view.findViewById(R.id.text_view_specialist_count);
 
-				OriginalImageProvider.get(ImageLinkFactory.get(movableType)).setAsImage(imageView);
-				textView.setText(count + "");
+				ECivilisation civilisation = getSelection().get(0).getPlayer().getCivilisation();
+
+				OriginalImageProvider.get(ImageLinkMap.get(civilisation, ECommonLinkType.SETTLER_GUI, movableType)).setAsImage(imageView);
+				textView.setText(Integer.toString(count));
 
 				soldiersLayout.addView(view);
 			}
@@ -117,8 +130,15 @@ public class SoldiersSelectionFragment extends SelectionFragment {
 		case PIKEMAN_L3:
 			return soldiers3Layout;
 		default:
-			throw new RuntimeException("SoldiersSelctionFragment can't display movable: " + movableType.name());
+			throw new RuntimeException("SoldiersSelectionFragment can't display movable: " + movableType.name());
 		}
+	}
+
+	@Override
+	public Set<EModifier> getModifiers() {
+		Set<EModifier> mods = EnumSet.noneOf(EModifier.class);
+		if(forceMove.isChecked()) mods.add(EModifier.CTRL);
+		return mods;
 	}
 
 	@Click(R.id.button_halt)

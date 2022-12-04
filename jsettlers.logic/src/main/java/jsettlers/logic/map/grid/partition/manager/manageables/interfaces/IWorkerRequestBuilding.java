@@ -14,6 +14,7 @@
  *******************************************************************************/
 package jsettlers.logic.map.grid.partition.manager.manageables.interfaces;
 
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.mapobject.EMapObjectType;
@@ -42,8 +43,7 @@ public interface IWorkerRequestBuilding extends IPlayerable, ILocatable, IBuildi
 
 	void occupyBuilding(IManageableWorker worker);
 
-	@Override
-	EBuildingType getBuildingType();
+	BuildingVariant getBuildingVariant();
 
 	MaterialProductionSettings getMaterialProduction();
 
@@ -58,7 +58,7 @@ public interface IWorkerRequestBuilding extends IPlayerable, ILocatable, IBuildi
 	 */
 	void leaveBuilding(IManageableWorker worker);
 
-	boolean tryTakingFood(EMaterialType[] foodOrder);
+	boolean tryTakingFood();
 
 	boolean tryTakingResource();
 

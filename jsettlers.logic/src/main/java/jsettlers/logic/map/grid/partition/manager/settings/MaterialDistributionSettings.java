@@ -21,7 +21,8 @@ import jsettlers.common.buildings.MaterialsOfBuildings;
 import jsettlers.common.map.partition.IMaterialDistributionSettings;
 import jsettlers.common.material.EMaterialType;
 
-import java8.util.J8Arrays;
+import java.util.Arrays;
+import jsettlers.common.player.ECivilisation;
 
 /**
  * This class holds the distribution settings for a given {@link EMaterialType}.
@@ -31,26 +32,87 @@ import java8.util.J8Arrays;
 public final class MaterialDistributionSettings implements IMaterialDistributionSettings, Serializable {
 	private static final long serialVersionUID = -8519244429973606793L;
 
+	private final ECivilisation civilisation;
 	private final EMaterialType materialType;
 	private final RelativeSettings<EBuildingType> distributionSettings = new RelativeSettings<>(EBuildingType.NUMBER_OF_BUILDINGS, index -> EBuildingType.VALUES[index], false);
 	private float requestValueSum = 0f;
+
 	/**
 	 * Creates a new object of {@link MaterialDistributionSettings} holding the settings for the given {@link EMaterialType}.
 	 *
 	 * @param materialType
 	 * 		Defines the {@link EMaterialType}, this settings are used for.
 	 */
-	MaterialDistributionSettings(EMaterialType materialType) {
+	MaterialDistributionSettings(EMaterialType materialType, ECivilisation civilisation) {
 		this.materialType = materialType;
+		this.civilisation = civilisation;
 
 		EBuildingType[] requestingBuildings = getBuildingTypes();
-		requestValueSum = requestingBuildings.length;
-		float initialValue = 1.0f;
-		J8Arrays.stream(requestingBuildings).forEach(buildingType -> distributionSettings.setUserValue(buildingType, initialValue));
+		requestValueSum = requestingBuildings.length;	
+		Arrays.stream(requestingBuildings).forEach(buildingType -> {
+			float initialValue = getInitialValue(materialType, buildingType);
+			distributionSettings.setUserValue(buildingType, initialValue);
+		});
+	}
+
+	private float getInitialValue(EMaterialType materialType, EBuildingType buildingType) {
+		switch(materialType) {
+			case FISH:
+				switch(buildingType) {
+					case COALMINE: return 0.15f;
+					case IRONMINE: return 0.15f;
+					case GOLDMINE: return 2.7f;
+					default: return 0.0f;
+				}
+			case MEAT:
+				switch(buildingType) {
+					case GOLDMINE: return 0.0f;
+					case IRONMINE: return 3.0f;
+					case COALMINE: return 0.0f;
+					default: return 0.0f;
+				}
+			case BREAD:
+				switch(buildingType) {
+					case GOLDMINE: return 0.0f;
+					case IRONMINE: return 0.0f;
+					case COALMINE: return 3.0f;
+					default: return 0.0f;
+				}
+			case COAL:
+				switch(buildingType) {
+					case GOLDMELT: return 1.146666666667f;
+					case TOOLSMITH: return 0.56f;
+					case IRONMELT: return 1.146666666667f;
+					case WEAPONSMITH: return 1.146666666667f;
+					default: return 0.0f;
+				}
+			case CROP:
+				switch(buildingType) {
+					case PIG_FARM: return 1.5f;
+					case MILL: return 1.5f;
+					case DONKEY_FARM: return 0.0f;
+					default: return 0.0f;
+				}
+			case IRON:
+				switch(buildingType) {
+					case TOOLSMITH: return 1.5f;
+					case WEAPONSMITH: return 1.5f;
+					case DOCKYARD: return 0.0f;
+					default: return 0.0f;
+				}
+			case WATER:
+				switch(buildingType) {
+					case PIG_FARM: return 1.5f;
+					case BAKER: return 1.5f;
+					case DONKEY_FARM: return 0.0f;
+					default: return 0.0f;
+				}
+			default: return 1.0f;
+		}
 	}
 
 	public final EBuildingType[] getBuildingTypes() {
-		return MaterialsOfBuildings.getBuildingTypesRequestingMaterial(materialType);
+		return MaterialsOfBuildings.getBuildingTypesRequestingMaterial(materialType, civilisation);
 	}
 
 	public void setUserConfiguredDistributionValue(EBuildingType buildingType, float value) {

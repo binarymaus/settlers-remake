@@ -16,7 +16,7 @@ package jsettlers.integration.replay;
 
 import java.io.IOException;
 import java.util.Collection;
-import java8.util.stream.Collectors;
+import java.util.stream.Collectors;
 
 import jsettlers.common.CommonConstants;
 import jsettlers.logic.map.loading.MapLoadException;
@@ -30,8 +30,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-
-import static java8.util.stream.StreamSupport.stream;
 
 @RunWith(Parameterized.class)
 public class AutoReplayIT {
@@ -50,7 +48,7 @@ public class AutoReplayIT {
 
 	@Parameters(name = "{index}: {0}")
 	public static Collection<Object[]> replaySets() {
-		return stream( AutoReplaySetting.getDefaultSettings()).map(s -> new Object[] { s }).collect(Collectors.toList());
+		return AutoReplaySetting.getDefaultSettings().stream().map(s -> new Object[] { s }).collect(Collectors.toList());
 	}
 
 	private final AutoReplaySetting setting;

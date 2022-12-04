@@ -19,6 +19,7 @@ import java.io.File;
 import jsettlers.exceptionhandler.ExceptionHandler;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.map.loading.list.DirectoryMapLister;
+import jsettlers.logic.player.InitialGameState;
 import jsettlers.main.JSettlersGame;
 
 /**
@@ -42,7 +43,7 @@ public class PlayProcess {
 			final File file = new File(args[0]);
 
 			JSettlersGame game = new JSettlersGame(MapLoader.getLoaderForListedMap(new DirectoryMapLister.ListedMapFile(file)),
-					123456L, (byte) 0, null);
+					new InitialGameState((byte) 0, null, 123456L));
 			game.start();
 
 		} catch (Exception e) {

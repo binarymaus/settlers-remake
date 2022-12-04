@@ -61,7 +61,7 @@ public class MapNeighboursArea implements IMapArea {
 		return new CoordinateStream() {
 			@Override
 			public boolean iterate(IBooleanCoordinateFunction function) {
-				for (EDirection direction : EDirection.values()) {
+				for (EDirection direction : EDirection.VALUES) {
 					int x = direction.gridDeltaX + centerX;
 					int y = direction.gridDeltaY + centerY;
 

@@ -28,6 +28,10 @@ public interface IGraphicsBackgroundListener {
 	 *            x coordinate
 	 * @param y
 	 *            y coordinate
+	 * @param length
+	 * 			the amount of position starting at x that have changed
 	 */
-	void backgroundShapeChangedAt(int x, int y);
+	void backgroundLineChangedAt(int x, int y, int length);
+
+	void fogOfWarEnabledStatusChanged(boolean enabled);
 }

@@ -32,6 +32,9 @@ import jsettlers.logic.map.loading.MapLoadException;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.map.loading.list.DirectoryMapLister;
 import jsettlers.logic.map.loading.newmap.MapFileHeader;
+import jsettlers.logic.movable.civilian.BuildingWorkerMovable;
+import jsettlers.logic.movable.other.AttackableHumanMovable;
+import jsettlers.logic.player.InitialGameState;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.main.JSettlersGame;
 import jsettlers.main.ReplayStartInformation;
@@ -57,6 +60,7 @@ public class SwingManagedJSettlers {
 	public static void main(String[] args) throws IOException, MapLoadException, JSettlersLookAndFeelExecption {
   		// removes screen flickering
 		System.setProperty("sun.awt.noerasebackground", "true");
+
 		setupResources(true, args);
 
 		JSettlersFrame settlersFrame = createJSettlersFrame();
@@ -147,10 +151,13 @@ public class SwingManagedJSettlers {
 				if (mapLoader.getFileHeader().getType() == MapFileHeader.MapType.NORMAL) {
 					byte playerId = 0;
 					PlayerSetting[] playerSettings = PlayerSetting.createDefaultSettings(playerId, (byte) mapLoader.getMaxPlayers());
-					game = new JSettlersGame(mapLoader, randomSeed, playerId, playerSettings).start();
+
+					InitialGameState initialGameState = new InitialGameState(playerId, playerSettings, randomSeed);
+					game = new JSettlersGame(mapLoader, initialGameState).start();
 				} else {
 					MapFileHeader header = mapLoader.getFileHeader();
-					game = new JSettlersGame(mapLoader, randomSeed, header.getPlayerId(), header.getPlayerSettings()).start();
+					InitialGameState initialGameState = new InitialGameState(header.getPlayerId(), header.getPlayerSettings(), randomSeed);
+					game = new JSettlersGame(mapLoader, initialGameState).start();
 				}
 			} else {
 				game = JSettlersGame.loadFromReplayFile(loadableReplayFile, new OfflineNetworkConnector(), new ReplayStartInformation()).start();

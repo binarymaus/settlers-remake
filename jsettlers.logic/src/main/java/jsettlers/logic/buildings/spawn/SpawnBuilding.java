@@ -38,6 +38,7 @@ public abstract class SpawnBuilding extends Building {
 
 	protected SpawnBuilding(EBuildingType type, Player player, ShortPoint2D position, IBuildingsGrid buildingsGrid) {
 		super(type, player, position, buildingsGrid);
+		setOccupied(true);
 	}
 
 	@Override
@@ -56,7 +57,7 @@ public abstract class SpawnBuilding extends Building {
 		ILogicMovable movableAtDoor = super.grid.getMovable(super.getDoor());
 
 		if (movableAtDoor == null) {
-			movableAtDoor = new Movable(super.grid.getMovableGrid(), getMovableType(), getDoor(), super.getPlayer());
+			movableAtDoor = Movable.createMovable(getMovableType(), getPlayer(), getDoor(), grid.getMovableGrid());
 			produced++;
 
 			if (produced < getProduceLimit()) {
@@ -82,12 +83,14 @@ public abstract class SpawnBuilding extends Building {
 	protected abstract byte getProduceLimit();
 
 	@Override
-	public final boolean isOccupied() {
-		return true;
+	public boolean cannotWork() {
+		return produced >= getProduceLimit();
 	}
 
 	@Override
-	public boolean cannotWork() {
-		return produced >= getProduceLimit();
+	protected void killedEvent() {
+		if(getMovableType() == EMovableType.BEARER) {
+			getPlayer().getBedInformation().removeBeds(produced);
+		}
 	}
 }

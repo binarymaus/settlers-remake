@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jsettlers.ai.highlevel.AiStatistics;
-import jsettlers.algorithms.construction.AbstractConstructionMarkableMap;
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.position.ShortPoint2D;
 
@@ -30,28 +30,30 @@ import jsettlers.common.position.ShortPoint2D;
  *
  * @author codingberlin
  */
-public class NearDiggersConstructionPositionFinder implements IBestConstructionPositionFinder {
+public class NearDiggersConstructionPositionFinder extends ConstructionPositionFinder {
 
-	private EBuildingType buildingType;
+	private BuildingVariant building;
 
-	public NearDiggersConstructionPositionFinder(EBuildingType buildingType) {
-		this.buildingType = buildingType;
+	public NearDiggersConstructionPositionFinder(Factory factory, EBuildingType buildingType) {
+		super(factory);
+
+		this.building = buildingType.getVariant(civilisation);
 	}
 
 	@Override
-	public ShortPoint2D findBestConstructionPosition(AiStatistics aiStatistics, AbstractConstructionMarkableMap constructionMap, byte playerId) {
+	public ShortPoint2D findBestConstructionPosition() {
 		List<ShortPoint2D> diggers = aiStatistics.getPositionsOfMovablesWithTypeForPlayer(playerId, DIGGER);
 		List<ScoredConstructionPosition> scoredConstructionPositions = new ArrayList<>();
 
 		for (ShortPoint2D point : aiStatistics.getLandForPlayer(playerId)) {
-			if (constructionMap.canConstructAt(point.x, point.y, buildingType, playerId)
-					&& !aiStatistics.blocksWorkingAreaOfOtherBuilding(point.x, point.y, playerId, buildingType)) {
+			if (constructionMap.canConstructAt(point.x, point.y, building.getType(), playerId)
+					&& !aiStatistics.blocksWorkingAreaOfOtherBuilding(point.x, point.y, playerId, building)) {
 				ShortPoint2D nearestDiggerPosition = AiStatistics.detectNearestPointFromList(point, diggers);
 				int nearestDiggerDistance = 0;
 				if (nearestDiggerPosition != null) {
 					nearestDiggerDistance = point.getOnGridDistTo(nearestDiggerPosition);
 				}
-				byte flatternEffort = aiStatistics.getFlatternEffortAtPositionForBuilding(point, buildingType);
+				byte flatternEffort = aiStatistics.getFlatternEffortAtPositionForBuilding(point, building);
 				scoredConstructionPositions.add(new ScoredConstructionPosition(point, nearestDiggerDistance + flatternEffort));
 			}
 		}

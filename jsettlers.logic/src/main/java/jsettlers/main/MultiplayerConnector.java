@@ -23,10 +23,13 @@ import jsettlers.common.menu.IMultiplayerConnector;
 import jsettlers.common.menu.IOpenMultiplayerGameInfo;
 import jsettlers.common.utils.collections.ChangingList;
 import jsettlers.main.datatypes.JoinableGame;
+import jsettlers.network.client.IClientConnection;
+import jsettlers.network.client.RemoteMapDirectory;
 import jsettlers.network.client.interfaces.INetworkClient;
 import jsettlers.network.client.receiver.IPacketReceiver;
 import jsettlers.network.common.packets.ArrayOfMatchInfosPacket;
 import jsettlers.network.common.packets.MatchInfoPacket;
+import jsettlers.network.infrastructure.log.Logger;
 
 /**
  * This class implements the {@link IMultiplayerConnector} interface and supports the UI with the list of available multiplayer games and allows to
@@ -35,13 +38,18 @@ import jsettlers.network.common.packets.MatchInfoPacket;
  * @author Andreas Eberle
  * 
  */
-public class MultiplayerConnector implements IMultiplayerConnector {
+public class MultiplayerConnector implements IMultiplayerConnector, IClientConnection {
 
 	private final AsyncNetworkClientConnector networkClientFactory;
 	private final ChangingList<IJoinableGame> joinableGames = new ChangingList<>();
 
-	public MultiplayerConnector(final String serverAddress, final String userId, final String userName) {
-		networkClientFactory = new AsyncNetworkClientConnector(serverAddress, userId, userName, generateMatchesReceiver());
+	private final String userId;
+	private final String userName;
+
+	public MultiplayerConnector(final String serverAddress, final String userId, final String userName, Logger log) {
+		this.userId = userId;
+		this.userName = userName;
+		networkClientFactory = new AsyncNetworkClientConnector(serverAddress, userId, userName, generateMatchesReceiver(), log);
 	}
 
 	private IPacketReceiver<ArrayOfMatchInfosPacket> generateMatchesReceiver() {
@@ -72,17 +80,66 @@ public class MultiplayerConnector implements IMultiplayerConnector {
 	}
 
 	@Override
-	public void shutdown() {
-		networkClientFactory.close();
-	}
-
-	@Override
 	public int getRoundTripTimeInMs() {
 		INetworkClient networkClient = networkClientFactory.getNetworkClientAsync();
 		if (networkClient != null) {
 			return networkClient.getRoundTripTimeInMs();
 		} else {
 			return Integer.MAX_VALUE;
+		}
+	}
+
+	@Override
+	public String getPlayerName() {
+		return userName;
+	}
+
+	@Override
+	public String getPlayerUUID() {
+		return userId;
+	}
+
+	@Override
+	public boolean hasConnectionFailed() {
+		AsyncNetworkClientConnector.AsyncNetworkClientFactoryState state = networkClientFactory.getState();
+		return state == AsyncNetworkClientConnector.AsyncNetworkClientFactoryState.FAILED_CONNECTING || state == AsyncNetworkClientConnector.AsyncNetworkClientFactoryState.FAILED_SERVER_NOT_FOUND || state == AsyncNetworkClientConnector.AsyncNetworkClientFactoryState.CLOSED;
+	}
+
+	@Override
+	public boolean isConnected() {
+		return !hasConnectionFailed() && networkClientFactory.getNetworkClientAsync() != null;
+	}
+
+	@Override
+	public RemoteMapDirectory getMaps(String directory) {
+		return null;
+	}
+
+	@Override
+	public String findMap(String id) {
+		return null;
+	}
+
+	@Override
+	public long getDownloadProgress() {
+		return -1;
+	}
+
+	@Override
+	public long getDownloadSize() {
+		return -1;
+	}
+
+	@Override
+	public void action(EClientAction action, Object argument) {
+		switch (action) {
+			case CLOSE:
+				networkClientFactory.close();
+				break;
+			case FIND_MAP:
+			case DOWNLOAD_MAP:
+			case GET_MAPS_DIR:
+				break;
 		}
 	}
 }

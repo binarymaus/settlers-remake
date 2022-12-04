@@ -17,9 +17,10 @@ package jsettlers.mapcreator.data.objects;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-import jsettlers.common.buildings.EBuildingType;
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.buildings.IBuildingMaterial;
 import jsettlers.common.buildings.IBuildingOccupier;
@@ -28,6 +29,8 @@ import jsettlers.common.mapobject.EMapObjectType;
 import jsettlers.common.mapobject.IMapObject;
 import jsettlers.common.material.EPriority;
 import jsettlers.common.movable.ESoldierClass;
+import jsettlers.common.movable.ESoldierType;
+import jsettlers.common.player.ECivilisation;
 import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.RelativePoint;
 import jsettlers.common.position.ShortPoint2D;
@@ -35,7 +38,7 @@ import jsettlers.common.selectable.ESelectionType;
 import jsettlers.logic.map.loading.data.objects.BuildingMapDataObject;
 import jsettlers.mapcreator.data.LandscapeConstraint;
 
-public class BuildingContainer implements ObjectContainer, IBuilding, LandscapeConstraint, IBuilding.IMill, IBuilding.IOccupied {
+public class BuildingContainer implements ObjectContainer, IBuilding, LandscapeConstraint, IBuilding.IMill, IBuilding.IOccupied, IBuilding.ISoundRequestable {
 
 	private final BuildingMapDataObject buildingObject;
 	private final ShortPoint2D position;
@@ -44,7 +47,7 @@ public class BuildingContainer implements ObjectContainer, IBuilding, LandscapeC
 	public BuildingContainer(BuildingMapDataObject buildingObject, ShortPoint2D position) {
 		this.buildingObject = buildingObject;
 		this.position = position;
-		this.player = new IPlayer.DummyPlayer(buildingObject.getPlayerId());
+		this.player = IPlayer.DummyPlayer.getCached(buildingObject.getPlayerId());
 	}
 
 	@Override
@@ -97,8 +100,8 @@ public class BuildingContainer implements ObjectContainer, IBuilding, LandscapeC
 	}
 
 	@Override
-	public EBuildingType getBuildingType() {
-		return buildingObject.getType();
+	public BuildingVariant getBuildingVariant() {
+		return buildingObject.getType().getVariant();
 	}
 
 	@Override
@@ -156,6 +159,11 @@ public class BuildingContainer implements ObjectContainer, IBuilding, LandscapeC
 	}
 
 	@Override
+	public Map<ESoldierType, Integer> calculateAvailableSoldiers() {
+		return Map.of();
+	}
+
+	@Override
 	public EPriority getPriority() {
 		return EPriority.DEFAULT;
 	}
@@ -173,5 +181,15 @@ public class BuildingContainer implements ObjectContainer, IBuilding, LandscapeC
 	@Override
 	public boolean cannotWork() {
 		return false;
+	}
+
+	@Override
+	public boolean isSoundRequested() {
+		return false;
+	}
+
+	@Override
+	public void requestSound() {
+
 	}
 }

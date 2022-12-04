@@ -56,7 +56,7 @@ public class SetMaterialDistributionSettingsAction extends Action {
 	/**
 	 * @return Returns the new distribution ratio. The values correspond to the {@link EBuildingType} given by
 	 * MaterialsOfBuildings.getBuildingTypesRequestingMaterial( {@link #getMaterialType()}).
-	 * @see MaterialsOfBuildings#getBuildingTypesRequestingMaterial(EMaterialType)
+	 * @see MaterialsOfBuildings#getBuildingTypesRequestingMaterial(EMaterialType, jsettlers.common.player.ECivilisation)
 	 */
 	public float getRatio() {
 		return ratio;

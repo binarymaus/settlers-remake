@@ -16,8 +16,10 @@ package jsettlers.ai.highlevel.pioneers.target;
 
 import jsettlers.ai.highlevel.AiPositions;
 import jsettlers.ai.highlevel.AiStatistics;
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.landscape.EResourceType;
+import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.ShortPoint2D;
 
 /**
@@ -26,14 +28,23 @@ import jsettlers.common.position.ShortPoint2D;
 public class MineTargetFinder extends AbstractPioneerTargetFinder {
 
 	private final EResourceType resourceType;
-	private final EBuildingType mineBuildingType;
+	private final int neededSpace;
+	private final EBuildingType buildingType;
 	private final AiPositions.AiPositionFilter mineFilters;
 
-	public MineTargetFinder(final AiStatistics aiStatistics, final byte playerId, final int searchDistance, final EResourceType resourceType,
-			final EBuildingType mineBuildingType) {
-		super(aiStatistics, playerId, searchDistance);
+	public MineTargetFinder(final AiStatistics aiStatistics, final IPlayer player, final int searchDistance, final EResourceType resourceType,
+			final EBuildingType buildingType) {
+		super(aiStatistics, player.getPlayerId(), searchDistance);
 		this.resourceType = resourceType;
-		this.mineBuildingType = mineBuildingType;
+
+		BuildingVariant buildingVariant = buildingType.getVariant(player.getCivilisation());
+		if(buildingVariant != null) {
+			neededSpace = buildingVariant.getProtectedTiles().length * 2;
+		} else {
+			neededSpace = 0;
+		}
+
+		this.buildingType = buildingType;
 		AiPositions.AiPositionFilter firstFilter = new SameBlockedPartitionLikePlayerFilter(this.aiStatistics, playerId);
 		SurroundedByResourcesFilter secondFilter = new SurroundedByResourcesFilter(aiStatistics.getMainGrid(),
 				aiStatistics.getMainGrid().getLandscapeGrid(), resourceType);
@@ -45,10 +56,9 @@ public class MineTargetFinder extends AbstractPioneerTargetFinder {
 		if (aiStatistics.resourceCountInDefaultPartition(resourceType) == 0)
 			return null;
 
-		int buildingCount = aiStatistics.getTotalNumberOfBuildingTypeForPlayer(mineBuildingType, playerId) + 1;
-		int tiles = mineBuildingType.getProtectedTiles().length * 2;
+		int buildingCount = aiStatistics.getTotalNumberOfBuildingTypeForPlayer(buildingType, playerId) + 1;
 
-		if (aiStatistics.resourceCountOfPlayer(resourceType, playerId) > tiles * buildingCount)
+		if (aiStatistics.resourceCountOfPlayer(resourceType, playerId) > neededSpace * buildingCount)
 			return null;
 
 		ShortPoint2D nearestResourceAbroad = aiStatistics.getNearestResourcePointInDefaultPartitionFor(center, resourceType, searchDistance,

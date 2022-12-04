@@ -27,11 +27,14 @@ public class AndroidPreferences {
 	private static final String PREF_PLAYER_ID = "playerid";
 	private static final String PREF_PLAYER_NAME = "playername";
 	private static final String PREF_SERVER = "server";
+	private static final String PREF_PLAYALL_MUSIC = "playall";
 
 	private final SharedPreferences preferences;
 
 	public AndroidPreferences(Context context) {
 		this.preferences = context.getSharedPreferences(PREFS, 0);
+
+		CommonConstants.PLAYALL_MUSIC = this::isPlayAllMusic;
 	}
 
 	public String getPlayerId() {
@@ -61,5 +64,13 @@ public class AndroidPreferences {
 
 	public void setServer(String serverName) {
 		preferences.edit().putString(PREF_SERVER, serverName).apply();
+	}
+
+	public boolean isPlayAllMusic() {
+		return preferences.getBoolean(PREF_PLAYALL_MUSIC, false);
+	}
+
+	public void setPlayAllMusic(boolean playAll) {
+		preferences.edit().putBoolean(PREF_PLAYALL_MUSIC, playAll).apply();
 	}
 }

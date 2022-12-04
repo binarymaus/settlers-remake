@@ -23,6 +23,7 @@ import jsettlers.common.action.EActionType;
 import jsettlers.common.action.IAction;
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.images.ImageLink;
+import jsettlers.graphics.localization.Labels;
 import jsettlers.graphics.map.controls.original.panel.selection.BuildingState;
 import jsettlers.main.android.R;
 import jsettlers.main.android.core.controls.ActionControls;
@@ -77,8 +78,8 @@ public class WorkAreaFeature extends SelectionFeature implements ActionListener 
 		switch (action.getActionType()) {
 		case ASK_SET_WORK_AREA:
 			snackbar = Snackbar
-					.make(getView(), "Choose work area", Snackbar.LENGTH_INDEFINITE)
-					.setAction("Cancel", view -> taskControls.endTask());
+					.make(getView(), R.string.ask_workarea, Snackbar.LENGTH_INDEFINITE)
+					.setAction(R.string.cancel, view -> taskControls.endTask());
 			snackbar.show();
 			break;
 		case SET_WORK_AREA:

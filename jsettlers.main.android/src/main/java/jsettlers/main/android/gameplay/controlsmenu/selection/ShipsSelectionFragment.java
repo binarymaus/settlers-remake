@@ -24,7 +24,6 @@ import org.androidannotations.annotations.ViewsById;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
-import android.support.v4.app.Fragment;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -62,7 +61,7 @@ public class ShipsSelectionFragment extends SelectionFragment {
 
 	private ActionControls actionControls;
 
-	public static Fragment newInstance() {
+	public static ShipsSelectionFragment newInstance() {
 		return ShipsSelectionFragment_.builder().build();
 	}
 
@@ -73,7 +72,7 @@ public class ShipsSelectionFragment extends SelectionFragment {
 
 		for (int i = 0; i < shipTypes.length; i++) {
 			EMovableType shipType = shipTypes[i];
-			int count = getSelection().getMovableCount(shipType);
+			int count = getSelection().getMovableCount(shipType, null);
 
 			if (count > 0) {
 				OriginalImageProvider.get(shipImageLinks[i]).setAsImage(shipImageViews.get(i));

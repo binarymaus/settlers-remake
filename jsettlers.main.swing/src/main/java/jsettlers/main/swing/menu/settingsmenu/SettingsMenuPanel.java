@@ -18,6 +18,7 @@ import java.awt.BorderLayout;
 import java.awt.GridLayout;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -45,8 +46,11 @@ public class SettingsMenuPanel extends JPanel {
 	 * Name of the player
 	 */
 	private final JTextField playerNameField = new JTextField();
-	private final SettingsSlider volumeSlider = new SettingsSlider("%", 0,100);
-	private final SettingsSlider fpsLimitSlider = new SettingsSlider("fps", 1,240);
+	private final SettingsSlider volumeSlider = new SettingsSlider("%", 0,100, null);
+	private final SettingsSlider volumeMusicSlider = new SettingsSlider("%", 0,100, null);
+	private final JCheckBox playAllMusicCheckBox = new JCheckBox();
+	private final SettingsSlider fpsLimitSlider = new SettingsSlider("fps", 0,240, "timerless redraw");
+	private final SettingsSlider guiScaleSlider = new SettingsSlider("%", 50,400, "system default");
 	private final BackendSelector backendSelector = new BackendSelector();
 
 	/**
@@ -73,10 +77,16 @@ public class SettingsMenuPanel extends JPanel {
 		addSetting("settings-name", playerNameField);
 
 		addSetting("settings-volume", volumeSlider);
-		
+
+		addSetting("settings-volume-music", volumeMusicSlider);
+
+		addSetting("settings-music-playall", playAllMusicCheckBox);
+
 		addSetting("settings-fps-limit", fpsLimitSlider);
 		
 		addSetting("settings-backend", backendSelector);
+
+		addSetting("settings-gui-scale", guiScaleSlider);
 		
 		initButton();
 	}
@@ -110,8 +120,11 @@ public class SettingsMenuPanel extends JPanel {
 			SettingsManager settingsManager = SettingsManager.getInstance();
 			settingsManager.setUserName(playerNameField.getText());
 			settingsManager.setVolume(volumeSlider.getValue() / 100f);
+			settingsManager.setMusicVolume(volumeMusicSlider.getValue() / 100f);
+			settingsManager.setMusicPlayAll(playAllMusicCheckBox.isSelected());
 			settingsManager.setFpsLimit(fpsLimitSlider.getValue());
-			settingsManager.setBackend(backendSelector.getSelectedItem().toString());
+			settingsManager.setBackend(backendSelector.getSelectedItem()+"");
+			settingsManager.setGuiScale(guiScaleSlider.getValue()/100f);
 			mainMenuPanel.reset();
 		});
 
@@ -126,7 +139,10 @@ public class SettingsMenuPanel extends JPanel {
 		SettingsManager settingsManager = SettingsManager.getInstance();
 		playerNameField.setText(settingsManager.getPlayer().getName());
 		volumeSlider.setValue((int) (settingsManager.getVolume() * 100));
+		volumeMusicSlider.setValue((int) (settingsManager.getMusicVolume() * 100));
+		playAllMusicCheckBox.setSelected(settingsManager.isMusicPlayAll());
 		fpsLimitSlider.setValue(settingsManager.getFpsLimit());
 		backendSelector.setSelectedItem(settingsManager.getBackend());
+		guiScaleSlider.setValue(Math.round(settingsManager.getGuiScale()*100));
 	}
 }

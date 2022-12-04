@@ -14,14 +14,14 @@
  *******************************************************************************/
 package jsettlers.logic.movable.interfaces;
 
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.movable.IGraphicsMovable;
 
 /**
- * An interface that combines {@link IMovable} and {@link IAttackable}.
+ * An interface that combines {@link IGraphicsMovable} and {@link IAttackable}.
  * 
  * @author Andreas Eberle
  * 
  */
-public interface IAttackableMovable extends IMovable, IAttackable {
+public interface IAttackableMovable extends ILogicMovable, IAttackable {
 
 }

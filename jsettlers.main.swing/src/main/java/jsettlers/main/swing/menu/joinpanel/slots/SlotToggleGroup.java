@@ -29,7 +29,7 @@ public class SlotToggleGroup {
 		playerSlot.setSlotListener((oldSlot, newSlot) -> {
 			playerSlots.stream().forEach(otherPlayerSlot -> {
 				if (!playerSlot.equals(otherPlayerSlot) && otherPlayerSlot.getSlot() == newSlot) {
-					otherPlayerSlot.setSlot(oldSlot);
+					otherPlayerSlot.setSlot(oldSlot, false);
 				}
 			});
 		});

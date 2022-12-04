@@ -14,6 +14,7 @@
  */
 package jsettlers.input;
 
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -21,29 +22,38 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import java8.util.Optional;
-import java8.util.function.BiFunction;
-import java8.util.function.Predicate;
-import java8.util.stream.Collectors;
+import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
 import jsettlers.algorithms.construction.ConstructionMarksThread;
+import jsettlers.common.CommonConstants;
 import jsettlers.common.action.BuildAction;
+import jsettlers.common.action.CastSpellAction;
 import jsettlers.common.action.ChangeTradingRequestAction;
 import jsettlers.common.action.ConvertAction;
 import jsettlers.common.action.EActionType;
+import jsettlers.common.action.EMoveToType;
 import jsettlers.common.action.IAction;
+import jsettlers.common.action.MoveToAction;
 import jsettlers.common.action.PointAction;
 import jsettlers.common.action.ScreenChangeAction;
 import jsettlers.common.action.SelectAreaAction;
+import jsettlers.common.action.SelectMovablesAction;
 import jsettlers.common.action.SetAcceptedStockMaterialAction;
 import jsettlers.common.action.SetBuildingPriorityAction;
 import jsettlers.common.action.SetDockAction;
 import jsettlers.common.action.SetMaterialDistributionSettingsAction;
 import jsettlers.common.action.SetMaterialPrioritiesAction;
 import jsettlers.common.action.SetMaterialProductionAction;
+import jsettlers.common.action.ChangeMovableSettingsAction;
+import jsettlers.common.action.SetMovableLimitTypeAction;
 import jsettlers.common.action.SetSpeedAction;
 import jsettlers.common.action.SetTradingWaypointAction;
 import jsettlers.common.action.ShowConstructionMarksAction;
 import jsettlers.common.action.SoldierAction;
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.map.shapes.HexGridArea;
@@ -55,13 +65,15 @@ import jsettlers.common.menu.UIState;
 import jsettlers.common.movable.EMovableType;
 import jsettlers.common.movable.EShipType;
 import jsettlers.common.movable.ESoldierType;
+import jsettlers.common.movable.ESpellType;
 import jsettlers.common.movable.IIDable;
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.movable.IGraphicsMovable;
 import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.ILocatable;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.selectable.ESelectionType;
 import jsettlers.common.selectable.ISelectable;
+import jsettlers.input.tasks.CastSpellGuiTask;
 import jsettlers.input.tasks.ChangeTowerSoldiersGuiTask;
 import jsettlers.input.tasks.ChangeTowerSoldiersGuiTask.EChangeTowerSoldierTaskType;
 import jsettlers.input.tasks.ChangeTradingRequestGuiTask;
@@ -77,6 +89,8 @@ import jsettlers.input.tasks.SetDockGuiTask;
 import jsettlers.input.tasks.SetMaterialDistributionSettingsGuiTask;
 import jsettlers.input.tasks.SetMaterialPrioritiesGuiTask;
 import jsettlers.input.tasks.SetMaterialProductionGuiTask;
+import jsettlers.input.tasks.ChangeMovableSettingsTask;
+import jsettlers.input.tasks.SetMovableLimitTypeTask;
 import jsettlers.input.tasks.SetTradingWaypointGuiTask;
 import jsettlers.input.tasks.SimpleBuildingGuiTask;
 import jsettlers.input.tasks.SimpleGuiTask;
@@ -108,6 +122,7 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 	private final IGuiInputGrid           grid;
 	private final IGameStoppable          gameStoppable;
 	private final byte                    playerId;
+	private final Player				  player;
 	private final boolean                 multiplayer;
 	private final ConstructionMarksThread constructionMarksCalculator;
 	private final Timer                   refreshSelectionTimer;
@@ -135,7 +150,7 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 			}
 		}, 1000, 1000);
 
-		Player player = grid.getPlayer(playerId);
+		player = grid.getPlayer(playerId);
 		if (player != null) {
 			player.setMessenger(connector);
 		}
@@ -146,7 +161,7 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 	@Override
 	public void action(IAction action) {
 		if (action.getActionType() != EActionType.SCREEN_CHANGE) {
-			System.out.println("action(Action): " + action.getActionType() + "   at game time: " + MatchConstants.clock().getTime());
+			//System.out.println("action(Action): " + action.getActionType() + "   at game time: " + MatchConstants.clock().getTime());
 		}
 
 		switch (action.getActionType()) {
@@ -155,7 +170,9 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 				break;
 
 			case SHOW_CONSTRUCTION_MARK:
-				constructionMarksCalculator.setBuildingType(((ShowConstructionMarksAction) action).getBuildingType());
+				EBuildingType buildingType = ((ShowConstructionMarksAction) action).getBuildingType();
+				BuildingVariant buildingVariant = buildingType == null ? null : buildingType.getVariant(player.getCivilisation());
+				constructionMarksCalculator.setBuilding(buildingVariant);
 				break;
 
 			case DEBUG_ACTION:
@@ -165,7 +182,11 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 					}
 				}
 				break;
-
+			case SELECT_MOVABLES: {
+				var a = (SelectMovablesAction)action;
+				setSelection(new SelectionSet(a.getSelection()));
+				break;
+			}
 			case SPEED_TOGGLE_PAUSE:
 				clock.invertPausing();
 				break;
@@ -222,7 +243,7 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 				break;
 
 			case MOVE_TO: {
-				final PointAction moveToAction = (PointAction) action;
+				final MoveToAction moveToAction = (MoveToAction) action;
 
 				if (currentSelection.getSelectionType() == ESelectionType.BUILDING) {
 					Building building = (Building) currentSelection.getSingle();
@@ -236,17 +257,22 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 						setBuildingWorkArea(moveToAction.getPosition());
 					}
 				} else {
-					moveTo(moveToAction.getPosition());
+					moveTo(moveToAction.getPosition(), moveToAction.getMoveToType());
 				}
 				break;
 			}
 
-			case SHOW_MESSAGE: {
+			case SHOW_MESSAGE:
+			case TOGGLE_MUSIC: {
 				break;
 			}
 
 			case SET_WORK_AREA:
 				setBuildingWorkArea(((PointAction) action).getPosition());
+				break;
+
+			case CAST_SPELL:
+				castSpell(((PointAction)action).getPosition(), ((CastSpellAction)action).getSpell());
 				break;
 
 			case DESTROY:
@@ -384,6 +410,17 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 			case UNLOAD_FERRIES:
 				unloadFerries();
 				break;
+				
+			case CHANGE_MOVABLE_SETTINGS:
+				ChangeMovableSettingsAction ratioAction = (ChangeMovableSettingsAction) action;
+
+				scheduleTask(new ChangeMovableSettingsTask(playerId, ratioAction.getPosition(), ratioAction.isRelative(), ratioAction.getAmount(), ratioAction.getMovableType()));
+				break;
+
+			case SET_MOVABLE_LIMIT_TYPE:
+				SetMovableLimitTypeAction setTypeAction = (SetMovableLimitTypeAction) action;
+
+				scheduleTask(new SetMovableLimitTypeTask(playerId, setTypeAction.getPosition(), setTypeAction.getMovableType(), setTypeAction.isRelative()));
 
 			default:
 				System.out.println("WARNING: GuiInterface.action() called, but event can't be handled... (" + action.getActionType() + ")");
@@ -394,9 +431,16 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 		this.setSelection(new SelectionSet());
 		EBuildingType buildingType = buildAction.getBuildingType();
 
-		Optional<ShortPoint2D> position = grid.getConstructablePosition(buildAction.getPosition(), buildingType, playerId);
-		position.ifPresent(pos -> scheduleTask(new ConstructBuildingTask(EGuiAction.BUILD, playerId, pos, buildingType)));
-		System.out.println("build " + buildingType + " at " + position);
+		ShortPoint2D buildPos = buildAction.getPosition();
+
+		Player buildPlayer = CommonConstants.CONTROL_ALL ? grid.getPlayerAt(buildPos.x, buildPos.y) : player;
+		Optional<ShortPoint2D> position = grid.getConstructablePosition(buildPos, buildingType, buildPlayer.getPlayerId());
+		if(position.isPresent()) {
+			buildPos = position.get();
+		}
+
+		scheduleTask(new ConstructBuildingTask(EGuiAction.BUILD, playerId, buildPos, buildingType));
+		//System.out.println("build " + buildingType + " at " + buildPos);
 	}
 
 	private void requestSoldiers(EChangeTowerSoldierTaskType taskType, ESoldierType soldierType) {
@@ -414,7 +458,7 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 
 		if (currentSelection.getSelectionType() == ESelectionType.BUILDING) {
 			final Building building = (Building) currentSelection.get(0);
-			final EBuildingType buildingType = building.getBuildingType();
+			final EBuildingType buildingType = building.getBuildingVariant().getType();
 			Building first = null;
 			Building next = null;
 			boolean buildingFound = false;
@@ -423,7 +467,7 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 				if (currBuilding == building) {
 					buildingFound = true;
 				} else {
-					if (currBuilding.getBuildingType() == buildingType && currBuilding.getPlayer().getPlayerId() == playerId) {
+					if (currBuilding.getBuildingVariant().isVariantOf(buildingType) && currBuilding.getPlayer().getPlayerId() == playerId) {
 						if (first == null) {
 							first = currBuilding;
 						}
@@ -465,13 +509,20 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 		}
 	}
 
+	private void castSpell(ShortPoint2D at, ESpellType spell) {
+		final ISelectable selected = currentSelection.stream()
+				.filter(iSelectable -> iSelectable instanceof IGraphicsMovable)
+				.min(Comparator.comparingInt(iSelectable -> ((IGraphicsMovable) iSelectable).getPosition().getOnGridDistTo(at))).get();
+		scheduleTask(new CastSpellGuiTask(playerId, at, ((IGraphicsMovable)selected).getID(), spell));
+	}
+
 	private void sendConvertAction(ConvertAction action) {
 		final List<ISelectable> convertables = new LinkedList<>();
 		switch (action.getTargetType()) {
 			case BEARER:
 				for (final ISelectable curr : currentSelection) {
-					if (curr instanceof IMovable) {
-						final EMovableType currType = ((IMovable) curr).getMovableType();
+					if (curr instanceof IGraphicsMovable) {
+						final EMovableType currType = ((IGraphicsMovable) curr).getMovableType();
 						if (currType == EMovableType.PIONEER) {
 							convertables.add(curr);
 							if (convertables.size() >= action.getAmount()) {
@@ -485,8 +536,8 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 			case GEOLOGIST:
 			case THIEF:
 				for (final ISelectable curr : currentSelection) {
-					if (curr instanceof IMovable) {
-						final EMovableType currType = ((IMovable) curr).getMovableType();
+					if (curr instanceof IGraphicsMovable) {
+						final EMovableType currType = ((IGraphicsMovable) curr).getMovableType();
 						if (currType == EMovableType.BEARER) {
 							convertables.add(curr);
 							if (convertables.size() >= action.getAmount()) {
@@ -535,7 +586,7 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 				count++;
 			}
 		}
-		System.out.println("locatable: " + count);
+		//System.out.println("locatable: " + count);
 		if (count > 0) {
 			final ShortPoint2D point = new ShortPoint2D(x / count, y / count);
 			connector.scrollTo(point, false);
@@ -551,9 +602,9 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 		taskScheduler.scheduleTask(new MovableGuiTask(stop ? EGuiAction.STOP_WORKING : EGuiAction.START_WORKING, playerId, getIDsOfSelected()));
 	}
 
-	private void moveTo(ShortPoint2D pos) {
+	private void moveTo(ShortPoint2D pos, EMoveToType moveToType) {
 		final List<Integer> selectedIds = getIDsOfSelected();
-		scheduleTask(new MoveToGuiTask(playerId, pos, selectedIds));
+		scheduleTask(new MoveToGuiTask(playerId, pos, selectedIds, moveToType));
 	}
 
 	private void orderShip(EShipType shipType) {

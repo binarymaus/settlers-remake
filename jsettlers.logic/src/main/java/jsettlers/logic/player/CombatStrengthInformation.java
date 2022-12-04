@@ -14,6 +14,7 @@
  *******************************************************************************/
 package jsettlers.logic.player;
 
+import jsettlers.common.player.ECivilisation;
 import jsettlers.common.player.ICombatStrengthInformation;
 import jsettlers.logic.constants.Constants;
 
@@ -24,7 +25,7 @@ import jsettlers.logic.constants.Constants;
 public class CombatStrengthInformation implements ICombatStrengthInformation {
 	private static final float[] START_AMOUNT = { 29, 22, 14, 10.25f, 8, 6, 5, 4.7f, 4.2f, 3.8f, 3.3f, 3.1f, 2.9f, 2.7f, 2.6f, 2.4f, 2.3f, 2.2f, 2.1f,
 			2, 1.9f, 1.8f, 1.7f, 1.6f, 1.5f, 1.4f, 1.3f, 1.2f, 1.1f };
-	private static final float goldDivisor = (float) (Math.log(2) * 9);
+	private static final float MORAL_DIVISOR = (float) (Math.log(2) * 9);
 
 	private float combatStrength;
 	private float combatStrengthOwnGround;
@@ -39,11 +40,18 @@ public class CombatStrengthInformation implements ICombatStrengthInformation {
 		return "CombatStrength: ownGround: " + combatStrengthOwnGround + "    external: " + combatStrength;
 	}
 
-	public void updateGoldCombatStrength(byte numberOfPlayers, int amountOfGold) {
-		float totalGoldAmount = amountOfGold + START_AMOUNT[Math.min(START_AMOUNT.length, numberOfPlayers) - 1];
-		float goldCombatStrength = ((float) Math.log(totalGoldAmount)) / goldDivisor;
+	public void updateCombatStrength(byte numberOfPlayers, ECivilisation civilisation, int amountOfGold, int amountOfGems) {
+		int moral;
+		if(civilisation == ECivilisation.EGYPTIAN) {
+			moral = amountOfGold / 2 + amountOfGems * 2;
+		} else {
+			moral = amountOfGold;
+		}
 
-		this.combatStrength = goldCombatStrength;
-		this.combatStrengthOwnGround = Math.max(goldCombatStrength, Constants.COMBAT_STRENGTH_OWN_GROUND);
+		float totalMoralAmount = moral + START_AMOUNT[Math.min(START_AMOUNT.length, numberOfPlayers) - 1];
+		float newCombatStrength = ((float) Math.log(totalMoralAmount)) / MORAL_DIVISOR;
+
+		this.combatStrength = newCombatStrength;
+		this.combatStrengthOwnGround = Math.max(newCombatStrength, Constants.COMBAT_STRENGTH_OWN_GROUND);
 	}
 }

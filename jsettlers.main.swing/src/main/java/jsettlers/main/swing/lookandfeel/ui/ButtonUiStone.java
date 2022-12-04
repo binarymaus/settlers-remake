@@ -160,7 +160,11 @@ public class ButtonUiStone extends BasicButtonUI {
 		// draw shadow
 		g.setColor(Color.BLACK);
 		g.drawString(b.getText(), x + 1, y + 1);
-		g.setColor(c.getForeground());
+		if(c.isEnabled()) {
+			g.setColor(c.getForeground());
+		} else {
+			g.setColor(UIDefaults.LABEL_DISABLED_TEXT_COLOR);
+		}
 		g.drawString(b.getText(), x, y);
 	}
 

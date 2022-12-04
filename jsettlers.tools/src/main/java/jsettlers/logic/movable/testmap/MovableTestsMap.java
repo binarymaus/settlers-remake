@@ -16,6 +16,7 @@ package jsettlers.logic.movable.testmap;
 
 import java.util.LinkedList;
 
+import java.util.Objects;
 import jsettlers.algorithms.path.IPathCalculatable;
 import jsettlers.algorithms.path.Path;
 import jsettlers.algorithms.path.astar.BucketQueueAStar;
@@ -33,7 +34,8 @@ import jsettlers.common.mapobject.IMapObject;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.common.material.ESearchType;
 import jsettlers.common.movable.EDirection;
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.movable.IGraphicsMovable;
+import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.logic.constants.MatchConstants;
 import jsettlers.logic.map.grid.partition.manager.manageables.IManageableBearer;
@@ -45,6 +47,7 @@ import jsettlers.logic.map.grid.partition.manager.materials.interfaces.IMaterial
 import jsettlers.logic.map.grid.partition.manager.materials.offers.EOfferPriority;
 import jsettlers.logic.movable.interfaces.AbstractMovableGrid;
 import jsettlers.logic.movable.interfaces.IAttackable;
+import jsettlers.logic.movable.interfaces.IAttackableMovable;
 import jsettlers.logic.movable.interfaces.ILogicMovable;
 import jsettlers.logic.objects.stack.StackMapObject;
 import jsettlers.logic.player.Player;
@@ -83,12 +86,12 @@ public class MovableTestsMap implements IGraphicsGrid, IAStarPathMap {
 	}
 
 	@Override
-	public IMovable getMovableAt(int x, int y) {
+	public IGraphicsMovable getMovableAt(int x, int y) {
 		return movableMap[x][y];
 	}
 
 	@Override
-	public IMapObject getMapObjectsAt(int x, int y) {
+	public IMapObject getVisibleMapObjectsAt(int x, int y) {
 		if (materialTypeMap[x][y] != null && materialAmountMap[x][y] > 0) {
 			return new StackMapObject(materialTypeMap[x][y], materialAmountMap[x][y]);
 		} else {
@@ -97,12 +100,12 @@ public class MovableTestsMap implements IGraphicsGrid, IAStarPathMap {
 	}
 
 	@Override
-	public byte getHeightAt(int x, int y) {
+	public byte getVisibleHeightAt(int x, int y) {
 		return 0;
 	}
 
 	@Override
-	public ELandscapeType getLandscapeTypeAt(int x, int y) {
+	public ELandscapeType getVisibleLandscapeTypeAt(int x, int y) {
 		return ELandscapeType.GRASS;
 	}
 
@@ -117,8 +120,8 @@ public class MovableTestsMap implements IGraphicsGrid, IAStarPathMap {
 	}
 
 	@Override
-	public byte getPlayerIdAt(int x, int y) {
-		return 0;
+	public IPlayer getPlayerAt(int x, int y) {
+		return IPlayer.DEFAULT_DUMMY_PLAYER0;
 	}
 
 	@Override
@@ -158,6 +161,16 @@ public class MovableTestsMap implements IGraphicsGrid, IAStarPathMap {
 		@Override
 		public Path calculatePathTo(IPathCalculatable pathRequester, ShortPoint2D targetPos) {
 			return aStar.findPath(pathRequester, targetPos);
+		}
+
+		@Override
+		public Path calculatePathTo(IPathCalculatable pathCalculatable, ShortPoint2D targetPos, ShortPoint2D startPos) {
+			return aStar.findPath(pathCalculatable, targetPos, startPos);
+		}
+
+		@Override
+		public boolean isReachable(ShortPoint2D pos1, ShortPoint2D pos2, boolean ship) {
+			return !ship;
 		}
 
 		@Override
@@ -232,6 +245,16 @@ public class MovableTestsMap implements IGraphicsGrid, IAStarPathMap {
 		}
 
 		@Override
+		public EMaterialType takeMaterial(ShortPoint2D pos) {
+			if (materialAmountMap[pos.x][pos.y] > 0) {
+				materialAmountMap[pos.x][pos.y]--;
+				return materialTypeMap[pos.x][pos.y];
+			} else {
+				return null;
+			}
+		}
+
+		@Override
 		public boolean dropMaterial(ShortPoint2D pos, EMaterialType materialType, boolean offer, boolean forced) {
 			materialTypeMap[pos.x][pos.y] = materialType;
 			materialAmountMap[pos.x][pos.y]++;
@@ -289,7 +312,7 @@ public class MovableTestsMap implements IGraphicsGrid, IAStarPathMap {
 		}
 
 		@Override
-		public void placeSmoke(ShortPoint2D position, boolean smokeOn) {
+		public void placeSmoke(ShortPoint2D position, EMapObjectType type, short smokeDuration) {
 		}
 
 		@Override
@@ -335,8 +358,12 @@ public class MovableTestsMap implements IGraphicsGrid, IAStarPathMap {
 		}
 
 		@Override
+		public void setLandscape(int x, int y, ELandscapeType grass) {
+		}
+
+		@Override
 		public boolean isValidPosition(IPathCalculatable pathCalculatable, int x, int y) {
-			return isInBounds(x, y) && !isBlocked(x, y) && (!pathCalculatable.needsPlayersGround() || pathCalculatable.getPlayer().getPlayerId() == getPlayerIdAt(x, y));
+			return isInBounds(x, y) && !isBlocked(x, y) && (!pathCalculatable.needsPlayersGround() || Objects.equals(pathCalculatable.getPlayer(), MovableTestsMap.this.getPlayerAt(x, y)));
 		}
 
 		@Override
@@ -355,7 +382,7 @@ public class MovableTestsMap implements IGraphicsGrid, IAStarPathMap {
 		}
 
 		@Override
-		public boolean executeSearchType(IPathCalculatable pathCalculatable, ShortPoint2D position, ESearchType searchType) {
+		public boolean executeSearchType(ILogicMovable movable, ShortPoint2D position, ESearchType searchType) {
 			return false;
 		}
 
@@ -380,6 +407,11 @@ public class MovableTestsMap implements IGraphicsGrid, IAStarPathMap {
 		}
 
 		@Override
+		public boolean canChangeLandscapeTo(int x, int y, ELandscapeType type) {
+			return false;
+		}
+
+		@Override
 		public ELandscapeType getLandscapeTypeAt(int x, int y) {
 			return ELandscapeType.GRASS;
 		}
@@ -395,11 +427,19 @@ public class MovableTestsMap implements IGraphicsGrid, IAStarPathMap {
 		}
 
 		@Override
-		public void notifyAttackers(ShortPoint2D position, ILogicMovable movable, boolean informFullArea) {
+		public void notifyAttackers(ShortPoint2D position, IAttackableMovable movable, boolean informFullArea) {
 		}
 
 		@Override
 		public void addSelfDeletingMapObject(ShortPoint2D position, EMapObjectType mapObjectType, float duration, Player player) {
+		}
+
+		@Override
+		public void addSelfDeletingMapObject(ShortPoint2D point, int sound, int animation, float duration, Player player) {
+		}
+
+		@Override
+		public void addEyeMapObject(ShortPoint2D position, short radius, float duration, Player player) {
 		}
 
 		@Override
@@ -408,7 +448,7 @@ public class MovableTestsMap implements IGraphicsGrid, IAStarPathMap {
 		}
 
 		@Override
-		public void addArrowObject(ShortPoint2D attackedPos, ShortPoint2D shooterPos, byte shooterPlayerId, float hitStrength) {
+		public void addArrowObject(ShortPoint2D shooterPos, IPlayer shooterPlayer, float hitStrength, ShortPoint2D attackedPos) {
 		}
 
 		@Override
@@ -440,6 +480,22 @@ public class MovableTestsMap implements IGraphicsGrid, IAStarPathMap {
 		public boolean tryTakingResource(ShortPoint2D position, EResourceType resource) {
 			return false;
 		}
+
+		@Override
+		public boolean tryCursingLocation(ShortPoint2D position) {
+			return false;
+		}
+
+		@Override
+		public boolean trySummonFish(ShortPoint2D position) {
+			return false;
+		}
+
+		@Override
+		public void playHealAnimation(ShortPoint2D point, int sound, int animation, float duration, Player player) {
+			// TODO Auto-generated method stub
+			
+		}
 	};
 
 	public AbstractMovableGrid getMovableGrid() {
@@ -454,7 +510,7 @@ public class MovableTestsMap implements IGraphicsGrid, IAStarPathMap {
 	}
 
 	@Override
-	public float getCost(int sx, int sy, int tx, int ty) {
+	public float getCost(IPathCalculatable requester, int sx, int sy, int tx, int ty) {
 		return 1;
 	}
 
@@ -471,8 +527,8 @@ public class MovableTestsMap implements IGraphicsGrid, IAStarPathMap {
 	}
 
 	@Override
-	public short getBlockedPartition(int x, int y) {
-		return 1;
+	public boolean isReachable(int x1, int y1, int x2, int y2, boolean ship) {
+		return true;
 	}
 
 	@Override

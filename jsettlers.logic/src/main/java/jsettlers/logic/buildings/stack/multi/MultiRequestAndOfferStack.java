@@ -27,6 +27,8 @@ import jsettlers.logic.map.grid.partition.manager.materials.offers.EOfferPriorit
  */
 public class MultiRequestAndOfferStack extends MultiRequestStack implements IStockSettingsListener, IOfferEmptiedListener {
 
+	private static final long serialVersionUID = -7430951830699439921L;
+
 	/**
 	 * Creates a new bounded {@link MultiRequestStack} to request a limited amount of the given {@link EMaterialType} at the given position.
 	 *
@@ -75,6 +77,8 @@ public class MultiRequestAndOfferStack extends MultiRequestStack implements ISto
 	}
 
 	protected class RequestOfMultiRequestAndOfferStack extends RequestOfMultiRequestStack {
+		private static final long serialVersionUID = 305028201589451326L;
+
 		RequestOfMultiRequestAndOfferStack(EMaterialType materialType, EPriority priority) {
 			super(materialType, priority);
 		}

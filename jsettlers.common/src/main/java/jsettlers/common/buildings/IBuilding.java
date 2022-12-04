@@ -15,15 +15,16 @@
 package jsettlers.common.buildings;
 
 import java.util.List;
+import java.util.Map;
 
 import jsettlers.common.map.partition.IStockSettings;
 import jsettlers.common.mapobject.EMapObjectType;
 import jsettlers.common.mapobject.IMapObject;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.common.material.EPriority;
-import jsettlers.common.movable.EMovableType;
 import jsettlers.common.movable.EShipType;
 import jsettlers.common.movable.ESoldierClass;
+import jsettlers.common.movable.ESoldierType;
 import jsettlers.common.player.IPlayerable;
 import jsettlers.common.position.ILocatable;
 import jsettlers.common.selectable.ISelectable;
@@ -44,7 +45,7 @@ public interface IBuilding extends IMapObject, IPlayerable, ISelectable, ILocata
 	 *
 	 * @return The building type.
 	 */
-	EBuildingType getBuildingType();
+	BuildingVariant getBuildingVariant();
 
 	/**
 	 *
@@ -136,6 +137,8 @@ public interface IBuilding extends IMapObject, IPlayerable, ISelectable, ILocata
 		 * @return The number of SOLDIERS comming.
 		 */
 		int getComingSoldiers(ESoldierClass soldierClass);
+
+		Map<ESoldierType, Integer> calculateAvailableSoldiers();
 	}
 
 	/**

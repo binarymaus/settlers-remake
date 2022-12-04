@@ -20,12 +20,13 @@ import jsettlers.common.position.ILocatable;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.utils.MathUtils;
 
-import java8.util.function.Consumer;
+import java.util.function.Consumer;
 
 /**
  * Created by Andreas Eberle on 23.08.2016.
  */
-public class PrioritizedPositionableList<P extends Enum, T extends ILocatable & IPrioritizable<P> & IListManageable> implements Serializable {
+public class PrioritizedPositionableList<P extends Enum<P>, T extends ILocatable & IPrioritizable<P> & IListManageable> implements Serializable {
+	private static final long serialVersionUID = -5141288579664102607L;
 	private final ManagingPositionableList<T>[] lists;
 
 	@SuppressWarnings("unchecked")

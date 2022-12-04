@@ -14,7 +14,7 @@
  */
 package jsettlers.graphics.image.sequence;
 
-import java8.util.function.Supplier;
+import java.util.function.Supplier;
 import jsettlers.graphics.image.Image;
 
 /**

@@ -42,7 +42,7 @@ public abstract class StopWatch {
 	 *            text to be pretended to the measured difference
 	 */
 	public void stop(String leadingText) {
-		System.out.println(leadingText + ": " + getDiff() + " " + getUnit());
+		//System.out.println(leadingText + ": " + getDiff() + " " + getUnit());
 	}
 
 	protected abstract String getUnit();

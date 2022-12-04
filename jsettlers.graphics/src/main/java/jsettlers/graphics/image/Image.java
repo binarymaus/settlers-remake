@@ -63,7 +63,7 @@ public abstract class Image {
 	 *            The height of the image.
 	 */
 	public abstract void drawImageAtRect(GLDrawContext gl, float x,
-			float y, float width, float height);
+			float y, float width, float height, float intensity);
 
 	/**
 	 * Multiplies the color with an float.

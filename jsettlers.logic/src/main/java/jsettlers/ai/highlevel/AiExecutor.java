@@ -14,12 +14,14 @@
  *******************************************************************************/
 package jsettlers.ai.highlevel;
 
-import static java8.util.stream.StreamSupport.stream;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import jsettlers.common.logging.StatisticsStopWatch;
+import jsettlers.logic.constants.MatchConstants;
 import jsettlers.logic.map.grid.MainGrid;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.network.client.interfaces.ITaskScheduler;
@@ -32,46 +34,90 @@ import jsettlers.network.synchronic.timer.INetworkTimerable;
  */
 public class AiExecutor implements INetworkTimerable {
 
-	private final List<IWhatToDoAi> whatToDoAis;
+	private final List<Callable<Void>> lightWhatToDoAis;
+	private final List<Callable<Void>> heavyWhatToDoAis;
 	private final AiStatistics aiStatistics;
 	private final StatisticsStopWatch updateStatisticsStopWatch = new StatisticsStopWatch();
-	private final StatisticsStopWatch applyRulesStopWatch = new StatisticsStopWatch();
+	private final StatisticsStopWatch applyLightRulesStopWatch = new StatisticsStopWatch();
+	private final StatisticsStopWatch applyHeavyRulesStopWatch = new StatisticsStopWatch();
+	private final ExecutorService statisticsUpdaterPool;
 
 	public AiExecutor(PlayerSetting[] playerSettings, MainGrid mainGrid, ITaskScheduler taskScheduler) {
-		aiStatistics = new AiStatistics(mainGrid);
+		ExecutorService re;
+		try {
+			re = (ExecutorService) Executors.class.getMethod("newWorkStealingPool").invoke(null);
+		} catch(Throwable thrown) {
+			thrown.printStackTrace();
+			re = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+		}
+		statisticsUpdaterPool = re;
+
+		aiStatistics = new AiStatistics(mainGrid, statisticsUpdaterPool);
 		aiStatistics.updateStatistics();
-		this.whatToDoAis = new ArrayList<>();
+		this.lightWhatToDoAis = new ArrayList<>();
+		this.heavyWhatToDoAis = new ArrayList<>();
 		WhatToDoAiFactory aiFactory = new WhatToDoAiFactory();
 		for (byte playerId = 0; playerId < playerSettings.length; playerId++) {
 			PlayerSetting playerSetting = playerSettings[playerId];
 			if (playerSetting.isAvailable() && playerSetting.getPlayerType().isAi()) {
-				whatToDoAis.add(aiFactory.buildWhatToDoAi(
+				IWhatToDoAi whatToDoAi = aiFactory.buildWhatToDoAi(
 						playerSettings[playerId].getPlayerType(),
 						playerSettings[playerId].getCivilisation(),
 						aiStatistics,
 						mainGrid.getPartitionsGrid().getPlayer(playerId),
 						mainGrid,
 						mainGrid.getMovableGrid(),
-						taskScheduler));
+						taskScheduler);
+
+				lightWhatToDoAis.add(() -> {
+					whatToDoAi.applyLightRules();
+					return null;
+				});
+
+				heavyWhatToDoAis.add(() -> {
+					whatToDoAi.applyHeavyRules();
+					return null;
+				});
 			}
 		}
 	}
 
 	@Override
 	public void timerEvent() {
-		updateStatisticsStopWatch.restart();
-		aiStatistics.updateStatistics();
-		updateStatisticsStopWatch.stop("computerplayer:updateStatistics()");
-		applyRulesStopWatch.restart();
-		stream(whatToDoAis).forEach(IWhatToDoAi::applyRules);
-		applyRulesStopWatch.stop("computerplayer:applyRules()");
+		// every second
+		applyLightRulesStopWatch.restart();
+		try {
+			statisticsUpdaterPool.invokeAll(lightWhatToDoAis);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		applyLightRulesStopWatch.stop("computerplayer:applyLightRules()");
+
+		// every ten seconds
+		if((MatchConstants.clock().getTime()/1000)%10 == 0) {
+			updateStatisticsStopWatch.restart();
+			aiStatistics.updateStatistics();
+			updateStatisticsStopWatch.stop("computerplayer:updateStatistics()");
+
+			applyHeavyRulesStopWatch.restart();
+			try {
+				statisticsUpdaterPool.invokeAll(heavyWhatToDoAis);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			applyHeavyRulesStopWatch.stop("computerplayer:applyHeavyRules()");
+		}
 	}
 
 	public StatisticsStopWatch getUpdateStatisticsStopWatch() {
 		return updateStatisticsStopWatch;
 	}
 
-	public StatisticsStopWatch getApplyRulesStopWatch() {
-		return applyRulesStopWatch;
+	public StatisticsStopWatch getApplyLightRulesStopWatch() {
+		return applyLightRulesStopWatch;
+	}
+
+	public StatisticsStopWatch getApplyHeavyRulesStopWatch() {
+		return applyHeavyRulesStopWatch;
 	}
 }

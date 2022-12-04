@@ -15,8 +15,10 @@
 
 package jsettlers.main.android.gameplay.controlsmenu.goods;
 
+import jsettlers.common.player.ECivilisation;
 import org.androidannotations.annotations.AfterViews;
 import org.androidannotations.annotations.EFragment;
+import org.androidannotations.annotations.FragmentArg;
 import org.androidannotations.annotations.ViewById;
 
 import android.support.v4.app.Fragment;
@@ -33,8 +35,8 @@ import me.relex.circleindicator.CircleIndicator;
  */
 @EFragment(R.layout.menu_view_pager)
 public class GoodsMenuFragment extends Fragment {
-	public static GoodsMenuFragment newInstance() {
-		return new GoodsMenuFragment_();
+	public static GoodsMenuFragment newInstance(ECivilisation playerCivilisation) {
+		return GoodsMenuFragment_.builder().playerCivilisation(playerCivilisation).build();
 	}
 
 	@ViewById(R.id.view_pager)
@@ -42,6 +44,9 @@ public class GoodsMenuFragment extends Fragment {
 
 	@ViewById(R.id.circle_indicator)
 	CircleIndicator circleIndicator;
+
+	@FragmentArg
+	ECivilisation playerCivilisation;
 
 	@AfterViews
 	void setupViewPager() {
@@ -71,7 +76,7 @@ public class GoodsMenuFragment extends Fragment {
 			case 1:
 				return GoodsProductionFragment.newInstance();
 			case 2:
-				return GoodsDistributionFragment.newInstance();
+				return GoodsDistributionFragment.newInstance(playerCivilisation);
 			case 3:
 				return GoodsPrioritiesFragment.newInstance();
 			case 4:

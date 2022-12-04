@@ -18,6 +18,7 @@ import jsettlers.algorithms.interfaces.IContainingProvider;
 import jsettlers.algorithms.traversing.area.AreaTraversingAlgorithm;
 import jsettlers.algorithms.traversing.borders.BorderTraversingAlgorithm;
 import jsettlers.common.movable.EDirection;
+import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.ShortPoint2D;
 
 /**
@@ -34,14 +35,15 @@ public final class EnclosedBlockedAreaFinderAlgorithm {
 		}
 
 		final IContainingProvider containingProvider = grid::isPioneerBlockedAndWithoutTowerProtection;
-		final byte startPlayer = grid.getPlayerIdAt(startX, startY);
+		final IPlayer startPlayer = grid.getPlayerAt(startX, startY);
+		final byte startPlayerId = startPlayer!=null?startPlayer.getPlayerId():-1;
 
 		for (EDirection currDir : EDirection.VALUES) {
-			ShortPoint2D currPos = currDir.getNextHexPoint(startX, startY);
+			ShortPoint2D currPos = new ShortPoint2D(startX + currDir.gridDeltaX, startY + currDir.gridDeltaY);
 
 			if (grid.isPioneerBlockedAndWithoutTowerProtection(currPos.x, currPos.y)) {
-				if (needsRelabel(grid, containingProvider, currPos, startPlayer)) {
-					destroyBuildingsOrTakeOver(grid, containingProvider, currPos, startPlayer);
+				if (needsRelabel(grid, containingProvider, currPos, startPlayerId)) {
+					destroyBuildingsOrTakeOver(grid, containingProvider, currPos, startPlayerId);
 				}
 			}
 		}

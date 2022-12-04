@@ -21,7 +21,7 @@ import java.io.Serializable;
 
 import jsettlers.common.map.shapes.HexGridArea;
 import jsettlers.common.movable.EMovableType;
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.movable.IGraphicsMovable;
 import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.utils.coordinates.CoordinateStream;
@@ -30,10 +30,11 @@ import jsettlers.logic.SerializationUtils;
 import jsettlers.logic.constants.Constants;
 import jsettlers.logic.map.grid.landscape.IWalkableGround;
 import jsettlers.logic.movable.interfaces.IAttackable;
+import jsettlers.logic.movable.interfaces.IAttackableMovable;
 import jsettlers.logic.movable.interfaces.ILogicMovable;
 
 /**
- * This grid stores the position of the {@link IMovable}s.
+ * This grid stores the position of the {@link IGraphicsMovable}s.
  * 
  * @author Andreas Eberle
  */
@@ -108,7 +109,7 @@ public final class MovableGrid implements Serializable {
 	 *            If true, the full soldier update area is informed if the given movable is attackable.<br>
 	 *            If false, only a circle is informed if the given movable is attackable.
 	 */
-	public void informMovables(ILogicMovable movable, short x, short y, boolean informFullArea) {
+	public void informMovables(IAttackableMovable movable, short x, short y, boolean informFullArea) {
 		// inform all movables of the given movable
 		CoordinateStream area;
 		if (informFullArea) {
@@ -122,12 +123,16 @@ public final class MovableGrid implements Serializable {
 
 		area.filterBounds(width, height).forEach((currX, currY) -> {
 			ILogicMovable currMovable = getMovableAt(currX, currY);
-			if (currMovable != null && isEnemy(movablePlayer, currMovable)) {
-				currMovable.informAboutAttackable(movable);
+			if (currMovable instanceof IAttackableMovable) {
+				IAttackable currAttackable = (IAttackable) currMovable;
 
-				if (!foundOne.value) { // the first found movable is the one closest to the given movable.
-					movable.informAboutAttackable(currMovable);
-					foundOne.value = true;
+				if(isEnemy(movablePlayer, currAttackable)) {
+					currAttackable.informAboutAttackable(movable);
+
+					if (!foundOne.value) { // the first found movable is the one closest to the given movable.
+						movable.informAboutAttackable(currAttackable);
+						foundOne.value = true;
+					}
 				}
 			}
 		});

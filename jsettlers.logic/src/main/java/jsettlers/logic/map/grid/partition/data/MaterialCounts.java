@@ -20,6 +20,7 @@ import jsettlers.logic.map.grid.partition.manager.materials.offers.IOffersCountL
 import java.io.Serializable;
 
 public class MaterialCounts implements IOffersCountListener, Serializable {
+	private static final long serialVersionUID = -8286813022643703889L;
 	private final int[] materialCounts = new int[EMaterialType.NUMBER_OF_DROPPABLE_MATERIALS];
 	private final IOffersCountListener listener;
 

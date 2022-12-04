@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 
+import java.util.List;
 import jsettlers.logic.map.loading.MapLoadException;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.map.loading.list.MapList;
@@ -29,8 +30,10 @@ import jsettlers.testutils.map.MapUtils;
  */
 public class AutoReplaySetting {
 	public static Collection<AutoReplaySetting> getDefaultSettings() {
-		return Arrays.asList(
-			new AutoReplaySetting("fullproduction", 0, 10, 20, 40, 65, 90));
+		return List.of(
+				// TODO currently broken
+			//new AutoReplaySetting("fullproduction", 0, 10, 20, 40, 65, 90)
+		);
 	}
 
 	private final String typeName;

@@ -1,36 +1,31 @@
-apply plugin: 'application'
-
+plugins {
+    id 'application'
+}
 
 startScripts {
-    applicationName = "MapCreator"
+    applicationName = "jsettlers.mapcreator"
 }
 
 mainClassName = 'jsettlers.mapcreator.main.MapCreatorApp'
 
-jar {
-    manifest {
-        attributes 'Main-Class': mainClassName
-    }
-}
-
-
-
-task releaseJar(type: Jar) {
-    baseName = 'MapCreator'
-    manifest {
-        attributes 'Main-Class': mainClassName
-    }
-    from {
-        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-    with jar
-}
-
 dependencies {
-    compile project(':go.graphics')
-    compile project(':go.graphics.swing')
-    compile project(':jsettlers.common')
-    compile project(':jsettlers.graphics')
-    compile project(':jsettlers.logic')
-    compile project(':jsettlers.main.swing')
+    implementation project(':go.graphics')
+    implementation project(':go.graphics.swing')
+    implementation project(':jsettlers.common')
+    implementation project(':jsettlers.network')
+    implementation project(':jsettlers.graphics')
+    implementation project(':jsettlers.logic')
+    implementation project(':jsettlers.main.swing')
+    implementation 'javax.xml.bind:jaxb-api:2.3.1'
+
+    runtimeOnly 'com.sun.xml.bind:jaxb-impl:2.3.2'
+    runtimeOnly 'com.sun.xml.bind:jaxb-core:2.3.0.1'
+}
+
+jar {
+    archiveBaseName = 'MapCreator'
+    manifest {
+        attributes 'Main-Class': mainClassName
+        attributes 'Class-Path' : 'JSettlers.jar'
+    }
 }

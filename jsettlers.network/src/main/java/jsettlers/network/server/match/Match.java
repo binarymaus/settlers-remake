@@ -27,6 +27,7 @@ import jsettlers.network.common.packets.MatchInfoPacket;
 import jsettlers.network.common.packets.MatchInfoUpdatePacket;
 import jsettlers.network.common.packets.MatchStartPacket;
 import jsettlers.network.common.packets.PlayerInfoPacket;
+import jsettlers.network.common.packets.SlotInfoPacket;
 import jsettlers.network.common.packets.TimeSyncPacket;
 import jsettlers.network.infrastructure.channel.packet.Packet;
 import jsettlers.network.infrastructure.log.Logger;
@@ -47,25 +48,35 @@ public class Match {
 	private final String id;
 	private final LinkedList<Player> players;
 	private final LinkedList<Player> leftPlayers;
+	private final Slot[] slots;
 	private final int maxPlayers;
 	private final MapInfoPacket map;
 	private final String name;
 	private final long randomSeed;
+	private final Player host;
 
 	private EMatchState state = EMatchState.OPENED;
 	private TaskCollectingListener taskCollectingListener;
 	private TaskSendingTimerTask taskSendingTimerTask;
+	private int currPlayers;
 
-	public Match(String name, int maxPlayers, MapInfoPacket map, long randomSeed) {
+	public Match(String name, int maxPlayers, MapInfoPacket map, Player host, long randomSeed) {
 		this.maxPlayers = maxPlayers;
+		currPlayers = maxPlayers;
+		this.slots = new Slot[maxPlayers];
 		this.map = map;
 		this.name = name;
+		this.host = host;
 		this.randomSeed = randomSeed;
 		this.id = UUID.randomUUID().toString();
 		this.players = new LinkedList<>();
 		this.leftPlayers = new LinkedList<>();
 		this.logger = LoggerManager.getMatchLogger(id, name);
 		this.date = new Date();
+
+		for (int i = 0; i < maxPlayers; i++) {
+			slots[i] = new Slot(Byte.MAX_VALUE, (byte) i, Byte.MAX_VALUE, (byte) i);
+		}
 	}
 
 	public EMatchState getState() {
@@ -73,7 +84,7 @@ public class Match {
 	}
 
 	public boolean canJoin() {
-		return state == EMatchState.OPENED && players.size() < maxPlayers;
+		return state == EMatchState.OPENED && players.size() < currPlayers;
 	}
 
 	public String getId() {
@@ -98,6 +109,17 @@ public class Match {
 			}
 
 			return result;
+		}
+	}
+
+	public SlotInfoPacket[] getSlotInfos() {
+		synchronized (slots) {
+			SlotInfoPacket[] result = new SlotInfoPacket[currPlayers];
+			for(int i = 0; i < currPlayers; i++) {
+				result[i] = new SlotInfoPacket(getSlot(i));
+			}
+
+			 return result;
 		}
 	}
 
@@ -173,6 +195,7 @@ public class Match {
 
 	public void join(Player player) {
 		synchronized (players) {
+			setSlotPlayerType((byte) players.size(), Byte.MAX_VALUE);
 			players.add(player);
 
 			sendMatchInfoUpdate(NetworkConstants.ENetworkMessage.PLAYER_JOINED, player.getPlayerInfo());
@@ -268,9 +291,107 @@ public class Match {
 		state = EMatchState.FINISHED;
 	}
 
+	public Player getHost() {
+		return host;
+	}
+
 	@Override
 	public String toString() {
 		return state + ": name: '" + name + "' opened: '" + date + "' numberOfPlayers: " + players.size() + " map: '" + map.getName() + "' ('"
 				+ map.getId() + "')";
+	}
+
+	public void setSlotCivilisation(byte slotId, byte civilisation) {
+		byte oldCivilisation;
+		synchronized (slots) {
+			Slot slot = getSlot(slotId);
+			oldCivilisation = slot.getCivilisation();
+			slot.setCivilisation(civilisation);
+		}
+
+		if(oldCivilisation != civilisation) {
+			sendMatchInfoUpdate(ENetworkMessage.CIVILISATION_CHANGED, null);
+		}
+	}
+
+	public void setSlotPlayerType(byte slotId, byte playerType) {
+		byte oldPlayerType;
+		synchronized (slots) {
+			Slot slot = getSlot(slotId);
+			oldPlayerType = slot.getType();
+			slot.setType(playerType);
+		}
+
+		if(oldPlayerType != playerType) {
+			sendMatchInfoUpdate(ENetworkMessage.TYPE_CHANGED, null);
+		}
+	}
+
+	public void setSlotPosition(byte slotId, byte position) {
+		byte oldPosition;
+		byte newPosition;
+		synchronized (slots) {
+			newPosition = (byte) (position % maxPlayers);
+			Slot slot = getSlot(slotId);
+			oldPosition = slot.getPosition();
+			slot.setPosition(newPosition);
+
+			if(oldPosition != newPosition) {
+				for(int i = 0; i < maxPlayers; i++) {
+					Slot other = slots[i];
+
+					if(slot != other && other.getPosition() == newPosition) {
+						other.setPosition(oldPosition);
+					}
+				}
+			}
+		}
+
+		if(oldPosition != newPosition) {
+			sendMatchInfoUpdate(ENetworkMessage.POSITION_CHANGED, null);
+		}
+	}
+
+	public void setSlotTeam(byte slotId, byte team) {
+		byte oldTeam;
+		byte newTeam;
+		synchronized (slots) {
+			newTeam = (byte) (team % currPlayers);
+			Slot slot = getSlot(slotId);
+			oldTeam = slot.getTeam();
+			slot.setTeam(newTeam);
+		}
+
+		if(oldTeam != newTeam) {
+			sendMatchInfoUpdate(ENetworkMessage.TEAM_CHANGED, null);
+		}
+	}
+
+	public void setPlayerCount(int playerCount) {
+		synchronized (players) {
+			if(playerCount < players.size()) {
+				throw new IllegalStateException("You can't remove players from a match!");
+			}
+		}
+
+		if(playerCount > maxPlayers) {
+			throw new IllegalStateException("You can't have more slots than are allowed on this map!");
+		}
+
+		synchronized (slots) {
+			if(playerCount == currPlayers) return;
+
+			currPlayers = playerCount;
+		}
+
+		sendMatchInfoUpdate(ENetworkMessage.PLAYER_COUNT_CHANGED, null);
+	}
+
+	private Slot getSlot(int slotId) {
+		if(slotId >= currPlayers) {
+			throw new IllegalStateException("slotId >= currPlayers");
+		}
+
+		return slots[slotId];
 	}
 }

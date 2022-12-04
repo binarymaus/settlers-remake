@@ -22,6 +22,7 @@ import jsettlers.logic.map.grid.partition.manager.materials.interfaces.IOfferEmp
  * Created by Andreas Eberle on 05.03.2017.
  */
 public class ListenableMaterialOffer extends MaterialOffer {
+	private static final long serialVersionUID = 8972784655967621180L;
 	private final IOfferEmptiedListener emptiedListener;
 
 	ListenableMaterialOffer(ShortPoint2D position, EMaterialType materialType, IOffersCountListener countChangedListener, EOfferPriority priority, byte amount, IOfferEmptiedListener

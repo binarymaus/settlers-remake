@@ -23,6 +23,7 @@ import android.widget.TextView;
 
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.graphics.map.controls.original.panel.selection.BuildingState;
+import jsettlers.logic.map.grid.partition.data.MaterialCounts;
 import jsettlers.main.android.R;
 import jsettlers.main.android.core.controls.DrawControls;
 import jsettlers.main.android.core.controls.DrawListener;
@@ -89,7 +90,7 @@ public class MaterialsFeature extends SelectionFeature implements DrawListener {
 				ImageView imageView = (ImageView) materialItemView.findViewById(R.id.image_view_material);
 				TextView textView = (TextView) materialItemView.findViewById(R.id.text_view_material_count);
 
-				textView.setText(materialStackState.getCount() + "");
+				textView.setText(materialStackState.getInfoString());
 				OriginalImageProvider.get(materialStackState.getType()).setAsImage(imageView);
 
 				if (materialStackState.isOffering()) {

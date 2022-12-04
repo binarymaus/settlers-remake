@@ -14,7 +14,7 @@
  *******************************************************************************/
 package jsettlers.common.mapobject;
 
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.movable.IGraphicsMovable;
 
 /**
  * Interface for {@link IMapObject}.ATTACKABLE_TOWER objects.
@@ -27,5 +27,5 @@ public interface IAttackableTowerMapObject {
 	 * 
 	 * @return The movable standing on this {@link IAttackableTowerMapObject}, or null if none needs to be drawn here.
 	 */
-	IMovable getMovable();
+	IGraphicsMovable getMovable();
 }

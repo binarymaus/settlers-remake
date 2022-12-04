@@ -9,6 +9,7 @@ import android.arch.lifecycle.ViewModelProvider;
 import jsettlers.common.utils.collections.ChangingList;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.map.loading.newmap.MapFileHeader;
+import jsettlers.logic.player.InitialGameState;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.main.JSettlersGame;
 import jsettlers.main.android.core.GameStarter;
@@ -36,7 +37,9 @@ public class LoadSinglePlayerPickerViewModel extends MapPickerViewModel {
 		MapFileHeader mapFileHeader = map.getFileHeader();
 		PlayerSetting[] playerSettings = mapFileHeader.getPlayerSettings();
 		byte playerId = mapFileHeader.getPlayerId();
-		JSettlersGame game = new JSettlersGame(map, 4711L, playerId, playerSettings);
+
+		InitialGameState initialGameState = new InitialGameState(playerId, playerSettings, 4711);
+		JSettlersGame game = new JSettlersGame(map, initialGameState);
 		gameStarter.setStartingGame(game.start());
 		mapSelectedEvent.call();
 	}

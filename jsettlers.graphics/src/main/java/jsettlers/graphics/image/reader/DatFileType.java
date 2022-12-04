@@ -19,7 +19,7 @@ import java.io.File;
 
 import jsettlers.common.Color;
 
-import static java8.util.J8Arrays.stream;
+import static java.util.Arrays.stream;
 
 public enum DatFileType {
 	RGB555(".7c003e01f.dat", new byte[]{

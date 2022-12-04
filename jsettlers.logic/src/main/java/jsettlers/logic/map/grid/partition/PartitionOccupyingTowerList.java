@@ -14,9 +14,6 @@
  *******************************************************************************/
 package jsettlers.logic.map.grid.partition;
 
-import java8.util.function.Predicate;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
 import jsettlers.common.map.shapes.MapCircle;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.utils.Tuple;
@@ -24,6 +21,8 @@ import jsettlers.common.utils.Tuple;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * A data structure to store the towers that occupy areas on the {@link PartitionsGrid}.
@@ -67,7 +66,7 @@ final class PartitionOccupyingTowerList extends LinkedList<PartitionOccupyingTow
 	 */
 	public List<Tuple<Integer, PartitionOccupyingTower>> getTowersInRange(ShortPoint2D center, int radius,
 			Predicate<PartitionOccupyingTower> towerPredicate) {
-		return StreamSupport.stream(this).filter(towerPredicate).map(tower -> {
+		return stream().filter(towerPredicate).map(tower -> {
 			int sqDist = (int) MapCircle.getDistanceSquared(center.x, center.y, tower.position.x, tower.position.y);
 			return new Tuple<>(sqDist, tower);
 		}).filter(towerWithDistance -> {

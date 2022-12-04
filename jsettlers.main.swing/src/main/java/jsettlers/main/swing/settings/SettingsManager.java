@@ -16,9 +16,8 @@ package jsettlers.main.swing.settings;
 
 import go.graphics.swing.contextcreator.EBackendType;
 import go.graphics.swing.sound.ISoundSettingsProvider;
-import java8.util.Maps;
-import java8.util.Optional;
-import java8.util.function.Supplier;
+import java.util.Optional;
+import java.util.function.Supplier;
 import jsettlers.common.CommonConstants;
 import jsettlers.common.resources.ResourceManager;
 
@@ -51,11 +50,13 @@ public class SettingsManager implements ISoundSettingsProvider {
 
 	private static final String SETTING_USERNAME = "name";
 	private static final String SETTING_LOCALE = "locale";
-	private static final String SETTING_SERVER = "server";
 	private static final String SETTING_VOLUME = "volume";
+	private static final String SETTING_VOLUME_MUSIC = "volume-music";
+	private static final String SETTING_MUSIC_PLAYALL = "music-playall";
 	private static final String SETTING_FULL_SCREEN_MODE = "fullScreenMode";
 
 	private static final String SETTING_GRAPHICS_DEBUG = "debug-opengl";
+	private static final String SETTINGS_GUI_SCALE = "gui-scale";
 	private static final String SETTING_CONTROL_ALL = "control-all";
 	private static final String SETTING_ACTIVATE_ALL_PLAYERS = "activate-all-players";
 	private static final String SETTING_ENABLE_CONSOLE_LOGGING = "console-output";
@@ -73,6 +74,9 @@ public class SettingsManager implements ISoundSettingsProvider {
 
 	public static void setup(String... args) throws IOException {
 		manager = new SettingsManager(args);
+
+		CommonConstants.PLAYALL_MUSIC = manager::isMusicPlayAll;
+		CommonConstants.MUSIC_VOLUME = manager::getMusicVolume;
 	}
 
 	public static SettingsManager getInstance() {
@@ -128,7 +132,7 @@ public class SettingsManager implements ISoundSettingsProvider {
 	}
 
 	private String get(String key) {
-		return Maps.computeIfAbsent(runtimeProperties, key, storedSettings::getProperty);
+		return runtimeProperties.computeIfAbsent(key, storedSettings::getProperty);
 	}
 
 	private boolean getOptional(String key) {
@@ -152,10 +156,6 @@ public class SettingsManager implements ISoundSettingsProvider {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-
-	public String getServer() {
-		return getOrDefault(SETTING_SERVER, () -> CommonConstants.DEFAULT_SERVER_ADDRESS);
 	}
 
 	public String getUserName() {
@@ -185,11 +185,25 @@ public class SettingsManager implements ISoundSettingsProvider {
 		return 1;
 	}
 
+	public float getMusicVolume() {
+		String volumeString = get(SETTING_VOLUME_MUSIC);
+		try {
+			float volume = volumeString != null ? Float.parseFloat(volumeString) : 0.3f;
+			return Math.min(Math.max(volume, 0), 1);
+		} catch (NumberFormatException e) {
+		}
+		return 1;
+	}
+
+	public boolean isMusicPlayAll() {
+		return Boolean.parseBoolean(get(SETTING_MUSIC_PLAYALL));
+	}
+
 	public int getFpsLimit() {
 		String fpsLimitString = get(SETTING_FPS_LIMIT);
 		try {
 			int fps_limit = fpsLimitString != null ? Integer.parseInt(fpsLimitString) : 60;
-			return Math.max(Math.min(fps_limit, 240), 1);
+			return Math.max(Math.min(fps_limit, 240), 0);
 		} catch (NumberFormatException e) {
 		}
 		return 1;
@@ -202,7 +216,17 @@ public class SettingsManager implements ISoundSettingsProvider {
 		set(SETTING_VOLUME, Float.toString(volume));
 	}
 
+	public void setMusicVolume(float volume) {
+		set(SETTING_VOLUME_MUSIC, Float.toString(volume));
+	}
+
+	public void setMusicPlayAll(boolean playall) {
+		set(SETTING_MUSIC_PLAYALL, Boolean.toString(playall));
+	}
+
 	public void setFpsLimit(int fpsLimit) {set(SETTING_FPS_LIMIT,Integer.toString(fpsLimit));}
+
+	public void setGuiScale(float scale) {set(SETTINGS_GUI_SCALE, ""+scale);}
 
 	public void setBackend(String backend) {set(SETTING_BACKEND, backend);}
 
@@ -284,5 +308,14 @@ public class SettingsManager implements ISoundSettingsProvider {
 
 	public boolean isGraphicsDebug() {
 		return getOptional(SETTING_GRAPHICS_DEBUG);
+	}
+
+	public float getGuiScale() {
+		String guiScaleString = get(SETTINGS_GUI_SCALE);
+		try {
+			return Math.max(guiScaleString != null ? Float.parseFloat(guiScaleString) : 1, 0.5f);
+		} catch (NumberFormatException e) {
+		}
+		return 0.5f;
 	}
 }

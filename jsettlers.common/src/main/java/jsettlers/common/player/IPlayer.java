@@ -15,6 +15,8 @@
 
 package jsettlers.common.player;
 
+import java.util.HashMap;
+
 /**
  * Created by Andreas Eberle on 27.06.2017.
  */
@@ -29,12 +31,12 @@ public interface IPlayer {
 
 	EWinState getWinState();
 
-	class DummyPlayer implements IPlayer {
-		private final byte playerAndTeamId;
+	ECivilisation getCivilisation();
 
-		public DummyPlayer() {
-			this.playerAndTeamId = 0;
-		}
+	IPlayer DEFAULT_DUMMY_PLAYER0 = DummyPlayer.getCached((byte)0);
+
+	class DummyPlayer implements IInGamePlayer {
+		private final byte playerAndTeamId;
 
 		public DummyPlayer(byte playerAndTeamId) {
 			this.playerAndTeamId = playerAndTeamId;
@@ -53,6 +55,52 @@ public interface IPlayer {
 		@Override
 		public EWinState getWinState() {
 			return EWinState.UNDECIDED;
+		}
+
+		@Override
+		public IMannaInformation getMannaInformation() {
+			return null;
+		}
+
+		@Override
+		public ICombatStrengthInformation getCombatStrengthInformation() {
+			return null;
+		}
+
+		@Override
+		public IEndgameStatistic getEndgameStatistic() {
+			return null;
+		}
+
+		@Override
+		public IBedInformation getBedInformation() {
+			return null;
+		}
+
+		@Override
+		public ISettlerInformation getSettlerInformation() {
+			return null;
+		}
+
+		@Override
+		public ECivilisation getCivilisation() {
+			return ECivilisation.ROMAN;
+		}
+
+
+
+		private static final java.util.Map<Byte, IPlayer> playerHandles = new HashMap<>();
+
+		public static IPlayer getCached(byte playerId) {
+			if(playerId == -1) return null;
+
+			if(playerHandles.containsKey(playerId)) {
+				return playerHandles.get(playerId);
+			} else {
+				IPlayer dummy = new DummyPlayer(playerId);
+				playerHandles.put(playerId, dummy);
+				return dummy;
+			}
 		}
 	}
 }

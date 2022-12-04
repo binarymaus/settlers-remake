@@ -14,15 +14,15 @@
  *******************************************************************************/
 package jsettlers.graphics.image;
 
-import java.nio.ShortBuffer;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
-import go.graphics.EGeometryType;
-import go.graphics.GL2DrawContext;
+import go.graphics.EUnifiedMode;
 import go.graphics.GLDrawContext;
-import go.graphics.IllegalBufferException;
-import go.graphics.SharedGeometry;
+import java.nio.ShortBuffer;
 import jsettlers.common.Color;
 import jsettlers.graphics.image.reader.ImageMetadata;
+import jsettlers.graphics.image.reader.translator.ImageDataProducer;
 
 /**
  * This is the image of something that is displayed as an object on the map, e.g. an settler.
@@ -33,9 +33,9 @@ import jsettlers.graphics.image.reader.ImageMetadata;
  */
 public class SettlerImage extends SingleImage {
 
+	public static float shadow_offset = 0;
 	private SingleImage torso = null;
 	private SingleImage shadow = null;
-	private boolean gl2 = false;
 
 	/**
 	 * Creates a new settler image.
@@ -44,75 +44,38 @@ public class SettlerImage extends SingleImage {
 	 *            The mata data to use.
 	 * @param data
 	 *            The data to use.
+	 * @param name
+	 * 				The name of the image.
 	 */
-	public SettlerImage(ImageMetadata metadata, short[] data, String name) {
+	public SettlerImage(ImageMetadata metadata, ImageDataProducer data, String name) {
 		super(metadata, data, name);
 	}
 
-	@Override
-	protected void checkHandles(GLDrawContext gl) throws IllegalBufferException {
-		if ((texture == null || !texture.isValid())) {
-			gl2 = gl instanceof GL2DrawContext && (this.torso != null || this.shadow != null);
-			if(gl2) generateUData();
-		}
-
-		super.checkHandles(gl);
-		if(!gl2) {
-			if (torso != null && torso.getWidth() == getWidth()
-					&& torso.getHeight() == getHeight()
-					&& torso.getOffsetX() == getOffsetX()
-					&& torso.getOffsetY() == getOffsetY()) {
-				torso.setGeometry(geometryIndex);
-			}
-		}
-	}
-
-	private boolean gl2Draw(GLDrawContext gl, float x, float y, float z, Color torsoColor, float fow, boolean settler, boolean shadow) {
-		try {
-			checkHandles(gl);
-			if(!gl2) return false;
-			((GL2DrawContext)gl).drawUnified2D(geometryIndex.geometry, texture, EGeometryType.Quad, geometryIndex.index, 4, settler, shadow, x, y, z, 1, 1, 1, torsoColor, fow);
-		} catch(IllegalBufferException e) {
-			e.printStackTrace();
-		}
-
-		return true;
+	public ImageMetadata getMetadata() {
+		var meta = new ImageMetadata();
+		meta.height = height;
+		meta.width = width;
+		meta.offsetX = offsetX;
+		meta.offsetY = offsetY;
+		return meta;
 	}
 
 	@Override
 	public void drawAt(GLDrawContext gl, float x, float y, float z, Color torsoColor, float fow) {
-		if(gl2Draw(gl, x, y, z, torsoColor, fow, true, true)) return;
-		drawOnlyImageAt(gl, x, y, z, torsoColor, fow);
-		drawOnlyShadowAt(gl, x, y, z);
+		checkHandles(gl);
+		geometryIndex.drawComplexQuad(EUnifiedMode.SETTLER_SHADOW, x, y, z, 1, 1, torsoColor, fow);
 	}
 
 	@Override
 	public void drawOnlyImageAt(GLDrawContext gl, float x, float y, float z, Color torsoColor, float fow) {
-		if(gl2Draw(gl, x, y, z, torsoColor, fow, true, false)) return;
-		try {
-			checkHandles(gl);
-			gl.draw2D(geometryIndex.geometry, texture, EGeometryType.Quad, geometryIndex.index, 4, x, y, z, 1, 1, 1, null, fow);
-
-			if(torso != null && torsoColor != null) {
-				torso.checkHandles(gl);
-				gl.draw2D(torso.geometryIndex.geometry, torso.texture, EGeometryType.Quad, torso.geometryIndex.index, 4, x, y, z, 1, 1, 1, torsoColor, fow);
-			}
-		} catch (IllegalBufferException e) {
-			handleIllegalBufferException(e);
-		}
+		checkHandles(gl);
+		geometryIndex.drawComplexQuad(EUnifiedMode.SETTLER, x, y, z, 1, 1, torsoColor, fow);
 	}
 
 	@Override
 	public void drawOnlyShadowAt(GLDrawContext gl, float x, float y, float z) {
-		if(gl2Draw(gl, x, y, z, null, 0, false, true)) return;
-		if(shadow != null) {
-			try {
-				shadow.checkHandles(gl);
-				gl.draw2D(shadow.geometryIndex.geometry, shadow.texture, EGeometryType.Quad, shadow.geometryIndex.index, 4, x, y, z, 1, 1, 1, null, 1);
-			} catch (IllegalBufferException e) {
-				handleIllegalBufferException(e);
-			}
-		}
+		checkHandles(gl);
+		geometryIndex.drawComplexQuad(EUnifiedMode.SHADOW_ONLY, x, y, z, 1, 1, Color.TRANSPARENT, 1);
 	}
 
 	/**
@@ -134,11 +97,15 @@ public class SettlerImage extends SingleImage {
 	 * 
 	 * @return The torso.
 	 */
-	public Image getTorso() {
+	public SingleImage getTorso() {
 		return this.torso;
 	}
 
-	private void generateUData() {
+	public SingleImage getShadow() {
+		return shadow;
+	}
+
+	protected ShortBuffer generateTextureData() {
 		toffsetX = offsetX;
 		toffsetY = offsetY;
 
@@ -162,19 +129,21 @@ public class SettlerImage extends SingleImage {
 		twidth = tx-toffsetX;
 		theight = ty-toffsetY;
 
-		tdata = ShortBuffer.allocate(twidth * theight);
+		ShortBuffer tdata = ByteBuffer.allocateDirect(twidth * theight * 2).order(ByteOrder.nativeOrder()).asShortBuffer();
 
 		short[] temp = new short[0];
 
 		if(shadow != null) {
+			ShortBuffer shadowData = shadow.getData();
+
 			int hoffX = shadow.offsetX-toffsetX;
 			int hoffY = shadow.offsetY-toffsetY;
 
 			if(temp.length < shadow.width) temp = new short[shadow.width];
 
 			for(int y = 0;y != shadow.height;y++) {
-				shadow.data.position(y*shadow.width);
-				shadow.data.get(temp, 0, shadow.width);
+				shadowData.position(y*shadow.width);
+				shadowData.get(temp, 0, shadow.width);
 
 				for(int x = 0;x != shadow.width;x++) {
 					if(temp[x] == 0) continue;
@@ -184,14 +153,16 @@ public class SettlerImage extends SingleImage {
 		}
 
 		if(torso != null) {
+			ShortBuffer torsoData = torso.getData();
+
 			int toffX = torso.offsetX-toffsetX;
 			int toffY = torso.offsetY-toffsetY;
 
 			if(temp.length < torso.width) temp = new short[torso.width];
 
 			for(int y = 0;y != torso.height;y++) {
-				torso.data.position(y*torso.width);
-				torso.data.get(temp, 0, torso.width);
+				torsoData.position(y*torso.width);
+				torsoData.get(temp, 0, torso.width);
 
 				for(int x = 0;x != torso.width;x++) {
 					if(temp[x] == 0) continue;
@@ -205,7 +176,10 @@ public class SettlerImage extends SingleImage {
 
 		if(temp.length < width) temp = new short[width];
 
+		ShortBuffer data = getData();
+
 		for(int y = 0;y != height;y++) {
+			//System.out.println("Trying to read position " + y*width);
 			data.position(y*width);
 			data.get(temp, 0, width);
 
@@ -213,5 +187,6 @@ public class SettlerImage extends SingleImage {
 				if(temp[x] != 0) tdata.put((y+soffY)*twidth+soffX+x, temp[x]);
 			}
 		}
+		return tdata;
 	}
 }

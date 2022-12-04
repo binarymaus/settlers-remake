@@ -15,10 +15,11 @@
 package jsettlers.graphics.map.controls.original.panel.selection;
 
 import java.util.List;
+import java.util.Optional;
 
 import go.graphics.GLDrawContext;
 import go.graphics.text.EFontSize;
-import jsettlers.common.buildings.EBuildingType;
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.images.EImageLinkType;
 import jsettlers.common.images.ImageLink;
@@ -28,7 +29,7 @@ import jsettlers.common.material.EPriority;
 import jsettlers.common.action.EActionType;
 import jsettlers.common.movable.ESoldierClass;
 import jsettlers.common.movable.ESoldierType;
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.movable.IGraphicsMovable;
 import jsettlers.common.selectable.ISelectionSet;
 import jsettlers.common.action.Action;
 import jsettlers.graphics.action.AskSetTradingWaypointAction;
@@ -43,6 +44,8 @@ import jsettlers.graphics.map.controls.original.panel.button.SelectionManager;
 import jsettlers.graphics.map.controls.original.panel.button.stock.StockControlButton;
 import jsettlers.graphics.map.controls.original.panel.selection.BuildingState.OccupierState;
 import jsettlers.graphics.map.controls.original.panel.selection.BuildingState.StackState;
+import jsettlers.graphics.map.draw.ECommonLinkType;
+import jsettlers.graphics.map.draw.ImageLinkMap;
 import jsettlers.graphics.map.draw.ImageProvider;
 import jsettlers.graphics.ui.Button;
 import jsettlers.graphics.ui.Label;
@@ -53,6 +56,7 @@ import jsettlers.graphics.ui.layout.DockyardSelectionLayout;
 import jsettlers.graphics.ui.layout.OccupiableSelectionLayout;
 import jsettlers.graphics.ui.layout.StockSelectionLayout;
 import jsettlers.graphics.ui.layout.TradingSelectionLayout;
+import jsettlers.common.IHaveDiggProgress;
 
 /**
  * This is the selection content that is used for displaying a selected building.
@@ -100,7 +104,19 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 	 *
 	 * @author Michael Zangl
 	 */
-	public static class SoldierCount extends Label {
+	public static class SoldierCount extends Label implements StateDependingElement {
+
+
+		private final ESoldierType type;
+
+		@Override
+		public void setState(BuildingState state) {
+			Integer count = state.getAvailableSoldiers().get(type);
+
+			if(count != null) {
+				setText(count.toString());
+			}
+		}
 
 		/**
 		 * Creates a new soldier count field.
@@ -110,9 +126,32 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 		 */
 		public SoldierCount(ESoldierType type) {
 			super("?", EFontSize.NORMAL);
+
+			this.type = type;
 		}
 	}
 
+	public static class TradingMaterials extends UIPanel {
+
+		public TradingMaterials() {
+			int w = 6;
+			int h = 6;
+
+			float xStep = 1.f/w;
+			float yStep = 1.f/h;
+			float sub = 18.f/25;
+
+			for(int i = 0; i < EMaterialType.NUMBER_OF_DROPPABLE_MATERIALS; i++) {
+				SelectionManagedMaterialButton button = new SelectionManagedMaterialButton(EMaterialType.DROPPABLE_MATERIALS[i]);
+				TradingMaterialCount count = new TradingMaterialCount(EMaterialType.DROPPABLE_MATERIALS[i]);
+
+				int x = i % w;
+				int y = i / w;
+				addChild(button, xStep*x, 1-yStep*(y+sub), xStep*(x+1), 1-yStep*y);
+				addChild(count, xStep*x, 1-yStep*(y+1), xStep*(x+1), 1-yStep*(y+sub));
+			}
+		}
+	}
 	/**
 	 * This displays the number of materials traded.
 	 *
@@ -201,9 +240,9 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 		}
 
 		@Override
-		public Action getAction(float relativeX, float relativeY) {
+		public Optional<Action> getAction(float relativeX, float relativeY) {
 			int step = (int) (relativeX * NUMBER_OF_BUTTONS);
-			return getActionForStep(step);
+			return Optional.of(getActionForStep(step));
 		}
 	}
 
@@ -227,12 +266,12 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 		}
 
 		@Override
-		public Action getAction(float relativeX, float relativeY) {
+		public Optional<Action> getAction(float relativeX, float relativeY) {
 			int step = (int) (relativeX * NUMBER_OF_BUTTONS) - 1;
 			if (step >= 0) {
-				return getActionForStep(step);
+				return Optional.of(getActionForStep(step));
 			} else {
-				return new Action(EActionType.ASK_SET_DOCK);
+				return Optional.of(new Action(EActionType.ASK_SET_DOCK));
 			}
 		}
 	}
@@ -323,7 +362,7 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 			root = createNormalBuildingContent(state);
 		}
 
-		ImageLink[] images = building.getBuildingType().getImages();
+		ImageLink[] images = building.getBuildingVariant().getImages();
 		root.setImages(images);
 		rootPanel.addChild(root, 0, 0, 1, 1);
 	}
@@ -333,11 +372,11 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 
 		loadPriorityButton(layout.background, layout.priority, state);
 
-		if (building.getBuildingType().getWorkRadius() <= 0) {
+		if (building.getBuildingVariant().getWorkRadius() <= 0) {
 			layout.background.removeChild(layout.buttonWorkRadius);
 		}
 
-		layout.nameText.setType(building.getBuildingType(), state.isConstruction());
+		layout.nameText.setType(building, state.isConstruction());
 
 		String text = "";
 		if (state.isConstruction()) {
@@ -371,7 +410,7 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 		float offerX = 1 - buttonSpace - buttonWidth;
 
 		for (StackState mat : state.getStackStates()) {
-			MaterialDisplay display = new MaterialDisplay(mat.getType(), mat.getCount(), -1);
+			MaterialDisplay display = new MaterialDisplay(mat);
 			if (mat.isOffering()) {
 				materialArea.addChild(display, offerX, 0, offerX + buttonWidth, 1);
 				offerX -= buttonSpace + buttonWidth;
@@ -393,24 +432,14 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 		/**
 		 * Create a new {@link MaterialDisplay}
 		 *
-		 * @param type
-		 *            The type of material.
-		 * @param amount
-		 *            The number of materials to show.
-		 * @param required
-		 *            <code>true</code> if those are required materials for build.
+		 * @param mat
+		 * 		The stack state this MaterialDisplay should display
 		 */
-		public MaterialDisplay(EMaterialType type, int amount, int required) {
-			String label;
-			if (required < 0) {
-				label = "building-material-count";
-			} else {
-				label = "building-material-required";
-			}
-			String text = Labels.getString(label, amount, required);
+		public MaterialDisplay(StackState mat) {
 			// TODO: use Labels.getName(type) ?
-			addChild(new Button(null, type.getIcon(), type.getIcon(), ""), 0, BUTTON_BOTTOM, 1, 1);
-			addChild(new Label(text, EFontSize.NORMAL), 0, 0, 1, BUTTON_BOTTOM);
+			ImageLink icon = mat.getType().getIcon();
+			addChild(new Button(null, icon, icon, ""), 0, BUTTON_BOTTOM, 1, 1);
+			addChild(new Label(mat.getInfoString(), EFontSize.NORMAL), 0, 0, 1, BUTTON_BOTTOM);
 		}
 	}
 
@@ -430,15 +459,17 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 		/**
 		 * Sets the type of the building to display.
 		 *
-		 * @param type
-		 *            The type.
+		 * @param variant
+		 *            The building type
 		 * @param workplace
 		 *            <code>true</code> if it is currently under construction.
 		 */
-		public void setType(EBuildingType type, boolean workplace) {
-			String text = Labels.getName(type);
+		public void setType(IBuilding building, boolean workplace) {
+			var variant = building.getBuildingVariant();
+			var diggProgress = ((IHaveDiggProgress)building).getDiggProgress();
+			String text = Labels.getName(variant.getType());
 			if (workplace) {
-				text = Labels.getString("building-build-in-progress", text);
+				text = Labels.getString("building-build-in-progress", text) + " (" + Math.round(diggProgress * 100) + "% planiert)";
 			}
 			setText(text);
 		}
@@ -508,9 +539,13 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 
 	private BuildingBackgroundPanel createOccupiedBuildingContent(BuildingState state) {
 		OccupiableSelectionLayout layout = new OccupiableSelectionLayout();
-		layout.nameText.setType(building.getBuildingType(), false);
+		layout.nameText.setType(building, false);
 		addOccupyerPlaces(layout.infantry_places, layout.infantry_missing, state.getOccupiers(ESoldierClass.INFANTRY));
 		addOccupyerPlaces(layout.bowman_places, layout.bowman_missing, state.getOccupiers(ESoldierClass.BOWMAN));
+
+		for (StateDependingElement i : layout.getAll(StateDependingElement.class)) {
+			i.setState(state);
+		}
 		return layout._root;
 	}
 
@@ -535,37 +570,13 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 		}
 	}
 
-	private static OriginalImageLink getIconFor(IMovable movable) {
-		switch (movable.getMovableType()) {
-		case SWORDSMAN_L1:
-			return new OriginalImageLink(EImageLinkType.GUI, 14, 213, 0);
-		case SWORDSMAN_L2:
-			return new OriginalImageLink(EImageLinkType.GUI, 14, 222, 0);
-		case SWORDSMAN_L3:
-			return new OriginalImageLink(EImageLinkType.GUI, 14, 231, 0);
-		case PIKEMAN_L1:
-			return new OriginalImageLink(EImageLinkType.GUI, 14, 216, 0);
-		case PIKEMAN_L2:
-			return new OriginalImageLink(EImageLinkType.GUI, 14, 225, 0);
-		case PIKEMAN_L3:
-			return new OriginalImageLink(EImageLinkType.GUI, 14, 234, 0);
-		case BOWMAN_L1:
-			return new OriginalImageLink(EImageLinkType.GUI, 14, 219, 0);
-		case BOWMAN_L2:
-			return new OriginalImageLink(EImageLinkType.GUI, 14, 228, 0);
-		case BOWMAN_L3:
-			return new OriginalImageLink(EImageLinkType.GUI, 14, 237, 0);
-
-		default:
-			System.err.println("A unknown image was requested for gui. "
-					+ "Type=" + movable.getMovableType());
-			return new OriginalImageLink(EImageLinkType.GUI, 24, 213, 0);
-		}
+	private static ImageLink getIconFor(IGraphicsMovable movable) {
+		return ImageLinkMap.get(movable.getPlayer().getCivilisation(), ECommonLinkType.SETTLER_GUI, movable.getMovableType());
 	}
 
 	private BuildingBackgroundPanel createStockBuildingContent(BuildingState state) {
 		StockSelectionLayout layout = new StockSelectionLayout();
-		layout.nameText.setType(building.getBuildingType(), false);
+		layout.nameText.setType(building, false);
 		selectionManager.setButtons(layout.getAll(StockControlButton.class));
 		for (StateDependingElement i : layout.getAll(StateDependingElement.class)) {
 			i.setState(state);
@@ -579,7 +590,7 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 
 	private BuildingBackgroundPanel createTradingBuildingContent(BuildingState state) {
 		TradingSelectionLayout layout = new TradingSelectionLayout();
-		layout.nameText.setType(building.getBuildingType(), false);
+		layout.nameText.setType(building, false);
 		selectionManager.setButtons(layout.getAll(SelectionManagedMaterialButton.class));
 		EPriority[] supported = state.getSupportedPriorities();
 		if (supported.length < 2) {
@@ -613,9 +624,9 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 	}
 
 	private BuildingBackgroundPanel createDockyardBuildingContent(BuildingState state) {
-		DockyardSelectionLayout layout = new DockyardSelectionLayout();
+		DockyardSelectionLayout layout = new DockyardSelectionLayout(null, building.getPlayer().getCivilisation());
 		loadPriorityButton(layout.background, layout.priority, state);
-		layout.nameText.setType(building.getBuildingType(), state.isConstruction());
+		layout.nameText.setType(building, state.isConstruction());
 
 		if (state.isWorkingDockyard()) {
 			layout.materialText.setText(Labels.getString("materials_required"));
@@ -654,6 +665,8 @@ public class BuildingSelectionContent extends AbstractSelectionContent {
 
 			for (ImageLink link : links) {
 				ImageProvider.getInstance().getImage(link).drawAt(gl, cx, cy, 0, null, 1);
+				// TODO implement depth sorting in UI
+				gl.finishFrame();
 			}
 		}
 

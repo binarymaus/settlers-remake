@@ -117,6 +117,10 @@ public class Player {
 		return state;
 	}
 
+	public Match getMatch() {
+		return match;
+	}
+
 	public void setStartFinished(boolean value) {
 		playerInfo.setStartFinished(value);
 		match.sendMatchInfoUpdate(ENetworkMessage.START_FINISHED, this.getPlayerInfo());

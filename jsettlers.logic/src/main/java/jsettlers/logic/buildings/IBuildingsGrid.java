@@ -28,6 +28,7 @@ import jsettlers.common.position.ShortPoint2D;
 import jsettlers.logic.DockPosition;
 import jsettlers.logic.buildings.stack.IRequestsStackGrid;
 import jsettlers.logic.buildings.workers.WorkerBuilding;
+import jsettlers.logic.map.grid.landscape.LandscapeGrid;
 import jsettlers.logic.map.grid.objects.MapObjectsManager;
 import jsettlers.logic.map.grid.partition.manager.manageables.interfaces.IBarrack;
 import jsettlers.logic.map.grid.partition.manager.manageables.interfaces.IDiggerRequester;
@@ -51,6 +52,8 @@ public interface IBuildingsGrid {
 	 * @return height at given position.
 	 */
 	byte getHeightAt(ShortPoint2D position);
+
+	LandscapeGrid getLandscapeGrid();
 
 	boolean setBuilding(ShortPoint2D position, Building newBuilding); // FIXME create interface for Building to be used by the grid
 
@@ -83,6 +86,10 @@ public interface IBuildingsGrid {
 	AbstractMovableGrid getMovableGrid();
 
 	void requestDiggers(IDiggerRequester requester, byte amount);
+
+	void sortDiggerRequests(IDiggerRequester requester);
+
+	void sortBricklayerRequests(IDiggerRequester requester);
 
 	void requestBricklayer(Building building, ShortPoint2D position, EDirection direction);
 

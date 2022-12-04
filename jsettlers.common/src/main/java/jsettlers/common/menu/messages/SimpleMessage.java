@@ -97,6 +97,11 @@ public class SimpleMessage implements IMessage {
 		return false;
 	}
 
+	public static IMessage donkeyAttacked(byte otherplayer, ShortPoint2D pos) {
+		return new SimpleMessage(EMessageType.ATTACKED, "attacked_donkey", otherplayer, pos);
+	}
+
+
 	/**
 	 * Creates a new attacked-messageLabel.
 	 *
@@ -131,6 +136,18 @@ public class SimpleMessage implements IMessage {
 	 * @return THe messageLabel object
 	 */
 	public static IMessage cannotFindWork(IBuilding building) {
-		return new SimpleMessage(EMessageType.NOTHING_FOUND_IN_SEARCH_AREA, "cannot_find_work_" + building.getBuildingType(), (byte) -1, building.getPosition());
+		return new SimpleMessage(EMessageType.NOTHING_FOUND_IN_SEARCH_AREA, "cannot_find_work_" + building.getBuildingVariant().getType(), (byte) -1, building.getPosition());
+	}
+
+	/**
+	 *
+	 * @param at
+	 * 		The location where to mage was supposed to cast a spell
+	 * @param messageLabel
+	 * 		The translation key of the text that will be shown
+	 * @return The messageLabel object
+	 */
+	public static IMessage castFailed(ShortPoint2D at, String messageLabel) {
+		return new SimpleMessage(EMessageType.NOTHING_FOUND_IN_SEARCH_AREA, messageLabel, (byte)-1, at);
 	}
 }

@@ -57,7 +57,14 @@ public interface IMultiplayerConnector {
 	int getRoundTripTimeInMs();
 
 	/**
-	 * Shuts down the connection to the server and stops the threads this multiplayer connector started.
+	 *
+	 * @return The playername of this client
 	 */
-	void shutdown();
+	String getPlayerName();
+
+	/**
+	 *
+	 * @return The uuid of this client
+	 */
+	String getPlayerUUID();
 }

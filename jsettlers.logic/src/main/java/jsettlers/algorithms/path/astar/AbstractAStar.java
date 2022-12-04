@@ -22,4 +22,6 @@ public abstract class AbstractAStar {
 	public abstract Path findPath(IPathCalculatable requester, final short sx, final short sy, final short tx, final short ty);
 
 	public abstract Path findPath(IPathCalculatable aStarPathable, ShortPoint2D targetPos);
+
+	public abstract Path findPath(IPathCalculatable aStarPathable, ShortPoint2D targetPos, ShortPoint2D startPos);
 }

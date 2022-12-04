@@ -48,14 +48,14 @@ public class TitleFeature extends SelectionFeature implements DrawListener {
 		nameTextView = (TextView) getView().findViewById(R.id.text_view_building_name);
 		ImageView imageView = (ImageView) getView().findViewById(R.id.image_view_building);
 
-		String name = Labels.getName(getBuilding().getBuildingType());
+		String name = Labels.getName(getBuilding().getBuildingVariant().getType());
 		if (getBuildingState().isConstruction()) {
 			name = Labels.getString("building-build-in-progress", name);
 			drawControls.addInfrequentDrawListener(this);
 		}
 
 		nameTextView.setText(name);
-		OriginalImageProvider.get(getBuilding().getBuildingType()).setAsImage(imageView);
+		OriginalImageProvider.get(getBuilding().getBuildingVariant()).setAsImage(imageView);
 	}
 
 	@Override
@@ -73,7 +73,7 @@ public class TitleFeature extends SelectionFeature implements DrawListener {
 
 	private void update() {
 		if (!getBuildingState().isConstruction()) {
-			String name = Labels.getName(getBuilding().getBuildingType());
+			String name = Labels.getName(getBuilding().getBuildingVariant().getType());
 			nameTextView.setText(name);
 			drawControls.removeInfrequentDrawListener(TitleFeature.this);
 		}

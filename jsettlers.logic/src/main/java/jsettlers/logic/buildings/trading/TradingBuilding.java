@@ -19,13 +19,15 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
-import java8.util.Optional;
-import java8.util.stream.Collectors;
 import jsettlers.common.action.SetTradingWaypointAction.EWaypointType;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.buildings.stacks.RelativeStack;
+import jsettlers.common.landscape.EResourceType;
 import jsettlers.common.mapobject.EMapObjectType;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.common.material.EPriority;
@@ -36,10 +38,9 @@ import jsettlers.logic.buildings.stack.IRequestStack;
 import jsettlers.logic.buildings.stack.multi.MultiMaterialRequestSettings;
 import jsettlers.logic.buildings.stack.multi.MultiRequestStack;
 import jsettlers.logic.buildings.stack.multi.MultiRequestStackSharedData;
-import jsettlers.logic.movable.strategies.trading.ITradeBuilding;
+import jsettlers.logic.buildings.ITradeBuilding;
 import jsettlers.logic.player.Player;
-
-import static java8.util.stream.StreamSupport.stream;
+import jsettlers.logic.trading.TradeManager;
 
 public abstract class TradingBuilding extends Building implements IBuilding.ITrading, ITradeBuilding {
 	private static final short WAYPOINT_SEARCH_RADIUS = (short) 20;
@@ -49,19 +50,21 @@ public abstract class TradingBuilding extends Building implements IBuilding.ITra
 		EPriority.HIGH,
 		EPriority.STOPPED};
 
+	private static final long serialVersionUID = -8660117211654396737L;
+
 	/**
 	 * How many materials were requested by the user. Integer#MAX_VALUE for infinity.
 	 */
 	private final MultiMaterialRequestSettings requestedMaterials = new MultiMaterialRequestSettings();
 	private final ShortPoint2D[]               waypoints          = new ShortPoint2D[EWaypointType.VALUES.length];
 
+	private int approachingTraderCount = 0;
+
 	TradingBuilding(EBuildingType type, Player player, ShortPoint2D position, IBuildingsGrid buildingsGrid) {
 		super(type, player, position, buildingsGrid);
-	}
+		setOccupied(false);
 
-	@Override
-	public boolean isOccupied() {
-		return false;
+		getTradeManager().registerTradeBuilding(this);
 	}
 
 	@Override
@@ -81,14 +84,19 @@ public abstract class TradingBuilding extends Building implements IBuilding.ITra
 
 	@Override
 	public int getRequestedTradingFor(EMaterialType materialType) {
-		return requestedMaterials.getRequestedAmount(materialType);
+		short amount = requestedMaterials.getRequestedAmount(materialType);
+		if(amount == Short.MAX_VALUE) {
+			return Integer.MAX_VALUE;
+		} else {
+			return amount;
+		}
 	}
 
 	public void changeRequestedMaterial(EMaterialType materialType, int amount, boolean relative) {
 		long newValue = amount;
 		if (relative) {
-			int old = requestedMaterials.getRequestedAmount(materialType);
-			if (old == Integer.MAX_VALUE) {
+			short old = requestedMaterials.getRequestedAmount(materialType);
+			if (old == Short.MAX_VALUE) {
 				// infinity stays infinity.
 				return;
 			}
@@ -157,6 +165,13 @@ public abstract class TradingBuilding extends Building implements IBuilding.ITra
 		super.kill();
 	}
 
+	@Override
+	protected void killedEvent() {
+		super.killedEvent();
+
+		getTradeManager().removeTradeBuilding(this);
+	}
+
 	protected void drawWaypointLine(boolean draw) {
 		ShortPoint2D waypointStart = getWaypointsStartPosition();
 		if (waypointStart != null) {
@@ -172,7 +187,7 @@ public abstract class TradingBuilding extends Building implements IBuilding.ITra
 
 		MultiRequestStackSharedData sharedData = new MultiRequestStackSharedData(requestedMaterials);
 
-		for (RelativeStack stack : type.getRequestStacks()) {
+		for (RelativeStack stack : getBuildingVariant().getRequestStacks()) {
 			newStacks.add(new MultiRequestStack(grid.getRequestStackGrid(), stack.calculatePoint(this.pos), type, super.getPriority(), sharedData));
 		}
 
@@ -191,12 +206,29 @@ public abstract class TradingBuilding extends Building implements IBuilding.ITra
 	}
 
 	@Override
+	public boolean needsMoreTraders() {
+		return isTargetSet() && getPriority() != EPriority.STOPPED && getTradersForMaterial() > approachingTraderCount;
+	}
+
+	protected abstract int getTradersForMaterial();
+
+	@Override
+	public void addApproachingTrader() {
+		approachingTraderCount++;
+	}
+
+	@Override
+	public void removeApproachingTrader() {
+		approachingTraderCount--;
+	}
+
+	@Override
 	public Optional<MaterialTypeWithCount> tryToTakeMaterial(int maxAmount) {
 		if (!isTargetSet() || getPriority() == EPriority.STOPPED) { // if no target is set, or work is stopped don't give materials
 			return Optional.empty();
 		}
 
-		List<? extends IRequestStack> potentialStacks = stream(getStacks()).filter(IRequestStack::hasMaterial).collect(Collectors.toList());
+		List<? extends IRequestStack> potentialStacks = getStacks().stream().filter(IRequestStack::hasMaterial).collect(Collectors.toList());
 
 		if (potentialStacks.isEmpty()) {
 			return Optional.empty();
@@ -226,6 +258,8 @@ public abstract class TradingBuilding extends Building implements IBuilding.ITra
 	public Iterator<ShortPoint2D> getWaypointsIterator() {
 		return new WaypointsIterator(waypoints);
 	}
+
+	protected abstract TradeManager getTradeManager();
 
 	private static class WaypointsIterator implements Iterator<ShortPoint2D>, Serializable {
 		private static final long serialVersionUID = 5229610228646171358L;

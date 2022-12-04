@@ -25,6 +25,7 @@ import jsettlers.algorithms.path.astar.AbstractAStar;
 import jsettlers.common.map.shapes.MapCircle;
 import jsettlers.common.material.ESearchType;
 import jsettlers.common.position.ShortPoint2D;
+import jsettlers.logic.buildings.military.occupying.IOccupyableBuilding;
 
 /**
  * this class implements a strict dijkstra algorithm
@@ -149,8 +150,40 @@ public final class DijkstraAlgorithm {
 
 		short radiusSteps = request.getRadiusSteps();
 		short radius = 1;
+		boolean  all = true;
+		for(int i = 0; i < request.searchTypes.size(); i++) {
+			if(request.searchTypes.toArray()[i] != ESearchType.SOLDIER_INFANTRY) {
+				all = false;
+			}
+		}
+		for (short deltaRadius = 0; deltaRadius < radiusSteps; deltaRadius++) {
+			// TODO: Find only max units in request.maxRadius (IF INFANTRY)
+			radius = (short) ((deltaRadius + request.radius) % request.maxRadius + request.minRadius);
+			short x = request.cX, y = (short) (request.cY - radius);
+
+			for (byte direction = 0; direction < 6; direction++) {
+				byte dx = directionIncreaseX[direction];
+				byte dy = directionIncreaseY[direction];
+				for (short length = 0; length < radius; length++) {
+					x += dx;
+					y += dy;
+					if (circle.contains(x, y) && isInBounds(x, y)) {
+						map.setDijkstraSearched(x, y);
+						if(map.isGeneralAt(x, y, request.searchTypes, request.requester, request.requester.getPlayer()))
+						{
+							Path path = findPathTo(request.requester, x, y);
+							if (path != null) {
+								request.setRadius(radius);
+								return path;
+							}
+						}
+					}
+				}
+			}
+		}
 
 		for (short deltaRadius = 0; deltaRadius < radiusSteps; deltaRadius++) {
+			// TODO: Find only max units in request.maxRadius (IF INFANTRY)
 			radius = (short) ((deltaRadius + request.radius) % request.maxRadius + request.minRadius);
 			short x = request.cX, y = (short) (request.cY - radius);
 

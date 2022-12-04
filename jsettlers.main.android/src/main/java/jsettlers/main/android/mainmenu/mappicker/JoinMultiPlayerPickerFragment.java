@@ -21,13 +21,12 @@ import org.androidannotations.annotations.AfterViews;
 import org.androidannotations.annotations.EFragment;
 import org.androidannotations.annotations.ViewById;
 
-import com.yqritc.recyclerviewflexibledivider.HorizontalDividerItemDecoration;
-
 import android.arch.lifecycle.ViewModelProviders;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -99,7 +98,7 @@ public class JoinMultiPlayerPickerFragment extends Fragment {
 			if (recyclerView.getAdapter() == null) {
 				recyclerView.setHasFixedSize(true);
 				recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
-				recyclerView.addItemDecoration(new HorizontalDividerItemDecoration.Builder(getActivity()).build());
+				recyclerView.addItemDecoration(new DividerItemDecoration(getActivity(), DividerItemDecoration.HORIZONTAL));
 				recyclerView.setItemAnimator(new NoChangeItemAnimator());
 				recyclerView.setAdapter(adapter);
 			}

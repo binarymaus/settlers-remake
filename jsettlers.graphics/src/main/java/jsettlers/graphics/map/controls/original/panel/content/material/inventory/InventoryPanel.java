@@ -14,13 +14,12 @@
  */
 package jsettlers.graphics.map.controls.original.panel.content.material.inventory;
 
-import static java8.util.stream.StreamSupport.stream;
-
 import go.graphics.text.EFontSize;
 
 import jsettlers.common.map.IGraphicsGrid;
 import jsettlers.common.map.partition.IPartitionData;
 import jsettlers.common.material.EMaterialType;
+import jsettlers.common.player.IInGamePlayer;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.graphics.action.ActionFireable;
 import jsettlers.graphics.localization.Labels;
@@ -103,7 +102,7 @@ public class InventoryPanel extends AbstractContentProvider {
 		panel = new MaterialInventoryLayout()._root;
 
 		// noinspection unchecked
-		stream(panel.getChildren())
+		panel.getChildren().stream()
 				.filter(c -> c instanceof UiContentUpdater.IUiContentReceiver)
 				.map(c -> (IUiContentReceiver<IPartitionData>) c)
 				.forEach(uiContentUpdater::addListener);
@@ -113,6 +112,10 @@ public class InventoryPanel extends AbstractContentProvider {
 	public void showMapPosition(ShortPoint2D position, IGraphicsGrid grid) {
 		super.showMapPosition(position, grid);
 		uiContentUpdater.updatePosition(grid, position);
+	}
+
+	public void setPlayer(IInGamePlayer player) {
+		uiContentUpdater.setPlayer(player);
 	}
 
 	@Override

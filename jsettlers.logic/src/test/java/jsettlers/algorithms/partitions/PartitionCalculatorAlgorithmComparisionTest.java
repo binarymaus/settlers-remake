@@ -15,6 +15,7 @@
 package jsettlers.algorithms.partitions;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.BitSet;
 
@@ -60,7 +61,14 @@ public class PartitionCalculatorAlgorithmComparisionTest {
 
 		for (short y = 0; y < height; y++) {
 			for (short x = 0; x < width; x++) {
-				assertEquals(gridAccessor.getLandscapeGrid().getBlockedPartitionAt(x, y), partitioner.getPartitionAt(x, y));
+				int expected = partitioner.getPartitionAt(x, y);
+				int actual = gridAccessor.getLandscapeGrid().getBlockedPartitionAt(x, y);
+
+				if(expected == 0) {
+					assertTrue(actual <= 0);
+				} else {
+					assertEquals(expected, actual);
+				}
 			}
 		}
 	}

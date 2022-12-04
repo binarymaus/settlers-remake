@@ -44,8 +44,10 @@ public final class MineBuilding extends ResourceBuilding {
 	}
 
 	@Override
-	public boolean tryTakingFood(EMaterialType[] foodOrder) {
+	public boolean tryTakingFood() {
 		if (feedWorkPackages <= 0) {
+			EMaterialType[] foodOrder = getBuildingVariant().getMineSettings().getFoodOrder();
+
 			for (int i = 0; i < foodOrder.length; i++) { // check the types of food by order
 				if (super.popMaterialFromStack(foodOrder[i])) {
 					feedWorkPackages = workPackagesForFoodByOrder[i];
@@ -64,7 +66,7 @@ public final class MineBuilding extends ResourceBuilding {
 
 	@Override
 	public boolean tryTakingResource() {
-		RelativePoint[] blockedPositions = super.getBuildingType().getBlockedTiles();
+		RelativePoint[] blockedPositions = super.getBuildingVariant().getBlockedTiles();
 		int randomPositionIndex = MatchConstants.random().nextInt(blockedPositions.length);
 		ShortPoint2D randomPosition = blockedPositions[randomPositionIndex].calculatePoint(super.pos);
 
@@ -74,20 +76,24 @@ public final class MineBuilding extends ResourceBuilding {
 	}
 
 	private EResourceType getProducedResource() {
-		switch (super.getBuildingType()) {
+		switch (super.getBuildingVariant().getType()) {
 		case COALMINE:
 			return EResourceType.COAL;
 		case IRONMINE:
 			return EResourceType.IRONORE;
 		case GOLDMINE:
 			return EResourceType.GOLDORE;
+		case SULFURMINE:
+			return EResourceType.BRIMSTONE;
+		case GEMSMINE:
+			return EResourceType.GEMSTONE;
 		default:
-			throw new IllegalArgumentException("Unknown building type for a mine: " + super.getBuildingType());
+			throw new IllegalArgumentException("Unknown building type for a mine: " + super.getBuildingVariant());
 		}
 	}
 
 	@Override
-	protected boolean shouldBeFlatened() {
+	protected boolean shouldBeFlattened() {
 		return false;
 	}
 
@@ -95,7 +101,7 @@ public final class MineBuilding extends ResourceBuilding {
 	protected void placeAdditionalMapObjects(IBuildingsGrid grid, ShortPoint2D pos, boolean place) {
 		if (place) {
 			MapObjectsManager objectsManager = grid.getMapObjectsManager();
-			for (ShortPoint2D currPos : new FreeMapArea(pos, super.getBuildingType().getProtectedTiles())) {
+			for (ShortPoint2D currPos : new FreeMapArea(pos, super.getBuildingVariant().getProtectedTiles())) {
 				objectsManager.removeMapObjectType(currPos.x, currPos.y, EMapObjectType.FOUND_COAL);
 				objectsManager.removeMapObjectType(currPos.x, currPos.y, EMapObjectType.FOUND_GOLD);
 				objectsManager.removeMapObjectType(currPos.x, currPos.y, EMapObjectType.FOUND_IRON);
@@ -109,6 +115,6 @@ public final class MineBuilding extends ResourceBuilding {
 	@Override
 	public int getRemainingResourceAmount() {
 		return super.grid.getAmountOfResource(getProducedResource(),
-				new RelativeToRealPointIterable(super.getBuildingType().getBlockedTiles(), super.pos));
+				new RelativeToRealPointIterable(super.getBuildingVariant().getBlockedTiles(), super.pos));
 	}
 }

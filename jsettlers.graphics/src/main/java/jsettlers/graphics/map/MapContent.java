@@ -14,20 +14,30 @@
  *******************************************************************************/
 package jsettlers.graphics.map;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import java.awt.TrayIcon.MessageType;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
+import java.util.HashMap;
+import java.util.List;
 
-import go.graphics.EGeometryFormatType;
-import go.graphics.EGeometryType;
+import go.graphics.EPrimitiveType;
+import java.util.Optional;
+
+import java.util.Set;
 import go.graphics.GLDrawContext;
-import go.graphics.GeometryHandle;
-import go.graphics.IllegalBufferException;
 import go.graphics.UIPoint;
+import go.graphics.UnifiedDrawHandle;
 import go.graphics.event.GOEvent;
 import go.graphics.event.GOEventHandler;
+import go.graphics.event.GOGroupEvent;
 import go.graphics.event.GOKeyEvent;
 import go.graphics.event.GOModalEventHandler;
+import go.graphics.event.command.EModifier;
 import go.graphics.event.command.GOCommandEvent;
 import go.graphics.event.mouse.GODrawEvent;
 import go.graphics.event.mouse.GOHoverEvent;
@@ -47,9 +57,10 @@ import jsettlers.common.action.IAction;
 import jsettlers.common.action.PointAction;
 import jsettlers.common.action.ScreenChangeAction;
 import jsettlers.common.action.SelectAreaAction;
+import jsettlers.common.action.SelectMovablesAction;
 import jsettlers.common.action.ShowConstructionMarksAction;
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.EBuildingType;
-import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.images.AnimationSequence;
 import jsettlers.common.images.EImageLinkType;
 import jsettlers.common.images.ImageLink;
@@ -64,15 +75,22 @@ import jsettlers.common.mapobject.IMapObject;
 import jsettlers.common.menu.IMapInterfaceListener;
 import jsettlers.common.menu.IStartedGame;
 import jsettlers.common.menu.UIState;
+import jsettlers.common.action.EMoveToType;
+import jsettlers.common.action.MoveToAction;
+import jsettlers.common.menu.messages.EMessageType;
 import jsettlers.common.menu.messages.IMessage;
-import jsettlers.common.movable.IMovable;
+import jsettlers.common.menu.messages.SimpleMessage;
+import jsettlers.common.movable.IGraphicsMovable;
+import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.FloatRectangle;
 import jsettlers.common.position.ShortPoint2D;
+import jsettlers.common.selectable.ISelectable;
 import jsettlers.common.selectable.ISelectionSet;
-import jsettlers.common.statistics.FramerateComputer;
+import go.graphics.FramerateComputer;
 import jsettlers.common.statistics.IGameTimeProvider;
 import jsettlers.common.player.IInGamePlayer;
 import jsettlers.common.player.EWinState;
+import jsettlers.common.statistics.IntervalTimeRateCalculator;
 import jsettlers.graphics.action.ActionFireable;
 import jsettlers.graphics.action.ActionHandler;
 import jsettlers.graphics.action.ActionThreadBlockingListener;
@@ -80,11 +98,13 @@ import jsettlers.graphics.font.FontDrawerFactory;
 import jsettlers.graphics.localization.Labels;
 import jsettlers.graphics.map.controls.IControls;
 import jsettlers.graphics.map.controls.original.OriginalControls;
+import jsettlers.graphics.map.controls.original.panel.button.SelectionManager;
 import jsettlers.graphics.map.draw.Background;
 import jsettlers.graphics.map.draw.ImageProvider;
 import jsettlers.graphics.map.draw.MapObjectDrawer;
 import jsettlers.graphics.messages.Messenger;
 import jsettlers.graphics.sound.BackgroundSound;
+import jsettlers.graphics.sound.MusicManager;
 import jsettlers.graphics.sound.SoundManager;
 
 /**
@@ -117,7 +137,6 @@ import jsettlers.graphics.sound.SoundManager;
  */
 public final class MapContent implements RegionContent, IMapInterfaceListener, ActionFireable, ActionThreadBlockingListener {
 	private static final AnimationSequence GOTO_ANIMATION = new AnimationSequence(new OriginalImageLink(EImageLinkType.SETTLER, 3, 1).getName(), 0, 2);
-	private static final float UI_OVERLAY_Z = .95f;
 
 	private final class ZoomEventHandler implements GOModalEventHandler {
 		float startZoom = context.getScreen().getZoom();
@@ -151,7 +170,6 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 	private static final float OVERDRAW_BOTTOM_PX = 50;
 	private static final float MESSAGE_OFFSET_X = 300;
 	private static final int MESSAGE_OFFSET_Y = 30;
-	private static final int MESSAGE_LINE_HEIGHT = 18;
 	private static final long GOTO_MARK_TIME = 1500;
 	private static final long DOUBLE_CLICK_TIME = 500;
 	/**
@@ -161,12 +179,14 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 
 	private final IGraphicsGrid map;
 	private final IMapObject[] objectsGrid;
-	private final IMovable[] movableGrid;
+	private final IGraphicsMovable[] movableGrid;
 	private final BitSet borderGrid;
+	private final byte[][] heightGrid;
+	private final byte[][] visibleGrid;
 	private final short width, height;
 	private final boolean isVisibleGridAvailable;
 
-	private final Background background = new Background();
+	private final Background background;
 
 	private final MapDrawContext context;
 
@@ -181,6 +201,7 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 
 	private final Messenger messenger;
 	private final SoundManager soundmanager;
+	private final MusicManager musicManager;
 	private final BackgroundSound backgroundSound;
 
 	private final ReplaceableTextDrawer textDrawer;
@@ -219,12 +240,14 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 	private UIPoint currentSelectionAreaStart;
 	private IInGamePlayer localPlayer;
 
-	public MapContent(IStartedGame game, SoundPlayer soundPlayer, int fpsLimit, ETextDrawPosition textDrawPosition) {
-		this(game, soundPlayer, fpsLimit, textDrawPosition,null);
+	private final IntervalTimeRateCalculator gamespeedCalculator;
+
+	private long getGameTimeNS() {
+		return gameTimeProvider.getGameTime()*1000L*1000L;
 	}
 
-	public MapContent(IStartedGame game, SoundPlayer soundPlayer, ETextDrawPosition textDrawPosition, IControls controls) {
-		this(game, soundPlayer, 60, textDrawPosition,controls);
+	public MapContent(IStartedGame game, SoundPlayer soundPlayer, ETextDrawPosition textDrawPosition) {
+		this(game, soundPlayer, textDrawPosition,null);
 	}
 
 	/**
@@ -238,36 +261,44 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 	 * @param controls
 	 * 			  The menus on the side (swing) or on the bottom (android)
 	 */
-	private MapContent(IStartedGame game, SoundPlayer soundPlayer, int fpsLimit, ETextDrawPosition textDrawPosition, IControls controls) {
+	public MapContent(IStartedGame game, SoundPlayer soundPlayer, ETextDrawPosition textDrawPosition, IControls controls) {
 		this.map = game.getMap();
 		if(map instanceof IDirectGridProvider) {
 			IDirectGridProvider dgp = (IDirectGridProvider) map;
 			objectsGrid = dgp.getObjectArray();
 			movableGrid = dgp.getMovableArray();
 			borderGrid = dgp.getBorderArray();
+			heightGrid = dgp.getHeightArray();
+			visibleGrid = dgp.getVisibleStatusArray();
 			isVisibleGridAvailable = true;
 		} else {
 			objectsGrid = null;
 			movableGrid = null;
 			borderGrid = null;
+			heightGrid = null;
+			visibleGrid = null;
 			isVisibleGridAvailable = false;
 		}
 		width = map.getWidth();
 		height = map.getHeight();
 		this.localPlayer = game.getInGamePlayer();
 		this.gameTimeProvider = game.getGameTimeProvider();
+		this.gamespeedCalculator = new IntervalTimeRateCalculator(50*1000*1000L, 20, this::getGameTimeNS);
 		this.textDrawPosition = textDrawPosition;
 		this.messenger = new Messenger(this.gameTimeProvider);
 		this.textDrawer = new ReplaceableTextDrawer();
 		this.context = new MapDrawContext(map);
 		this.soundmanager = new SoundManager(soundPlayer);
+		this.musicManager = new MusicManager(soundPlayer, localPlayer.getCivilisation());
+		this.background = new Background(context);
 
-		objectDrawer = new MapObjectDrawer(context, soundmanager);
+		objectDrawer = new MapObjectDrawer(context, soundmanager, localPlayer);
 		backgroundSound = new BackgroundSound(context, soundmanager);
 		backgroundSound.start();
+		musicManager.startMusic();
 
 		if (controls == null) {
-			this.controls = new OriginalControls(this, game.getInGamePlayer());
+			this.controls = new OriginalControls(this, game);
 		} else {
 			this.controls = controls;
 		}
@@ -275,8 +306,6 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 
 		this.connector = new MapInterfaceConnector(this);
 		this.connector.addListener(this);
-
-		map.setBackgroundListener(background);
 	}
 
 	private void resizeTo(int newWindowWidth, int newWindowHeight) {
@@ -294,29 +323,30 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 	public void drawContent(GLDrawContext gl, int newWidth, int newHeight) {
 		try {
 			framerate.nextFrame();
+			gamespeedCalculator.tick();
 
 			// TODO: Do only check once.
 			if (textDrawer.getTextDrawer(gl, EFontSize.NORMAL).getWidth("a") == 0) {
 				textDrawer.setTextDrawerFactory(new FontDrawerFactory());
 			}
 
-			if(isVisibleGridAvailable) objectDrawer.setVisibleGrid(((IDirectGridProvider)map).getVisibleStatusArray());
+			if(isVisibleGridAvailable) objectDrawer.setVisibleGrid(((IDirectGridProvider)map).isFoWEnabled()?((IDirectGridProvider)map).getVisibleStatusArray():null);
 
 			if (newWidth != windowWidth || newHeight != windowHeight) {
 				resizeTo(newWidth, newHeight);
 			}
 
 			adaptScreenSize();
-			this.objectDrawer.increaseAnimationStep();
+			this.objectDrawer.nextFrame();
 
 			this.context.begin(gl);
-			long start = System.currentTimeMillis();
+			long start = System.nanoTime();
 
 			FloatRectangle screen = this.context.getScreen().getPosition().bigger(SCREEN_PADDING);
 			drawBackground(screen);
-			long backgroundDuration = System.currentTimeMillis() - start;
+			long backgroundDuration = System.nanoTime() - start;
 
-			start = System.currentTimeMillis();
+			start = System.nanoTime();
 			drawMain(screen);
 
 			if (scrollMarker != null) {
@@ -327,10 +357,11 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 			}
 
 			this.context.end();
-			long foregroundDuration = System.currentTimeMillis() - start;
+			long foregroundDuration = System.nanoTime() - start;
 
-			start = System.currentTimeMillis();
-			gl.setGlobalAttributes(0, 0, UI_OVERLAY_Z, 1, 1, 1);
+			start = System.nanoTime();
+			gl.clearDepthBuffer();
+			gl.setGlobalAttributes(0, 0, 0, 1, 1, 1);
 			drawSelectionHint(gl);
 			controls.drawAt(gl);
 			drawMessages(gl);
@@ -342,15 +373,47 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 				drawActionThreadSlow(gl);
 			}
 			drawTooltip(gl);
-			long uiTime = System.currentTimeMillis() - start;
+			long uiTime = System.nanoTime() - start;
 
 			if (CommonConstants.ENABLE_GRAPHICS_TIMES_DEBUG_OUTPUT) {
-				System.out.println("Background: " + backgroundDuration + "ms, Foreground: " + foregroundDuration + "ms, UI: " + uiTime + "ms");
+				//System.out.println("Background: " + backgroundDuration/1000 + "µs, Foreground: " + foregroundDuration/1000 + "µs, UI: " + uiTime/1000 + "µs");
 			}
 		} catch (Throwable t) {
 			System.err.println("Main draw handler cought throwable:");
-			t.printStackTrace(System.err);
+			t.printStackTrace();
+
+			try {
+				showError(gl, t);
+			} catch (Throwable t2) {
+				System.err.println("Error while handling exception:");
+				t2.printStackTrace();
+			}
 		}
+	}
+
+	private Throwable lastException;
+
+	private void showError(GLDrawContext gl, Throwable t) {
+		gl.clearDepthBuffer();
+		gl.setGlobalAttributes(0, 0, 0, 1, 1, 1);
+		float posX = 0;
+
+		float posY = windowHeight/3f*2f;
+		if(textDrawPosition == ETextDrawPosition.DESKTOP) {
+			posX = windowWidth/4f;
+		}
+
+		if(t.getStackTrace().length != 0) {
+			lastException = t;
+		}
+
+		StringWriter out = new StringWriter();
+		PrintWriter writer = new PrintWriter(out);
+		if(lastException != null) {
+			lastException.printStackTrace(writer);
+		}
+		String errorMessage = out.toString();
+		gl.getTextDrawer(EFontSize.HEADLINE).drawString(posX, posY, Labels.getString("error-rendering", errorMessage));
 	}
 
 	private void drawGotoMarker() {
@@ -380,46 +443,54 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 	}
 
 	private void drawWinStateMsg(GLDrawContext gl) {
-		if(localPlayer.getWinState() == EWinState.UNDECIDED) {
+		if(localPlayer == null || localPlayer.getWinState() == EWinState.UNDECIDED) {
 			return;
 		}
 		Color color = localPlayer.getWinState() == EWinState.WON ? Color.GREEN : Color.RED;
 		final String msg = Labels.getString("winstate_" + localPlayer.getWinState());
+
 		TextDrawer drawer = textDrawer.getTextDrawer(gl, EFontSize.HEADLINE);
-		drawer.setColor(color);
-		drawer.drawString(windowWidth / 2, windowHeight - 2 * EFontSize.HEADLINE.getSize(), msg);
+
+		drawer.drawString((windowWidth - drawer.getWidth(msg)) / 2, windowHeight - 7 * EFontSize.HEADLINE.getSize(), color, msg);
 	}
 
 	private void drawMessages(GLDrawContext gl) {
-		TextDrawer drawer = textDrawer.getTextDrawer(gl, EFontSize.HEADLINE);
-		int messageIndex = 0;
+		EFontSize fontSize = EFontSize.HEADLINE;
+		TextDrawer drawer = textDrawer.getTextDrawer(gl, fontSize);
 		messenger.doTick();
+
+		float offsetY;
+		float offsetX;
+		float yDirection;
+		int messageIndex;
+		if(textDrawPosition == ETextDrawPosition.DESKTOP) {
+			offsetY = MESSAGE_OFFSET_Y;
+			offsetX = MESSAGE_OFFSET_X;
+			yDirection = 1;
+			messageIndex = 0;
+		} else {
+			offsetY = windowHeight - MESSAGE_OFFSET_Y*2;
+			offsetX = 30;
+			yDirection = -1;
+			messageIndex = 1;
+		}
+
 		for (IMessage m : messenger.getMessages()) {
-			float x = MESSAGE_OFFSET_X;
-			int y = MESSAGE_OFFSET_Y + messageIndex * MESSAGE_LINE_HEIGHT;
+			float x = offsetX;
+			float y = offsetY + messageIndex * (fontSize.getSize()*1.3f) * yDirection;
 			float a = messageAlpha(m);
 			if (m.getSender() >= 0) {
 				String name = getPlayername(m.getSender()) + ":";
-				Color color = context.getPlayerColor(m.getSender());
+				Color color = MapDrawContext.getPlayerColor(m.getSender());
 				float width = drawer.getWidth(name);
-				float bright = color.getRed() + color.getGreen() + color.getBlue();
-				if (bright < .9f) {
-					// black
-					drawer.setColor(new Color(1, 1, 1, a/2));
-				} else if (bright < 2f) {
-					// bad visibility
-					drawer.setColor(new Color(1, 1, 1, a/2));
-				}
 				for (int i = -1; i < 3; i++) {
-					drawer.drawString(x + i, y - 1, name);
+					drawer.drawString(x + i, y - 1, new Color(1, 1, 1, a/2), name);
 				}
-				drawer.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), a));
-				drawer.drawString(x, y, name);
+				drawer.drawString(x, y, new Color(color.getRed(), color.getGreen(), color.getBlue(), a), name);
 				x += width + 10;
 			}
 
-			drawer.setColor(new Color(1, 1, 1, a));
-			drawer.drawString(x, y, Labels.getString(m.getMessageLabel()));
+			drawer.drawString(x, y, new Color(1, 1, 1, a), Labels.getString(m.getMessageLabel()));
 
 			messageIndex++;
 		}
@@ -433,56 +504,23 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 	private void adaptScreenSize() {
 		FloatRectangle newScreen = context.getScreen().getPosition();
 		if (!newScreen.equals(oldScreen)) {
-			getInterfaceConnector().fireAction(new ScreenChangeAction(context.getScreenArea()));
+			getInterfaceConnector().fireAction(new ScreenChangeAction(context.getScreenArea(), context.getPositionUnder(newScreen.getCenterX(), newScreen.getCenterY())));
 		}
 		oldScreen = newScreen;
 	}
 
-	private GeometryHandle selectionArea = null;
-	private boolean updateSelectionArea = true;
-	private ByteBuffer selectionAreaBuffer = ByteBuffer.allocateDirect(4*2*4).order(ByteOrder.nativeOrder());
-
-	private void updateSelectionArea() {
-		float x1 = (float) this.currentSelectionAreaStart.getX();
-		float y1 = (float) this.currentSelectionAreaStart.getY();
-		float x2 = (float) this.currentSelectionAreaEnd.getX();
-		float y2 = (float) this.currentSelectionAreaEnd.getY();
-
-		selectionAreaBuffer.putFloat(x1);
-		selectionAreaBuffer.putFloat(y1);
-
-		selectionAreaBuffer.putFloat(x2);
-		selectionAreaBuffer.putFloat(y1);
-
-		selectionAreaBuffer.putFloat(x2);
-		selectionAreaBuffer.putFloat(y2);
-
-		selectionAreaBuffer.putFloat(x1);
-		selectionAreaBuffer.putFloat(y2);
-	}
+	private UnifiedDrawHandle selectionArea = null;
 
 	private void drawSelectionHint(GLDrawContext gl) {
 		if (this.currentSelectionAreaStart != null && this.currentSelectionAreaEnd != null) {
 
 			if(selectionArea == null || !selectionArea.isValid()) {
-				selectionArea = gl.generateGeometry(4, EGeometryFormatType.VertexOnly2D, true, "selection-area");
+				selectionArea = gl.createUnifiedDrawCall(4, "selection-area", null, new float[] {0, 0, 1, 0, 1, 1, 0, 1});
 			}
 
-			if(updateSelectionArea) {
-				updateSelectionArea();
-				try {
-					gl.updateGeometryAt(selectionArea, 0, selectionAreaBuffer);
-				} catch (IllegalBufferException e) {
-					e.printStackTrace();
-				}
-				updateSelectionArea = false;
-			}
-
-			try {
-				gl.draw2D(selectionArea, null, EGeometryType.LineLoop, 0, 4, 0, 0, 0, 1, 1, 1, null, 1);
-			} catch (IllegalBufferException e) {
-				e.printStackTrace();
-			}
+			float width = (float)(currentSelectionAreaEnd.getX() - currentSelectionAreaStart.getX());
+			float height = (float)(currentSelectionAreaEnd.getY() - currentSelectionAreaStart.getY());
+			selectionArea.drawSimple(EPrimitiveType.LineLoop, (float)currentSelectionAreaStart.getX(), (float)currentSelectionAreaStart.getY(), 0, width, height, null, 1);
 		}
 	}
 
@@ -491,7 +529,7 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 			return;
 		}
 
-		String fps = Labels.getString("map-fps", framerate.getRate());
+		String fps = Labels.getString("map-fps", framerate.getRate(), gamespeedCalculator.getRate());
 		long gameTime = gameTimeProvider.getGameTime() / 1000;
 		String timeString = Labels.getString("map-time", gameTime / 60 / 60, (gameTime / 60) % 60, (gameTime) % 60);
 
@@ -504,16 +542,34 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 
 		float sideXOffset = 2 * letterWidth;
 
-		drawer.drawString(getConfiguredX(sideXOffset, windowWidth, 7 * letterWidth), yFirstLine, fps);
-		drawer.drawString(getConfiguredX(sideXOffset + 9 * letterWidth, windowWidth, 9 * letterWidth), yFirstLine, timeString);
-		drawer.drawString(getConfiguredX(sideXOffset, windowWidth, 7 * letterWidth), ySecondLine, CommitInfo.COMMIT_HASH_SHORT);
-	}
+		float x;
+		if(textDrawPosition == ETextDrawPosition.MOBILE) {
+			x = sideXOffset;
 
-	private float getConfiguredX(float borderDistance, int windowWidth, float fixedTextLength) {
-		if (textDrawPosition == ETextDrawPosition.TOP_LEFT) {
-			return borderDistance;
+			drawer.drawString(x, yFirstLine, fps);
+			x += fps.length() * letterWidth;
+
+			drawer.drawString(x, yFirstLine, timeString);
+			x += timeString.length() * letterWidth;
+
+			if(x > windowWidth) {
+				x = sideXOffset;
+				drawer.drawString(x, ySecondLine, CommitInfo.COMMIT_HASH_SHORT);
+			} else {
+				drawer.drawString(x, yFirstLine, CommitInfo.COMMIT_HASH_SHORT);
+				x += 9 * letterWidth;
+			}
 		} else {
-			return windowWidth - (borderDistance + fixedTextLength);
+			x = windowWidth - (sideXOffset);
+
+			x -= 9 * letterWidth;
+			drawer.drawString(x, yFirstLine, CommitInfo.COMMIT_HASH_SHORT);
+
+			x -= timeString.length() * letterWidth;
+			drawer.drawString(x, yFirstLine, timeString);
+
+			x -= fps.length() * letterWidth;
+			drawer.drawString(x, yFirstLine, fps);
 		}
 	}
 
@@ -549,7 +605,7 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 		double bottomDrawY = screen.getMinY() - OVERDRAW_BOTTOM_PX;
 
 		boolean linePartiallyVisible = true;
-		for (int line = 0; line < area.getHeight() + 50 && linePartiallyVisible; line++) {
+		for(int line = 0; line < area.getHeight() + 50 && linePartiallyVisible; line++) {
 			int y = area.getLineY(line);
 			if (y < 0) {
 				continue;
@@ -561,10 +617,10 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 
 			int endX = Math.min(area.getLineEndX(line), width - 1);
 			int startX = Math.max(area.getLineStartX(line), 0);
-			for (int x = startX; x <= endX; x++) {
+			for(int x = startX; x <= endX; x++) {
 				drawTile(x, y);
-				if (!linePartiallyVisible) {
-					double drawSpaceY = this.context.getConverter().getViewY(x, y, this.context.getHeight(x, y));
+				if(!linePartiallyVisible) {
+					double drawSpaceY = this.context.getConverter().getViewY(x, y, heightGrid == null ? this.context.getHeight(x, y) : heightGrid[x][y]);
 					if (drawSpaceY > bottomDrawY) {
 						linePartiallyVisible = true;
 					}
@@ -572,10 +628,10 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 			}
 		}
 
-		if (placementBuilding != null) {
+		if(placementBuilding != null) {
 			ShortPoint2D underMouse = this.context.getPositionOnScreen((float) mousePosition.getX(), (float) mousePosition.getY());
-			if (0 <= underMouse.x && underMouse.x < width && 0 <= underMouse.y && underMouse.y < height) {
-				IMapObject mapObject = map.getMapObjectsAt(underMouse.x, underMouse.y);
+			if(0 <= underMouse.x && underMouse.x < width && 0 <= underMouse.y && underMouse.y < height) {
+				IMapObject mapObject = map.getVisibleMapObjectsAt(underMouse.x, underMouse.y);
 
 				if (mapObject != null && mapObject.getMapObject(EMapObjectType.CONSTRUCTION_MARK) != null) { // if there is a construction mark
 					this.objectDrawer.drawMapObject(underMouse.x, underMouse.y, placementBuilding);
@@ -583,7 +639,7 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 			}
 		}
 
-		if (debugColorMode != EDebugColorModes.NONE) {
+		if(debugColorMode != EDebugColorModes.NONE) {
 			drawDebugColors();
 		}
 	}
@@ -591,37 +647,34 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 	private void drawTile(int x, int y) {
 		int tileIndex = x+y*width;
 
-		IMapObject object = objectsGrid != null ? objectsGrid[tileIndex] : map.getMapObjectsAt(x, y);
-		if (object != null) {
+		byte fow = visibleGrid != null && ((IDirectGridProvider)map).isFoWEnabled() ? visibleGrid[x][y] : map.getVisibleStatus(x, y);
+		boolean fogClear = fow > CommonConstants.FOG_OF_WAR_EXPLORED;
+
+		IMapObject object = objectsGrid != null && fogClear ? objectsGrid[tileIndex] : map.getVisibleMapObjectsAt(x, y);
+		if(object != null) {
 			this.objectDrawer.drawMapObject(x, y, object);
 		}
 
-		if (y > 3) {
-			object = objectsGrid != null ? objectsGrid[tileIndex-3*width] :map.getMapObjectsAt(x, y - 3);
-			if (object != null && object.getObjectType() == EMapObjectType.BUILDING && ((IBuilding) object).getBuildingType() == EBuildingType.STOCK) {
-				this.objectDrawer.drawStockFront(x, y - 3, (IBuilding) object);
-			}
-		}
-		if (y < height - 3) {
-			object = objectsGrid != null ? objectsGrid[tileIndex+3*width] : map.getMapObjectsAt(x, y + 3);
-			if (object != null) {
+		if(y < height - 3) {
+			object = objectsGrid != null && fogClear ? objectsGrid[tileIndex+3*width] : map.getVisibleMapObjectsAt(x, y + 3);
+			if(object != null) {
 				EMapObjectType type = object.getObjectType();
-				if (type == EMapObjectType.BUILDING && ((IBuilding) object).getBuildingType() == EBuildingType.STOCK) {
-					this.objectDrawer.drawStockBack(x, y + 3, (IBuilding) object);
-				} else if (type == EMapObjectType.DOCK) {
+				if(type == EMapObjectType.DOCK) {
 					this.objectDrawer.drawDock(x, y + 3, object);
 				}
 			}
 		}
 
-		IMovable movable = movableGrid != null ? movableGrid[tileIndex] : map.getMovableAt(x, y);
-		if (movable != null) {
-			this.objectDrawer.draw(movable);
-		}
+		if(fogClear) {
+			IGraphicsMovable movable = movableGrid != null ? movableGrid[tileIndex] : map.getMovableAt(x, y);
+			if (movable != null) {
+				this.objectDrawer.draw(movable);
+			}
 
-		if (borderGrid != null ? borderGrid.get(tileIndex) : map.isBorder(x, y)) {
-			byte player = map.getPlayerIdAt(x, y);
-			objectDrawer.drawPlayerBorderObject(x, y, player);
+			if (borderGrid != null ? borderGrid.get(tileIndex) : map.isBorder(x, y)) {
+				IPlayer player = map.getPlayerAt(x, y);
+				objectDrawer.drawPlayerBorderObject(x, y, player);
+			}
 		}
 	}
 
@@ -638,28 +691,20 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 	};
 	// @formatter:on
 
-	private GeometryHandle shapeHandle = null;
+	private UnifiedDrawHandle shapeHandle = null;
 
 	private void drawDebugColors() {
 		GLDrawContext gl = this.context.getGl();
 
-		if(shapeHandle == null || !shapeHandle.isValid()) shapeHandle = gl.storeGeometry(shape, EGeometryFormatType.VertexOnly2D, false, "debugshape");
-
-		int drawX = context.getOffsetX();
-		int drawY = context.getOffsetY();
+		if(shapeHandle == null || !shapeHandle.isValid()) shapeHandle = gl.createUnifiedDrawCall(4, "debugshape", null, shape);
 
 		context.getScreenArea().stream().filterBounds(width, height).forEach((x, y) -> {
-			try {
-				int argb = map.getDebugColorAt(x, y, debugColorMode);
-				if (argb != 0) {
-					int height = context.getHeight(x, y);
-					float dx = drawX+context.getConverter().getViewX(x, y, height);
-					float dy = drawY+context.getConverter().getViewY(x, y, height);
-					gl.draw2D(shapeHandle, null, EGeometryType.Quad, 0, 4, dx, dy, .5f, 1, 1, 1, Color.fromShort((short) argb), 1);
-				}
-			} catch (IllegalBufferException e) {
-				// TODO: Create a crash report
-				// This should never happen since we only use texture 0 (no texture)
+			int argb = map.getDebugColorAt(x, y, debugColorMode);
+			if (argb != 0) {
+				int height = context.getHeight(x, y);
+				float dx = context.getConverter().getViewX(x, y, height);
+				float dy = context.getConverter().getViewY(x, y, height);
+				shapeHandle.drawSimple(EPrimitiveType.Quad, dx, dy, .5f, 1, 1, Color.fromShort((short) argb), 1);
 			}
 		});
 	}
@@ -673,6 +718,46 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 		this.background.drawMapContent(this.context, screen);
 	}
 
+	private void handleGroupEvent(GOGroupEvent event) {
+			var keyEvent = (GOGroupEvent)event;
+			var keyCode = keyEvent.getKeyCode();
+			int intCode;
+			try {
+				intCode = Integer.parseInt(keyCode);
+			} catch (NumberFormatException e) {
+				return;
+			}
+			var controlKeyDown = keyEvent.getModifiers().contains(EModifier.CTRL);
+			if(intCode < 1 || intCode > 5) {
+				return;
+			}
+			var stream = Arrays.stream(this.movableGrid)
+			.filter(x -> x != null)
+			.filter(a -> a.getPlayer().getPlayerId() == localPlayer.getPlayerId());
+			List<ISelectable> currentSelection = new ArrayList<ISelectable>();
+			stream.forEach(s -> {
+				if(controlKeyDown) {
+					if(s.isSelected()) {
+						s.setUnitGroup(intCode);
+					}
+					else {
+						// All other units from this group which are not selected -> -1
+						if(s.getUnitGroup() == intCode) {
+							s.setUnitGroup(-1);
+						}
+					}
+					return;
+				}
+				// select units
+				if(s.getUnitGroup() == intCode) {
+					currentSelection.add(s);
+				}
+			});
+			if(currentSelection.size() > 0) {
+				this.connector.fireAction(new SelectMovablesAction(currentSelection));
+			}		
+	}
+
 	@Override
 	public void handleEvent(GOEvent event) {
 		if (event instanceof GOPanEvent) {
@@ -682,14 +767,16 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 			}
 		} else if (event instanceof GOCommandEvent) {
 			GOCommandEvent commandEvent = (GOCommandEvent) event;
-			Action action = getActionForCommand(commandEvent);
+			Optional<Action> action = getActionForCommand(commandEvent);
 			// also set when action was null, to abort drawing.
 			fireActionEvent(event, action);
 		} else if (event instanceof GOKeyEvent) {
-			Action actionForKeyboard = getActionForKeyboard(((GOKeyEvent) event).getKeyCode());
-			if (actionForKeyboard != null) {
-				fireActionEvent(event, actionForKeyboard);
-			}
+			var keyEvent = (GOKeyEvent)event;
+			var keyCode = keyEvent.getKeyCode();
+			Optional<Action> actionForKeyboard = Optional.ofNullable(getActionForKeyboard(keyCode));
+			actionForKeyboard.ifPresent(action -> 
+				fireActionEvent(event, actionForKeyboard)
+			);
 		} else if (event instanceof GODrawEvent) {
 			GODrawEvent drawEvent = (GODrawEvent) event;
 			if (!controls.handleDrawEvent(drawEvent)) {
@@ -701,6 +788,9 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 		} else if (event instanceof GOZoomEvent) {
 			GOZoomEvent zoomEvent = (GOZoomEvent) event;
 			handleZoom(zoomEvent);
+		}
+		else if (event instanceof GOGroupEvent) {
+			handleGroupEvent((GOGroupEvent)event);
 		}
 	}
 
@@ -737,7 +827,7 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 		}
 	}
 
-	private void fireActionEvent(GOEvent event, Action action) {
+	private void fireActionEvent(GOEvent event, Optional<Action> action) {
 		event.setHandler(new ActionHandler(action, this));
 	}
 
@@ -749,7 +839,6 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 	 * @return The action that corresponds to the key
 	 */
 	private static Action getActionForKeyboard(String keyCode) {
-		System.out.println(keyCode);
 		if ("F12".equalsIgnoreCase(keyCode)) {
 			return new Action(EActionType.FAST_FORWARD);
 		} else if ("P".equalsIgnoreCase(keyCode)
@@ -843,10 +932,14 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 		}
 	}
 
-	private Action getActionForCommand(GOCommandEvent commandEvent) {
+	private Optional<Action> getActionForCommand(GOCommandEvent commandEvent) {
 		UIPoint position = commandEvent.getCommandPosition();
 		if (controls.containsPoint(position)) {
-			return controls.getActionFor(position, commandEvent.isSelecting());
+			if (commandEvent.isSelecting()) {
+				return controls.getActionForSelect(position);
+			} else {
+				return controls.getActionForMoveTo(position, moveToForCommand(commandEvent));
+			}
 		} else {
 			// handle map click
 			return handleCommandOnMap(commandEvent, position);
@@ -859,7 +952,6 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 
 	private void handleDrawOnMap(GODrawEvent drawEvent) {
 		this.currentSelectionAreaStart = drawEvent.getDrawPosition();
-		updateSelectionArea = true;
 		drawEvent.setHandler(this.drawSelectionHandler);
 	}
 
@@ -884,8 +976,7 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 		}
 	};
 
-	private Action handleCommandOnMap(GOCommandEvent commandEvent, UIPoint position) {
-
+	private Optional<Action> handleCommandOnMap(GOCommandEvent commandEvent, UIPoint position) {
 		float x = (float) position.getX();
 		float y = (float) position.getY();
 		ShortPoint2D onMap = this.context.getPositionOnScreen(x, y);
@@ -894,11 +985,23 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 			if (commandEvent.isSelecting()) {
 				action = handleSelectCommand(onMap);
 			} else {
-				action = new PointAction(EActionType.MOVE_TO, onMap);
+				action = new MoveToAction(moveToForCommand(commandEvent), onMap);
 			}
-			return action;
+			return Optional.of(action);
 		}
-		return null;
+		return Optional.empty();
+	}
+
+	private static EMoveToType moveToForCommand(GOCommandEvent commandEvent) {
+		Set<EModifier> modifiers = commandEvent.getModifiers();
+		if (modifiers.contains(EModifier.CTRL)) {
+			return EMoveToType.FORCED;
+		} else if (modifiers.contains(EModifier.ALT)) {
+			return EMoveToType.PATROL;
+		} else {
+			return EMoveToType.DEFAULT;
+		}
+		// TODO: Add waypoint with SHIFT
 	}
 
 	private Action handleSelectCommand(ShortPoint2D onMap) {
@@ -942,7 +1045,6 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 			this.currentSelectionAreaEnd = null;
 		} else {
 			this.currentSelectionAreaEnd = mousePosition;
-			updateSelectionArea = true;
 		}
 	}
 
@@ -975,7 +1077,7 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 		switch (action.getActionType()) {
 		case TOGGLE_DEBUG:
 			debugColorMode = EDebugColorModes.getNextMode(debugColorMode);
-			System.out.println("Current debugColorMode: " + debugColorMode);
+			//System.out.println("Current debugColorMode: " + debugColorMode);
 			break;
 		case TOGGLE_ORIGINAL_GRAPHICS:
 			context.ENABLE_ORIGINAL = !context.ENABLE_ORIGINAL;
@@ -986,7 +1088,7 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 			break;
 		case SCREEN_CHANGE:
 			ScreenChangeAction screenAction = (ScreenChangeAction) action;
-			controls.setMapViewport(screenAction.getScreenArea());
+			controls.setMapViewport(screenAction.getScreenArea(), screenAction.getCenterPosition());
 			break;
 		case ZOOM_IN:
 			if (context.getScreen().getZoom() < 1.1) {
@@ -999,7 +1101,7 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 			}
 			break;
 		case MOVE_TO:
-			moveToMarker = ((PointAction) action).getPosition();
+			moveToMarker = ((MoveToAction) action).getPosition();
 			moveToMarkerTime = System.currentTimeMillis();
 			break;
 		case SHOW_MESSAGE:
@@ -1007,7 +1109,22 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 			break;
 		case SHOW_CONSTRUCTION_MARK:
 			EBuildingType buildingType = ((ShowConstructionMarksAction) action).getBuildingType();
-			placementBuilding = buildingType == null ? null : new PlacementBuilding(buildingType);
+			BuildingVariant buildingVariant = buildingType == null ? null : buildingType.getVariant(localPlayer.getCivilisation());
+			placementBuilding = buildingVariant == null ? null : new PlacementBuilding(buildingVariant);
+			break;
+		case TOGGLE_MUSIC:
+			if (musicManager.isRunning()) {
+				musicManager.stopMusic();
+			} else {
+				musicManager.startMusic();
+			}
+			break;
+			// TODO find a good way to do this
+		case MUSIC_VOLUME_UP:
+			musicManager.setMusicVolume(0.05f, true);
+			break;
+		case MUSIC_VOLUME_DOWN:
+			musicManager.setMusicVolume(-0.05f, true);
 			break;
 		default:
 			break;
@@ -1060,6 +1177,7 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 	}
 
 	public void stop() {
+		musicManager.stopMusic();
 		backgroundSound.stop();
 		controls.stop();
 	}
@@ -1082,14 +1200,7 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 		return new UIState(screen.getScreenCenterX(), screen.getScreenCenterY(), screen.getZoom());
 	}
 
-	/**
-	 * Gets the color for a given player.
-	 * 
-	 * @param player
-	 *            The player to get the color for.
-	 * @return The color.
-	 */
-	public Color getPlayerColor(byte player) {
-		return context.getPlayerColor(player);
+	public MusicManager getMusicManager() {
+		return musicManager;
 	}
 }

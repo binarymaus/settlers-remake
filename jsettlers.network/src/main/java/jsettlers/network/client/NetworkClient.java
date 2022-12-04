@@ -31,8 +31,10 @@ import jsettlers.network.client.time.TimeSyncSenderTimerTask;
 import jsettlers.network.client.time.TimeSynchronizationListener;
 import jsettlers.network.common.packets.ArrayOfMatchInfosPacket;
 import jsettlers.network.common.packets.BooleanMessagePacket;
+import jsettlers.network.common.packets.ByteTuplePacket;
 import jsettlers.network.common.packets.ChatMessagePacket;
 import jsettlers.network.common.packets.IdPacket;
+import jsettlers.network.common.packets.IntegerMessagePacket;
 import jsettlers.network.common.packets.MapInfoPacket;
 import jsettlers.network.common.packets.MatchInfoPacket;
 import jsettlers.network.common.packets.MatchInfoUpdatePacket;
@@ -152,7 +154,37 @@ public class NetworkClient implements ITaskScheduler, INetworkConnector, INetwor
 	@Override
 	public void setReadyState(boolean ready) throws IllegalStateException {
 		EPlayerState.assertState(state, EPlayerState.IN_MATCH);
-		channel.sendPacketAsync(NetworkConstants.ENetworkKey.CHANGE_READY_STATE, new BooleanMessagePacket(ready));
+		channel.sendPacketAsync(ENetworkKey.CHANGE_READY_STATE, new BooleanMessagePacket(ready));
+	}
+
+	@Override
+	public void setCivilisation(byte slot, byte civilisation) throws IllegalStateException {
+		EPlayerState.assertState(state, EPlayerState.IN_MATCH);
+		channel.sendPacketAsync(ENetworkKey.CHANGE_CIVILISATION, new ByteTuplePacket(slot, civilisation));
+	}
+
+	@Override
+	public void setTeam(byte slot, byte team) throws IllegalStateException {
+		EPlayerState.assertState(state, EPlayerState.IN_MATCH);
+		channel.sendPacketAsync(ENetworkKey.CHANGE_TEAM, new ByteTuplePacket(slot, team));
+	}
+
+	@Override
+	public void setType(byte slot, byte playerType) throws IllegalStateException {
+		EPlayerState.assertState(state, EPlayerState.IN_MATCH);
+		channel.sendPacketAsync(ENetworkKey.CHANGE_PLAYER_TYPE, new ByteTuplePacket(slot, playerType));
+	}
+
+	@Override
+	public void setPosition(byte slot, byte position) throws IllegalStateException {
+		EPlayerState.assertState(state, EPlayerState.IN_MATCH);
+		channel.sendPacketAsync(ENetworkKey.CHANGE_POSITION, new ByteTuplePacket(slot, position));
+	}
+
+	@Override
+	public void setPlayerCount(int playerCount) {
+		EPlayerState.assertState(state, EPlayerState.IN_MATCH);
+		channel.sendPacketAsync(ENetworkKey.CHANGE_PLAYER_COUNT, new IntegerMessagePacket(playerCount));
 	}
 
 	@Override

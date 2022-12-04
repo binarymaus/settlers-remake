@@ -96,12 +96,12 @@ public enum EMovableAction {
 	HOMELESS2,
 	/**
 	 * The settler shakes his head, sighing (only in HOMELESS state, HOMELESS state still active)
-	 * after complating HOMELESS2 animation goto HOMELESS3 or stay in HOMELESS_IDLE state
+	 * after completing HOMELESS2 animation goto HOMELESS3 or stay in HOMELESS_IDLE state
 	 */
 	HOMELESS3,
 	/**
 	 * The settler kicks a pebbles on the ground (only in HOMELESS state, HOMELESS state still active)
-	 * after complating HOMELESS3 animation goto HOMELESS4 or stay in HOMELESS_IDLE state
+	 * after completing HOMELESS3 animation goto HOMELESS4 or stay in HOMELESS_IDLE state
 	 */
 	HOMELESS4,
 	/**

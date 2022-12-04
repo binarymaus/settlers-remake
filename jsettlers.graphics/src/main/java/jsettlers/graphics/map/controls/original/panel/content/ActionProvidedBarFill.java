@@ -14,6 +14,7 @@
  */
 package jsettlers.graphics.map.controls.original.panel.content;
 
+import java.util.Optional;
 import jsettlers.common.action.Action;
 
 /**
@@ -22,18 +23,18 @@ import jsettlers.common.action.Action;
 public class ActionProvidedBarFill extends BarFill {
 
 	public interface IBarFillActionProvider {
-		Action getAction(float fillForClick);
+		Optional<Action> getAction(float fillForClick);
 	}
 
 	private IBarFillActionProvider actionProvider;
 
-	public ActionProvidedBarFill(IBarFillActionProvider actionProvider, String name) {
-		super(name);
+	public ActionProvidedBarFill(IBarFillActionProvider actionProvider) {
+		super();
 		this.actionProvider = actionProvider;
 	}
 
 	@Override
-	public Action getAction(final float relativeX, float relativeY) {
+	public Optional<Action> getAction(final float relativeX, float relativeY) {
 		float fillForClick = getFillForClick(relativeX);
 		return actionProvider.getAction(fillForClick);
 	}

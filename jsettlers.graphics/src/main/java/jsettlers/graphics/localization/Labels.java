@@ -25,6 +25,7 @@ import jsettlers.common.material.EMaterialType;
 import jsettlers.common.menu.EProgressState;
 import jsettlers.common.movable.EMovableType;
 import jsettlers.common.movable.ESoldierType;
+import jsettlers.common.movable.ESpellType;
 
 /**
  * This class provides access to all messages.
@@ -78,7 +79,31 @@ public final class Labels extends AbstractLabels {
 	 * @return The name.
 	 */
 	public static String getName(EMovableType type) {
-		return getString("movable_" + type);
+		return getName(type, false);
+	}
+
+	/**
+	 * Gets the name of a movable.
+	 *
+	 * @param type
+	 *            The movable type
+	 * @param plural
+	 * 				If the plural name should be used
+	 * @return The name.
+	 */
+	public static String getName(EMovableType type, boolean plural) {
+		String key = "movable_" + type;
+
+		if(plural) {
+			String pluralKey = key + "p";
+			String pluralValue = getString(pluralKey);
+
+			if(pluralValue != null) {
+				return pluralValue;
+			}
+		}
+
+		return getString(key);
 	}
 
 	/**
@@ -140,6 +165,13 @@ public final class Labels extends AbstractLabels {
 	 */
 	public static String getName(EActionType action) {
 		return getString("action_" + action);
+	}
+
+	/**
+	 * Gets the name of an {@link ESpellType}
+	 */
+	public static String getName(ESpellType spell) {
+		return getString("spell_" + spell);
 	}
 
 	/**

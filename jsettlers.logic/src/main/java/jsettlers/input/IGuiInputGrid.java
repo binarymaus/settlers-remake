@@ -21,12 +21,13 @@ import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.common.menu.UIState;
+import jsettlers.common.movable.EMovableType;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.logic.FerryEntrance;
 import jsettlers.logic.map.grid.partition.manager.settings.MaterialProductionSettings;
 import jsettlers.logic.player.Player;
 
-import java8.util.Optional;
+import java.util.Optional;
 
 /**
  * This interface defines the methods needed by the GUI to interact with the grid.
@@ -122,9 +123,11 @@ public interface IGuiInputGrid {
 	 */
 	void setMaterialPrioritiesSettings(ShortPoint2D managerPosition, EMaterialType[] materialTypeForPriority);
 
-	short getBlockedPartition(int x, int y);
+	boolean isReachable(int x1, int y1, int x2, int y2, boolean ship);
 
 	boolean isBlocked(int x, int y);
+
+	Player getPlayerAt(int x, int y);
 
 	Player getPlayer(byte playerId);
 
@@ -136,7 +139,9 @@ public interface IGuiInputGrid {
 
 	FerryEntrance ferryAtPosition(ShortPoint2D position, byte playerId);
 
-	boolean isNavigable(int x, int y);
-
 	boolean hasLost(byte playerId);
+	
+	void changeMovableSettings(ShortPoint2D position, EMovableType movableType, boolean relative, int amount);
+
+	void setMovableLimitType(ShortPoint2D position, EMovableType movableType, boolean relative);
 }

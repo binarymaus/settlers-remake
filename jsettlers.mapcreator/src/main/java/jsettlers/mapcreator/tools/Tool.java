@@ -18,6 +18,7 @@ import java.util.Set;
 
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.mapcreator.data.MapData;
+import jsettlers.mapcreator.data.symmetry.SymmetryConfig;
 import jsettlers.mapcreator.tools.shapes.EShapeType;
 import jsettlers.mapcreator.tools.shapes.ShapeType;
 
@@ -46,6 +47,9 @@ public interface Tool extends ToolNode {
 	 * @param uidx
 	 */
 	void apply(MapData map, ShapeType shape, ShortPoint2D start, ShortPoint2D end, double uidx);
+
+
+	void apply(MapData map, SymmetryConfig symmetry, ShapeType shapeType, ShortPoint2D start, ShortPoint2D end, double uidx);
 
 	/**
 	 * Start the editing

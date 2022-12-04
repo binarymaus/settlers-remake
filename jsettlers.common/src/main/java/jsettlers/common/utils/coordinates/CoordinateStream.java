@@ -18,7 +18,9 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import java8.util.Optional;
+import java.util.Optional;
+import java.util.stream.Stream;
+
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.utils.mutables.Mutable;
 import jsettlers.common.utils.mutables.MutableInt;
@@ -112,6 +114,12 @@ public abstract class CoordinateStream implements Serializable {
 		});
 	}
 
+	public <T> Stream<T> map(ICoordinateFunction<T> consumer) {
+		List<T> values = new ArrayList<>();
+		iterate((x, y) -> values.add(consumer.apply(x, y)));
+		return values.stream();
+	}
+
 	public CoordinateStream getEvery(int getIndex) {
 		if (getIndex <= 0) {
 			throw new IllegalArgumentException("parameter must be greater 0");
@@ -138,6 +146,11 @@ public abstract class CoordinateStream implements Serializable {
 
 	public Optional<ShortPoint2D> getFirst() {
 		return iterateForResult((x, y) -> Optional.of(new ShortPoint2D(x, y)));
+	}
+
+	public CoordinateStream limit(int count) {
+		MutableInt counter = new MutableInt(0);
+		return filter((x, y) -> counter.value++ < count);
 	}
 
 	public List<ShortPoint2D> toList() {

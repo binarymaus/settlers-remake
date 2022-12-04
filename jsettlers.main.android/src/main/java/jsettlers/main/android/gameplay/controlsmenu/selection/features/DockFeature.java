@@ -25,6 +25,7 @@ import jsettlers.common.action.IAction;
 import jsettlers.common.buildings.IBuilding;
 import jsettlers.common.images.ImageLink;
 import jsettlers.common.movable.EShipType;
+import jsettlers.graphics.localization.Labels;
 import jsettlers.graphics.map.controls.original.panel.selection.BuildingState;
 import jsettlers.logic.buildings.workers.DockyardBuilding;
 import jsettlers.main.android.R;
@@ -103,8 +104,8 @@ public class DockFeature extends SelectionFeature implements DrawListener, Actio
 		switch (action.getActionType()) {
 		case ASK_SET_DOCK:
 			snackbar = Snackbar
-					.make(getView(), "Choose dock position", Snackbar.LENGTH_INDEFINITE)
-					.setAction("Cancel", view -> taskControls.endTask());
+					.make(getView(), R.string.ask_dock, Snackbar.LENGTH_INDEFINITE)
+					.setAction(R.string.cancel,view -> taskControls.endTask());
 			snackbar.show();
 			break;
 		case SET_DOCK:

@@ -15,7 +15,7 @@
 package jsettlers.algorithms.construction;
 
 import jsettlers.algorithms.AlgorithmConstants;
-import jsettlers.common.buildings.EBuildingType;
+import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.logging.MilliStopWatch;
 import jsettlers.common.logging.StopWatch;
 import jsettlers.common.map.shapes.MapRectangle;
@@ -40,7 +40,7 @@ public final class ConstructionMarksThread implements Runnable {
 	 * area of tiles to be checked.
 	 */
 	private MapRectangle mapArea = null;
-	private EBuildingType buildingType = null;
+	private BuildingVariant building = null;
 
 	public ConstructionMarksThread(AbstractConstructionMarkableMap map, IPausingSupplier pausingSupplier, byte player) {
 		this.algorithm = new NewConstructionMarksAlgorithm(map, player);
@@ -56,19 +56,19 @@ public final class ConstructionMarksThread implements Runnable {
 		while (!canceled) {
 			try {
 				synchronized (this) {
-					while (buildingType == null) {
+					while (building == null) {
 						this.wait();
 					}
 				}
 
-				while (buildingType != null && !canceled) {
+				while (building != null && !canceled) {
 					if (!pausingSupplier.isPausing()) {
 						StopWatch watch = new MilliStopWatch();
 						watch.restart();
 
-						EBuildingType buildingType = this.buildingType;
-						if (buildingType != null && mapArea != null) { // if the task has already been canceled
-							algorithm.calculateConstructMarks(mapArea, buildingType);
+						BuildingVariant building = this.building;
+						if (building != null && mapArea != null) { // if the task has already been canceled
+							algorithm.calculateConstructMarks(mapArea, building);
 						}
 
 						watch.stop("calculation of construction marks");
@@ -91,8 +91,8 @@ public final class ConstructionMarksThread implements Runnable {
 		this.notifyAll();
 	}
 
-	public synchronized void setBuildingType(EBuildingType buildingType) {
-		this.buildingType = buildingType;
+	public synchronized void setBuilding(BuildingVariant buildingVariant) {
+		this.building = buildingVariant;
 		this.notifyAll();
 	}
 

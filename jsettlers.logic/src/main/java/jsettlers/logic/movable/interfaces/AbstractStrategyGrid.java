@@ -19,15 +19,16 @@ import java.io.Serializable;
 import jsettlers.algorithms.path.IPathCalculatable;
 import jsettlers.common.landscape.ELandscapeType;
 import jsettlers.common.landscape.EResourceType;
+import jsettlers.common.mapobject.EMapObjectType;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.common.material.ESearchType;
 import jsettlers.common.movable.EDirection;
+import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.logic.map.grid.partition.manager.manageables.IManageableBearer;
 import jsettlers.logic.map.grid.partition.manager.manageables.IManageableBricklayer;
 import jsettlers.logic.map.grid.partition.manager.manageables.IManageableDigger;
 import jsettlers.logic.map.grid.partition.manager.manageables.IManageableWorker;
-import jsettlers.logic.movable.MovableStrategy;
 import jsettlers.logic.player.Player;
 
 /**
@@ -66,6 +67,15 @@ public abstract class AbstractStrategyGrid implements Serializable {
 	public abstract boolean takeMaterial(ShortPoint2D pos, EMaterialType materialType);
 
 	/**
+	 * Take a material from the stack at given position.
+	 *
+	 * @param position
+	 * @return the taken material<br>
+	 *     null otherwise.
+	 */
+	public abstract EMaterialType takeMaterial(ShortPoint2D position);
+
+	/**
 	 * Drop a material of given type at given position.
 	 *
 	 * @param pos
@@ -102,7 +112,7 @@ public abstract class AbstractStrategyGrid implements Serializable {
 
 	/**
 	 *
-	 * @param pathCalculatable
+	 * @param movable
 	 *            requester
 	 * @param position
 	 *            Position to execute the given {@link ESearchType}.
@@ -110,7 +120,7 @@ public abstract class AbstractStrategyGrid implements Serializable {
 	 * @return true if the given position can be used to execute the search type.<br>
 	 *         false if it can not
 	 */
-	public abstract boolean executeSearchType(IPathCalculatable pathCalculatable, ShortPoint2D position, ESearchType searchType);
+	public abstract boolean executeSearchType(ILogicMovable movable, ShortPoint2D position, ESearchType searchType);
 
 	public abstract EMaterialType popToolProductionRequest(ShortPoint2D pos);
 
@@ -135,14 +145,13 @@ public abstract class AbstractStrategyGrid implements Serializable {
 
 	/**
 	 * Show smoke or remove it at the given position.
-	 *
 	 * @param position
 	 *            position to let the smoke appear.
-	 * @param smokeOn
-	 *            if true, smoke will be turned on, <br>
-	 *            if false, it will be turned of.
+	 * @param type
+	 * @param smokeDuration
 	 */
-	public abstract void placeSmoke(ShortPoint2D position, boolean smokeOn);
+	public abstract void placeSmoke(ShortPoint2D position, EMapObjectType type,
+									short smokeDuration);
 
 	/**
 	 * checks if there can be put any more materials on the given position.
@@ -176,6 +185,8 @@ public abstract class AbstractStrategyGrid implements Serializable {
 	 */
 	public abstract void changeHeightTowards(int x, int y, byte targetHeight);
 
+	public abstract void setLandscape(int x, int y, ELandscapeType type);
+
 	/**
 	 * Changes the player at the given position to the given player.
 	 *
@@ -194,6 +205,8 @@ public abstract class AbstractStrategyGrid implements Serializable {
 	 * @return {@link ELandscapeType} at the given position.
 	 */
 	public abstract ELandscapeType getLandscapeTypeAt(int x, int y);
+
+	public abstract boolean canChangeLandscapeTo(int x, int y, ELandscapeType type);
 
 	/**
 	 * Searches for an enemy around the position of the given movable in it's search radius.
@@ -215,17 +228,16 @@ public abstract class AbstractStrategyGrid implements Serializable {
 
 	/**
 	 * Adds an arrow object to the map flying from
-	 *
-	 * @param attackedPos
-	 *            Attacked position.
-	 * @param shooterPos
+	 *  @param shooterPos
 	 *            Position of the shooter.
-	 * @param shooterPlayerId
+	 * @param shooterPlayer
 	 *            The id of the attacking player.
 	 * @param hitStrength
-	 *            Strength of the hit.
+	 * 				the damage this arrow will do.
+	 * @param attackedPos
+*            Attacked position.
 	 */
-	public abstract void addArrowObject(ShortPoint2D attackedPos, ShortPoint2D shooterPos, byte shooterPlayerId, float hitStrength);
+	public abstract void addArrowObject(ShortPoint2D shooterPos, IPlayer shooterPlayer, float hitStrength, ShortPoint2D attackedPos);
 
 	public abstract boolean hasNoMovableAt(int x, int y);
 
@@ -239,6 +251,10 @@ public abstract class AbstractStrategyGrid implements Serializable {
 	public abstract boolean isFreePosition(int x, int y);
 
 	public abstract boolean tryTakingResource(ShortPoint2D position, EResourceType resource);
+
+	public abstract boolean tryCursingLocation(ShortPoint2D position);
+
+	public abstract boolean trySummonFish(ShortPoint2D position);
 
 	public abstract ILogicMovable getMovableAt(int x, int y);
 }

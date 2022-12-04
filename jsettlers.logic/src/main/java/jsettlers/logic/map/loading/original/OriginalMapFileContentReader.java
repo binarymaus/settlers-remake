@@ -18,30 +18,27 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
+import java.util.BitSet;
 import java.util.EnumMap;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import jsettlers.common.Color;
-import java8.util.Optional;
+import java.util.Optional;
 import jsettlers.common.buildings.EBuildingType;
-import jsettlers.common.position.RelativePoint;
+import jsettlers.common.material.EMaterialType;
 import jsettlers.common.position.ShortPoint2D;
+import jsettlers.logic.map.grid.MainGrid;
 import jsettlers.logic.map.loading.EMapStartResources;
 import jsettlers.logic.map.loading.MapLoadException;
-import jsettlers.logic.map.loading.data.objects.BuildingMapDataObject;
-import jsettlers.logic.map.loading.data.objects.MapDataObject;
+import jsettlers.logic.map.loading.original.data.EOriginalMapBuildingType;
 import jsettlers.logic.map.loading.original.data.EOriginalMapFilePartType;
 import jsettlers.logic.map.loading.original.data.EOriginalMapFileVersion;
-import jsettlers.logic.player.PlayerSetting;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.EnumMap;
-import java.util.List;
+import jsettlers.logic.map.loading.original.data.EOriginalMapStackType;
+import jsettlers.logic.map.loading.original.data.OriginalDestroyBuildingsWinCondition;
+import jsettlers.logic.map.loading.original.data.OriginalProduceGoodsWinCondition;
+import jsettlers.logic.map.loading.original.data.OriginalSurviveDurationWinCondition;
 
 /**
  * @author Thomas Zeugner
@@ -51,29 +48,39 @@ class OriginalMapFileContentReader {
 		final EOriginalMapFilePartType partType;
 		public final int offset;
 		public final int size;
-		final int cryptKey;
-		private boolean hasBeenDecrypted = false;
+		int lastCryptKey;
+		final byte initialCryptKey;
+		private int decryptLimit;
 
 		MapResourceInfo(EOriginalMapFilePartType partType, int offset, int size, int cryptKey) {
 			this.partType = partType;
 			this.offset = offset;
 			this.size = size;
-			this.cryptKey = cryptKey;
+			initialCryptKey = (byte) cryptKey;
+			lastCryptKey = cryptKey;
 		}
 
 		// - Decrypt a file resource
-		private boolean doDecrypt() throws MapLoadException {
+		private void doDecrypt() throws MapLoadException {
+			doDecrypt(size);
+		}
+
+		private void doDecrypt(int targetDecryptLimit) throws MapLoadException {
 			if (mapContent == null) {
 				throw new MapLoadException("OriginalMapFile-Warning: Unable to decrypt map file: no data loaded!");
 			}
 
+			if(targetDecryptLimit > size) {
+				throw new MapLoadException("Map segment is shorter than targeted limit!");
+			}
+
 			// - already decrypted
-			if (hasBeenDecrypted || size <= 0) {
-				return true;
+			if (targetDecryptLimit <= decryptLimit) {
+				return;
 			}
 
 			// - start of data
-			int pos = offset;
+			int pos = offset+decryptLimit;
 
 			// - check if the file has enough data
 			if ((pos + size) >= mapContent.length) {
@@ -81,9 +88,9 @@ class OriginalMapFileContentReader {
 			}
 
 			// - init the key
-			int key = (cryptKey & 0xFF);
+			int key = lastCryptKey;
 
-			for (int i = size; i > 0; i--) {
+			for (int i = targetDecryptLimit-decryptLimit; i > 0; i--) {
 
 				// - read one byte and uncrypt it
 				int byt = (mapContent[pos] ^ key);
@@ -96,12 +103,14 @@ class OriginalMapFileContentReader {
 				pos++;
 			}
 
-			hasBeenDecrypted = true;
-			return true;
+			lastCryptKey = key;
+
+			decryptLimit = targetDecryptLimit;
 		}
 
 		void resetDecryptedFlag() {
-			hasBeenDecrypted = false;
+			decryptLimit = 0;
+			lastCryptKey = initialCryptKey;
 		}
 	}
 
@@ -109,8 +118,7 @@ class OriginalMapFileContentReader {
 
 	private int fileChecksum = 0;
 	int widthHeight;
-	private boolean isSinglePlayerMap = false;
-	private boolean hasBuildings = false;
+	private boolean singlePlayerMap = false;
 
 	private byte[] mapContent;
 	@SuppressWarnings("unused")
@@ -128,7 +136,7 @@ class OriginalMapFileContentReader {
 	/**
 	 * Charset of read strings
 	 */
-	private static final Charset TEXT_CHARSET = Charset.forName("ISO-8859-1");
+	private static final Charset TEXT_CHARSET = StandardCharsets.ISO_8859_1;
 
 	OriginalMapFileContentReader(InputStream originalMapFile) throws IOException {
 		// - init players
@@ -152,6 +160,21 @@ class OriginalMapFileContentReader {
 			return os.toByteArray();
 		} catch (Exception e) {
 			return new byte[0];
+		}
+	}
+
+	// - Read boolean as single byte from Buffer
+	private boolean readBooleanFrom(int offset) throws MapLoadException {
+		if(mapContent == null) return false;
+		int value = mapContent[offset] & 0xFF;
+
+		switch(value) {
+			case 0:
+				return false;
+			case 1:
+				return true;
+			default:
+				throw new MapLoadException("Illegal boolean: " + value);
 		}
 	}
 
@@ -258,6 +281,10 @@ class OriginalMapFileContentReader {
 		return (currentChecksum == fileChecksum);
 	}
 
+	boolean isSinglePlayerMap() {
+		return singlePlayerMap;
+	}
+
 	// - Reads in the Map-File-Structure
 	void loadMapResources() throws MapLoadException {
 		// - Version of File: 0x0A : Original Settlers Map ; 0x0B : Amazon Map
@@ -330,7 +357,6 @@ class OriginalMapFileContentReader {
 		// - Reset
 		fileChecksum = 0;
 		widthHeight = 0;
-		hasBuildings = false;
 
 		// - safety checks
 		if (mapContent == null || mapContent.length < 100) {
@@ -361,10 +387,8 @@ class OriginalMapFileContentReader {
 			return;
 		}
 
-		// TODO: original map: the whole AREA-Block is decrypted but we only need the first 4 byte. Problem... maybe later we need the rest but only
-		// if this map is selected for playing AND there was no freeBuffer() and reOpen() call in between.
 		// - Decrypt this resource if necessary
-		filePart.doDecrypt();
+		filePart.doDecrypt(4);
 
 		// - file position of this part
 		int pos = filePart.offset;
@@ -487,16 +511,16 @@ class OriginalMapFileContentReader {
 		int pos = filePartOptional.offset;
 
 		// ----------------------------------
-		// - read mapType (single / multiplayer map?)
+		// - read mapType (single / multiplayer map)
 		int mapType = readBEIntFrom(pos);
 		pos += 4;
 
 		if (mapType == 1) {
-			isSinglePlayerMap = true;
+			singlePlayerMap = true;
 		} else if (mapType == 0) {
-			isSinglePlayerMap = false;
+			singlePlayerMap = false;
 		} else {
-			throw new MapLoadException("wrong value for 'isSinglePlayerMap' " + Integer.toString(mapType) + " in mapfile!");
+			throw new MapLoadException("wrong value for 'singlePlayerMap' " + Integer.toString(mapType) + " in mapfile!");
 		}
 
 		// ----------------------------------
@@ -514,8 +538,6 @@ class OriginalMapFileContentReader {
 
 	// - read buildings from the map-file
 	void readBuildings() throws MapLoadException {
-		hasBuildings = false;
-
 		Optional<MapResourceInfo> filePartOptional = findAndDecryptFilePart(EOriginalMapFilePartType.BUILDINGS);
 
 		if (filePartOptional.isPresent()) {
@@ -531,8 +553,6 @@ class OriginalMapFileContentReader {
 			if ((buildingsCount * 12 > filePart.size) || (buildingsCount < 0)) {
 				throw new MapLoadException("wrong number of buildings in map File: " + buildingsCount);
 			}
-
-			hasBuildings = true;
 
 			// - read all Buildings
 			for (int i = 0; i < buildingsCount; i++) {
@@ -674,6 +694,86 @@ class OriginalMapFileContentReader {
 		}
 	}
 
+	OriginalSinglePlayerWinCondition readWinCondition(MainGrid mainGrid) throws MapLoadException {
+		MapResourceInfo filePart = findAndDecryptFilePartSafe(EOriginalMapFilePartType.WIN_COND);
+
+		OriginalSinglePlayerWinCondition winCondition = new OriginalSinglePlayerWinCondition(mainGrid);
+
+		// - file position
+		int pos = filePart.offset;
+
+		int killWinBase = pos;
+		if(readBooleanFrom(killWinBase)) {
+			BitSet killToWin = new BitSet(20);
+			for(int i = 0; i < 20; i++) {
+				killToWin.set(i, readBooleanFrom(killWinBase+i+1));
+			}
+
+			winCondition.killPlayersToWin(killToWin);
+		}
+
+		int destroyBuildingsBase = pos+21;
+		if(readBooleanFrom(destroyBuildingsBase)) {
+			Set<OriginalDestroyBuildingsWinCondition> destroyBuildingsConditions = new HashSet<>();
+
+			for(int i = 0; i < 10; i++) {
+				int playerId = readByteFrom(destroyBuildingsBase+(i*2)+1);
+				EBuildingType buildingType = EOriginalMapBuildingType.getTypeByInt(readByteFrom(destroyBuildingsBase+(i*2)+2)).getValue();
+				if(buildingType == null || playerId == 0xFF) continue;
+
+				destroyBuildingsConditions.add(new OriginalDestroyBuildingsWinCondition((byte)playerId, buildingType));
+			}
+
+			winCondition.destroyAllBuildingsToWin(destroyBuildingsConditions);
+		}
+
+		int conquerPositionBase = pos+21+21;
+		if(readBooleanFrom(conquerPositionBase)) {
+			Set<ShortPoint2D> conquerPositionConditions = new HashSet<>();
+			for (int i = 0; i < 5; i++) {
+				if (readBooleanFrom(conquerPositionBase+(i*5)+1)) {
+					int x = readBEWordFrom(conquerPositionBase+(i*5)+2);
+					int y = readBEWordFrom(conquerPositionBase+(i*5)+4);
+
+					conquerPositionConditions.add(new ShortPoint2D(x, y));
+				}
+			}
+
+			winCondition.conquerPositionsToWin(conquerPositionConditions);
+		}
+
+		int surviveDurationBase = pos+21+21+26;
+		if(readBooleanFrom(surviveDurationBase)) {
+			Set<OriginalSurviveDurationWinCondition> surviveDurations = new HashSet<>();
+			for(int playerId = 0; playerId < 20; playerId++) {
+				int time = readBEWordFrom(surviveDurationBase+(playerId*2)+1);
+				if(time > 0) {
+					surviveDurations.add(new OriginalSurviveDurationWinCondition((byte)playerId, time));
+				}
+
+				winCondition.surviveDurationToWin(surviveDurations);
+			}
+		}
+
+		int producedGoodsBase = pos+21+21+26+41;
+		if(readBooleanFrom(producedGoodsBase)) {
+			Set<OriginalProduceGoodsWinCondition> produceGoods = new HashSet<>();
+
+			for(int i = 0; i < 3; i++) {
+				int amount = readBEWordFrom(producedGoodsBase+(i*3)+1);
+				EMaterialType type = EOriginalMapStackType.getTypeByInt(readByteFrom(producedGoodsBase+(i*3)+2)).value;
+
+				if(amount > 0) {
+					produceGoods.add(new OriginalProduceGoodsWinCondition(type, amount));
+				}
+			}
+
+			winCondition.produceGoodsToWin(produceGoods);
+		}
+
+		return winCondition;
+	}
+
 	/**
 	 * Reads in the Map Data / Landscape and MapObjects like trees
 	 */
@@ -702,80 +802,6 @@ class OriginalMapFileContentReader {
 
 			mapData.setResources(i, readHighNibbleFrom(pos), readLowNibbleFrom(pos));
 			pos++;
-		}
-	}
-
-	public void addStartTowerMaterialsAndSettlers(EMapStartResources startResources) {
-		addStartTowerMaterialsAndSettlers(startResources, null);
-	}
-
-	public void addStartTowerMaterialsAndSettlers(EMapStartResources startResources, PlayerSetting[] playerSettings) {
-		// - only if there are no buildings
-		if (hasBuildings) {
-			return;
-		}
-
-		int playerCount = mapData.getPlayerCount();
-
-		for (byte playerId = 0; playerId < playerCount; playerId++) {
-			if (playerSettings != null && !playerSettings[playerId].isAvailable())
-				continue;
-			ShortPoint2D startPoint = mapData.getStartPoint(playerId);
-
-			// - add the start Tower for this player
-			mapData.setMapObject(startPoint.x, startPoint.y, new BuildingMapDataObject(EBuildingType.TOWER, playerId));
-
-			// - list of all objects that have to be added for this player
-			List<MapDataObject> mapObjects = EMapStartResources.generateStackObjects(startResources);
-			mapObjects.addAll(EMapStartResources.generateMovableObjects(startResources, playerId));
-
-			// - blocking area of the tower
-			List<RelativePoint> towerTiles = Arrays.asList(EBuildingType.TOWER.getProtectedTiles());
-
-			RelativePoint relativeMapObjectPoint = new RelativePoint(-3, 3);
-
-			for (MapDataObject currentMapObject : mapObjects) {
-				do {
-					// - get next point
-					relativeMapObjectPoint = nextPointOnSpiral(relativeMapObjectPoint);
-
-					// - don't put things under the tower
-					if (towerTiles.contains(relativeMapObjectPoint)) {
-						continue;
-					}
-
-					// - get absolute position
-					int x = relativeMapObjectPoint.calculateX(startPoint.x);
-					int y = relativeMapObjectPoint.calculateY(startPoint.y);
-
-					// - is this place free?
-					if (mapData.getMapObject(x, y) == null) {
-						// - add Object
-						mapData.setMapObject(x, y, currentMapObject);
-						// - break DO: next object...
-						break;
-					}
-				} while (true);
-			}
-		}
-	}
-
-	private RelativePoint nextPointOnSpiral(RelativePoint previousPoint) {
-		short previousX = previousPoint.getDx();
-		short previousY = previousPoint.getDy();
-
-		short basis = (short) Math.max(Math.abs(previousX), Math.abs(previousY));
-
-		if (previousX == basis && previousY > -basis) {
-			return new RelativePoint(previousX, previousY - 1);
-		} else if (previousX == -basis && previousY <= basis) {
-			return new RelativePoint(previousX, previousY + 1);
-		} else if (previousX < basis && previousY == basis) {
-			return new RelativePoint(previousX + 1, previousY);
-		} else if (previousX > -basis && previousY == -basis) {
-			return new RelativePoint(previousX - 1, previousY);
-		} else {
-			return null;
 		}
 	}
 

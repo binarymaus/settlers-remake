@@ -14,11 +14,10 @@
  *******************************************************************************/
 package jsettlers.graphics.ui;
 
-import go.graphics.EGeometryFormatType;
-import go.graphics.EGeometryType;
+import go.graphics.EPrimitiveType;
+import java.util.Optional;
 import go.graphics.GLDrawContext;
-import go.graphics.GeometryHandle;
-import go.graphics.IllegalBufferException;
+import go.graphics.UnifiedDrawHandle;
 import go.graphics.event.GOEvent;
 import go.graphics.event.GOEventHandler;
 import go.graphics.event.GOKeyEvent;
@@ -63,7 +62,7 @@ public class UIInput extends UIPanel implements GOEventHandler {
 	@Override
 	public void aborted(GOEvent event) {}
 
-	private static GeometryHandle geometry = null;
+	private static UnifiedDrawHandle geometry = null;
 
 	@Override
 	public void drawAt(GLDrawContext gl) {
@@ -75,19 +74,15 @@ public class UIInput extends UIPanel implements GOEventHandler {
 		float x = getPosition().getMinX() + 2;
 		drawer.drawString(x, y, inputString.toString());
 
-		if(geometry == null || !geometry.isValid()) geometry = gl.storeGeometry(new float[] {0, 0, 0, 1}, EGeometryFormatType.VertexOnly2D, false, "uiinput-line");
+		if(geometry == null || !geometry.isValid()) geometry = gl.createUnifiedDrawCall(2, "uiinput-line", null, new float[] {0, 0, 0, 1});
 
 		float carretX = x + drawer.getWidth(inputString.substring(0, carret) + "X") - drawer.getWidth("X");
 
-		try {
-			gl.draw2D(geometry, null, EGeometryType.LineStrip, 0, 2, carretX, y, 0, 0, textHeight, 0, null, 1);
-		} catch (IllegalBufferException e) {
-			e.printStackTrace();
-		}
+		geometry.drawSimple(EPrimitiveType.LineStrip, carretX, y, 0, 0, textHeight, null, 1);
 	}
 
 	@Override
-	public Action getAction(float relativex, float relativey) {
-		return new FocusAction(this);
+	public Optional<Action> getAction(float relativex, float relativey) {
+		return Optional.of(new FocusAction(this));
 	}
 }

@@ -15,6 +15,7 @@
 package jsettlers.common.player;
 
 import jsettlers.common.movable.ESoldierType;
+import jsettlers.common.movable.ESpellType;
 
 /**
  * @author codingberlin
@@ -28,4 +29,13 @@ public interface IMannaInformation {
 	byte getNextUpdateProgressPercent();
 
 	byte getMaximumLevel();
+
+	short getAmountOfManna();
+
+	short getAmountOfProducedManna();
+
+	short getSpellCost(ESpellType spell);
+
+	boolean canUseSpell(ESpellType spell);
+	boolean useSpell(ESpellType spell);
 }

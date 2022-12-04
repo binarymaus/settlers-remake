@@ -42,4 +42,58 @@
 		android:layout_width="match_parent"
 		android:layout_height="1dp"
 		android:background="?android:attr/listDivider"/>
+
+
+	<LinearLayout
+		android:id="@+id/layout_server_address"
+		android:orientation="horizontal"
+		android:layout_width="match_parent"
+		android:layout_height="@dimen/settings_item_height"
+		android:padding="16dp"
+		android:gravity="center_vertical"
+		android:background="?android:attr/selectableItemBackground">
+
+		<TextView
+			style="@style/TextAppearance.AppCompat.Subhead"
+			android:textColor="?android:textColorPrimary"
+			android:text="@string/settings_server_address"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"/>
+
+		<android.support.v4.widget.Space
+			android:layout_width="24dp"
+			android:layout_height="1dp"/>
+
+		<TextView
+			style="@style/TextAppearance.AppCompat.Subhead"
+			android:textColor="?android:textColorSecondary"
+			android:id="@+id/text_view_server_address"
+			android:layout_weight="1"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:gravity="end"/>
+	</LinearLayout>
+
+	<View
+			android:layout_width="match_parent"
+			android:layout_height="1dp"
+			android:background="?android:attr/listDivider"/>
+
+
+	<LinearLayout
+			android:id="@+id/layout_play_all_music"
+			android:orientation="horizontal"
+			android:layout_width="match_parent"
+			android:layout_height="@dimen/settings_item_height"
+			android:padding="16dp"
+			android:gravity="center_vertical"
+			android:background="?android:attr/selectableItemBackground">
+
+		<Switch
+				android:layout_width="261dp"
+				android:layout_height="match_parent"
+				android:id="@+id/switch_play_all_music"
+				android:text="@string/settings_play_all_music"
+		/>
+	</LinearLayout>
 </LinearLayout>

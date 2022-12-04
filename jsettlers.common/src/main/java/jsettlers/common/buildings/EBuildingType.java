@@ -14,18 +14,14 @@
  *******************************************************************************/
 package jsettlers.common.buildings;
 
+import java.io.FileNotFoundException;
+import java.util.EnumMap;
 import java.util.EnumSet;
-import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
-import jsettlers.common.buildings.jobs.IBuildingJob;
-import jsettlers.common.buildings.loader.BuildingFile;
-import jsettlers.common.buildings.stacks.ConstructionStack;
-import jsettlers.common.buildings.stacks.RelativeStack;
-import jsettlers.common.images.ImageLink;
 import jsettlers.common.landscape.ELandscapeType;
-import jsettlers.common.movable.EMovableType;
+import jsettlers.common.player.ECivilisation;
 import jsettlers.common.position.RelativePoint;
 
 /**
@@ -80,7 +76,18 @@ public enum EBuildingType {
 	TEMPLE,
 	BIG_TEMPLE,
 
-	MARKET_PLACE;
+	MARKET_PLACE,
+
+	SULFURMINE,
+	GEMSMINE,
+	BREWERY,
+	RICE_FARM,
+
+	BEEKEEPING,
+	DISTILLERY,
+	LABORATORY,
+	MEAD_BREWERY,
+	;
 
 	/**
 	 * A copy of {@link #values()}. Do not modify this array. This is intended for quicker access to this value.
@@ -98,47 +105,7 @@ public enum EBuildingType {
 	 */
 	public final int ordinal;
 
-	private final IBuildingJob startJob;
-
-	private final EMovableType workerType;
-
-	private final RelativePoint doorTile;
-
-	private final RelativePoint[] blockedTiles;
-
-	private final short workRadius;
-
-	private final boolean mine;
-
-	private final ConstructionStack[] constructionStacks;
-	private final RelativeStack[] requestStacks;
-	private final RelativeStack[] offerStacks;
-
-	private final RelativePoint workCenter;
-
-	private final RelativePoint flag;
-
-	private final RelativeBricklayer[] bricklayers;
-
-	private final byte numberOfConstructionMaterials;
-
-	private final ImageLink guiImage;
-
-	private final ImageLink[] images;
-
-	private final ImageLink[] buildImages;
-
-	private final RelativePoint[] protectedTiles;
-
-	private final RelativePoint[] buildMarks;
-
-	private final EnumSet<ELandscapeType> groundTypes;
-
-	private final short viewDistance;
-
-	private final OccupierPlace[] occupierPlaces;
-
-	private final BuildingAreaBitSet buildingAreaBitSet;
+	private final Map<ECivilisation, BuildingVariant> buildingVariants = new EnumMap<>(ECivilisation.class);
 
 	/**
 	 * Constructs an enum object.
@@ -146,87 +113,24 @@ public enum EBuildingType {
 	EBuildingType() {
 		this.ordinal = ordinal();
 
-		BuildingFile file = new BuildingFile(this.toString());
-		startJob = file.getStartJob();
-		workerType = file.getWorkerType();
-		doorTile = file.getDoor();
-		blockedTiles = file.getBlockedTiles();
-		protectedTiles = file.getProtectedTiles();
-
-		constructionStacks = file.getConstructionRequiredStacks();
-		requestStacks = file.getRequestStacks();
-		offerStacks = file.getOfferStacks();
-
-		workRadius = file.getWorkradius();
-		workCenter = file.getWorkcenter();
-		mine = file.isMine();
-		flag = file.getFlag();
-		bricklayers = file.getBricklayers();
-		occupierPlaces = file.getOccupyerPlaces();
-		guiImage = file.getGuiImage();
-
-		images = file.getImages();
-		buildImages = file.getBuildImages();
-
-		buildMarks = file.getBuildmarks();
-		groundTypes = EnumSet.copyOf(file.getGroundtypes());
-		viewDistance = file.getViewdistance();
-
-		this.numberOfConstructionMaterials = calculateNumberOfConstructionMaterials();
-
-		this.buildingAreaBitSet = new BuildingAreaBitSet(getBuildingArea());
-
-		if (mine) {
-			this.buildingAreaBitSet.setCenter((short) 1, (short) 1);
+		for(ECivilisation civilisation : ECivilisation.VALUES) {
+			try {
+				BuildingVariant variant = BuildingVariant.create(this, civilisation);
+				if(variant != null) {
+					buildingVariants.put(civilisation, variant);
+				}
+			} catch (Throwable t) {
+				t.printStackTrace();
+			}
 		}
 	}
 
-	private byte calculateNumberOfConstructionMaterials() {
-		byte sum = 0;
-		for (ConstructionStack stack : getConstructionStacks()) {
-			sum += stack.requiredForBuild();
-		}
-		return sum;
+	public BuildingVariant getVariant(ECivilisation civilisation) {
+		return buildingVariants.get(civilisation);
 	}
 
-	public RelativePoint[] getBuildingArea() {
-		return protectedTiles;
-	}
-
-	/**
-	 * Gets the job a worker for this building should start with.
-	 * 
-	 * @return That {@link IBuildingJob}
-	 */
-	public final IBuildingJob getStartJob() {
-		return startJob;
-	}
-
-	/**
-	 * Gets the type of worker required for the building.
-	 * 
-	 * @return The worker or <code>null</code> if no worker is required.
-	 */
-	public final EMovableType getWorkerType() {
-		return workerType;
-	}
-
-	/**
-	 * Gets the position of the door for this building.
-	 * 
-	 * @return The door.
-	 */
-	public final RelativePoint getDoorTile() {
-		return doorTile;
-	}
-
-	/**
-	 * Gets a list of blocked positions.
-	 * 
-	 * @return The list of blocked positions.
-	 */
-	public final RelativePoint[] getBlockedTiles() {
-		return blockedTiles;
+	public BuildingVariant[] getVariants() {
+		return buildingVariants.values().toArray(new BuildingVariant[0]);
 	}
 
 	/**
@@ -234,81 +138,9 @@ public enum EBuildingType {
 	 * 
 	 * @return The tiles as array.
 	 */
+	@Deprecated
 	public final RelativePoint[] getProtectedTiles() {
-		return protectedTiles;
-	}
-
-	/**
-	 * Gets the images needed to display this building. They are rendered in the order provided.
-	 * 
-	 * @return The images
-	 */
-	public final ImageLink[] getImages() {
-		return images;
-	}
-
-	/**
-	 * Gets the images needed to display this building while it si build. They are rendered in the order provided.
-	 * 
-	 * @return The images
-	 */
-	public final ImageLink[] getBuildImages() {
-		return buildImages;
-	}
-
-	/**
-	 * Gets the gui image that is displayed in the building selection dialog.
-	 * 
-	 * @return The image. It may be <code>null</code>
-	 */
-	public final ImageLink getGuiImage() {
-		return guiImage;
-	}
-
-	/**
-	 * Gets the working radius of the building. If it is 0, the building does not support a working radius.
-	 *
-	 * @return The radius.
-	 */
-	public final short getWorkRadius() {
-		return workRadius;
-	}
-
-	/**
-	 * Gets the default work center for the building type.
-	 * 
-	 * @return The default work center position.
-	 */
-	public final RelativePoint getDefaultWorkcenter() {
-		return workCenter;
-	}
-
-	/**
-	 * Gets the position of the flag for this building. The flag type is determined by the building itself.
-	 * 
-	 * @return The flag position.
-	 */
-	public final RelativePoint getFlag() {
-		return flag;
-	}
-
-	/**
-	 * Gets the positions where the bricklayers should stand to build the house.
-	 * 
-	 * @return The positions.
-	 * @see RelativeBricklayer
-	 */
-	public final RelativeBricklayer[] getBricklayers() {
-		return bricklayers;
-	}
-
-	/**
-	 * Gets the positions of the build marks (sticks) for this building.
-	 * 
-	 * @return The positions of the marks.
-	 */
-	public final RelativePoint[] getBuildMarks() {
-		return buildMarks;
+		return getVariant().getProtectedTiles();
 	}
 
 	/**
@@ -316,103 +148,9 @@ public enum EBuildingType {
 	 * 
 	 * @return The ground types.
 	 */
+	@Deprecated
 	public final Set<ELandscapeType> getGroundTypes() {
-		return groundTypes;
-	}
-
-	/**
-	 * Gets the distance the FOW should be set to visible around this building.
-	 * 
-	 * @return The view distance.
-	 */
-	public final short getViewDistance() {
-		return viewDistance;
-	}
-
-	/**
-	 * Gets the places where occupiers can be in this building.
-	 * 
-	 * @return The places.
-	 * @see OccupierPlace
-	 */
-	public final OccupierPlace[] getOccupierPlaces() {
-		return occupierPlaces;
-	}
-
-	/**
-	 * Queries a building job with the given name that needs to be accessible from the start job.
-	 * 
-	 * @param jobname
-	 *            The name of the job.
-	 * @return The job if found.
-	 * @throws IllegalArgumentException
-	 *             If the name was not found.
-	 */
-	public final IBuildingJob getJobByName(String jobname) {
-		HashSet<String> visited = new HashSet<>();
-
-		ConcurrentLinkedQueue<IBuildingJob> queue = new ConcurrentLinkedQueue<>();
-		queue.add(startJob);
-
-		while (!queue.isEmpty()) {
-			IBuildingJob job = queue.poll();
-			if (visited.contains(job.getName())) {
-				continue;
-			}
-			if (job.getName().equals(jobname)) {
-				return job;
-			}
-			visited.add(job.getName());
-
-			queue.add(job.getNextFailJob());
-			queue.add(job.getNextSucessJob());
-		}
-		throw new IllegalArgumentException("This building has no job with name " + jobname);
-	}
-
-	/**
-	 * Gets the area for this building.
-	 * 
-	 * @return The building area.
-	 */
-	public final BuildingAreaBitSet getBuildingAreaBitSet() {
-		return buildingAreaBitSet;
-	}
-
-	/**
-	 * Gets the materials required to build this building and where to place them.
-	 * 
-	 * @return The array of material stacks.
-	 */
-	public ConstructionStack[] getConstructionStacks() {
-		return constructionStacks;
-	}
-
-	/**
-	 * Get the amount of material required to build this house. Usually the number of stone + planks.
-	 * 
-	 * @return The number of materials required to construct the building.
-	 */
-	public final byte getNumberOfConstructionMaterials() {
-		return numberOfConstructionMaterials;
-	}
-
-	/**
-	 * Gets the request stacks required to operate this building.
-	 * 
-	 * @return The request stacks.
-	 */
-	public RelativeStack[] getRequestStacks() {
-		return requestStacks;
-	}
-
-	/**
-	 * Gets the positions where the building should offer materials.
-	 * 
-	 * @return The offer positions.
-	 */
-	public RelativeStack[] getOfferStacks() {
-		return offerStacks;
+		return getVariant().getGroundTypes();
 	}
 
 	/**
@@ -420,12 +158,14 @@ public enum EBuildingType {
 	 * 
 	 * @return <code>true</code> iff this building is a mine.
 	 */
+	@Deprecated
 	public boolean isMine() {
-		return mine;
+		return getVariants()[0].isMine();
 	}
 
+	@Deprecated
 	public boolean needsFlattenedGround() {
-		return !mine;
+		return getVariant().needsFlattenedGround();
 	}
 
 	/**
@@ -437,11 +177,8 @@ public enum EBuildingType {
 		return MILITARY_BUILDINGS.contains(this);
 	}
 
-	public Set<ELandscapeType> getRequiredGroundTypeAt(int relativeX, int relativeY) {
-		if (relativeX == 0 && relativeY == 0 && mine) { // if it is a mine and we are in the center
-			return ELandscapeType.MOUNTAIN_TYPES;
-		} else {
-			return groundTypes;
-		}
+	@Deprecated
+	public BuildingVariant getVariant() {
+		return getVariants()[0];
 	}
 }

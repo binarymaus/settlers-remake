@@ -62,7 +62,7 @@ public class WorkerBuilding extends WorkAreaBuilding implements IWorkerRequestBu
 	}
 
 	private void requestWorker() {
-		super.grid.requestBuildingWorker(super.getBuildingType().getWorkerType(), this);
+		super.grid.requestBuildingWorker(super.getBuildingVariant().getWorkerType(), this);
 	}
 
 	@Override
@@ -84,6 +84,7 @@ public class WorkerBuilding extends WorkAreaBuilding implements IWorkerRequestBu
 	public final void occupyBuilding(IManageableWorker worker) {
 		if (!super.isDestroyed()) {
 			this.worker = worker;
+			setOccupied(true);
 			super.showFlag(true);
 			super.initWorkStacks();
 		}
@@ -98,6 +99,7 @@ public class WorkerBuilding extends WorkAreaBuilding implements IWorkerRequestBu
 	public final void leaveBuilding(IManageableWorker worker) {
 		if (worker == this.worker) {
 			this.worker = null;
+			setOccupied(false);
 			super.showFlag(false);
 			super.releaseRequestStacks();
 			requestWorker();
@@ -111,6 +113,7 @@ public class WorkerBuilding extends WorkAreaBuilding implements IWorkerRequestBu
 		if (worker != null) {
 			this.worker.buildingDestroyed();
 			this.worker = null;
+			setOccupied(false);
 		}
 
 		if (cleanupPositions != null) {
@@ -122,17 +125,12 @@ public class WorkerBuilding extends WorkAreaBuilding implements IWorkerRequestBu
 	}
 
 	@Override
-	public final boolean isOccupied() {
-		return worker != null;
-	}
-
-	@Override
 	public boolean tryTakingResource() {
 		return false;
 	}
 
 	@Override
-	public boolean tryTakingFood(EMaterialType[] foodOrder) {
+	public boolean tryTakingFood() {
 		return false;
 	}
 

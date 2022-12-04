@@ -45,6 +45,14 @@
 				android:orientation="horizontal">
 
 				<Button
+					android:id="@+id/button_start_server"
+					style="?attr/buttonBarButtonStyle"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="@string/menu_multi_player_start_server"
+					android:onClick="@{() -> viewmodel.toggleServerSelected()}"/>
+
+				<Button
 					android:id="@+id/button_join_multi_player_game"
 					style="?attr/buttonBarButtonStyle"
 					android:layout_width="wrap_content"
@@ -70,6 +78,12 @@
 					android:enabled="@{viewmodel.getAreResourcesLoaded()}"
 					android:onClick="@{() -> viewmodel.newMultiPlayerSelected()}"/>
 			</LinearLayout>
+
+			<TextView
+				android:id="@+id/text_view_connection_status"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text=""/>
 
 		</LinearLayout>
 

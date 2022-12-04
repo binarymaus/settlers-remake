@@ -17,16 +17,22 @@ package jsettlers.graphics.image.reader;
 
 import java.io.IOException;
 
+import jsettlers.graphics.image.Image;
 import jsettlers.graphics.image.SingleImage;
-import jsettlers.graphics.image.reader.bytereader.ByteReader;
 import jsettlers.graphics.image.reader.translator.DatBitmapTranslator;
 
 public interface DatFileReader extends DatFileSet {
 
 	DatBitmapTranslator<SingleImage> getLandscapeTranslator();
 
-	ByteReader getReaderForLandscape(int index) throws IOException;
+	long getOffsetForLandscape(int index);
 
-	void generateImageMap(int width, int height, int[] sequences, String id, String name) throws IOException;
+	<T extends Image> long readImageHeader(DatBitmapTranslator<T> translator,
+										   ImageMetadata metadata,
+										   long offset) throws IOException;
 
+	<T extends Image> void readCompressedData(DatBitmapTranslator<T> translator,
+											  ImageMetadata metadata,
+											  ImageArrayProvider array,
+											  long offset) throws IOException;
 }

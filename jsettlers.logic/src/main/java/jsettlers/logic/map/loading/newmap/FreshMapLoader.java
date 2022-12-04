@@ -17,9 +17,18 @@ package jsettlers.logic.map.loading.newmap;
 import java.io.IOException;
 import java.io.InputStream;
 
+import jsettlers.common.CommonConstants;
+import jsettlers.common.logging.MilliStopWatch;
+import jsettlers.common.menu.UIState;
+import jsettlers.input.PlayerState;
+import jsettlers.logic.map.grid.MainGrid;
+import jsettlers.logic.map.loading.EMapStartResources;
 import jsettlers.logic.map.loading.data.IMapData;
 import jsettlers.logic.map.loading.MapLoadException;
+import jsettlers.logic.map.loading.data.IMutableMapData;
 import jsettlers.logic.map.loading.list.IListedMap;
+import jsettlers.logic.map.loading.original.OriginalMultiPlayerWinLoseHandler;
+import jsettlers.logic.player.PlayerSetting;
 
 /**
  * 
@@ -35,11 +44,30 @@ public class FreshMapLoader extends RemakeMapLoader {
 	}
 
 	@Override
-	public IMapData getMapData() throws MapLoadException {
-		if (data != null) {
-			return data;
+	public MainGridWithUiSettings loadMainGrid(PlayerSetting[] playerSettings, EMapStartResources startResources) throws MapLoadException {
+		MilliStopWatch watch = new MilliStopWatch();
+		IMutableMapData mapData = loadMapData();
+		watch.stop("Loading map data required");
+
+		playerSettings = setupStartConditions(playerSettings, startResources, mapData);
+
+		MainGrid mainGrid = new MainGrid(getMapId(), getMapName(), mapData, playerSettings);
+
+		new OriginalMultiPlayerWinLoseHandler(mainGrid).schedule();
+
+		return new MainGridWithUiSettings(mainGrid, PlayerSetting.getStates(playerSettings, mapData));
+	}
+
+	@Override
+	public IMutableMapData getMapData() throws MapLoadException {
+		if (data == null) {
+			data = loadMapData();
 		}
 
+		return data;
+	}
+
+	private FreshMapData loadMapData() throws MapLoadException {
 		try (InputStream stream = super.getMapDataStream()) {
 			data = new FreshMapData();
 			FreshMapSerializer.deserialize(data, stream);

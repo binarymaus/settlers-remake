@@ -14,6 +14,7 @@
  */
 package jsettlers.graphics.map.controls.original.panel.content.material.distribution;
 
+import java.util.Arrays;
 import java.util.List;
 
 import go.graphics.text.EFontSize;
@@ -23,6 +24,8 @@ import jsettlers.common.buildings.MaterialsOfBuildings;
 import jsettlers.common.map.IGraphicsGrid;
 import jsettlers.common.map.partition.IMaterialDistributionSettings;
 import jsettlers.common.material.EMaterialType;
+import jsettlers.common.player.ECivilisation;
+import jsettlers.common.player.IInGamePlayer;
 import jsettlers.common.position.IPositionSupplier;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.graphics.action.ActionFireable;
@@ -40,21 +43,10 @@ import jsettlers.graphics.ui.Label;
 import jsettlers.graphics.ui.Label.EHorizontalAlignment;
 import jsettlers.graphics.ui.UIPanel;
 
-import java8.util.J8Arrays;
-import java8.util.stream.Collectors;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class DistributionPanel extends AbstractContentProvider implements IUiContentReceiver<IMaterialDistributionSettings> {
-	private static final EMaterialType[] MATERIAL_TYPES_FOR_DISTRIBUTION = new EMaterialType[] {
-			EMaterialType.COAL,
-			EMaterialType.IRON,
-			EMaterialType.PLANK,
-			EMaterialType.CROP,
-			EMaterialType.WATER,
-			EMaterialType.BREAD,
-			EMaterialType.MEAT,
-			EMaterialType.FISH
-	};
-
 	private static final float contentHeight_px = 216;
 	private static final float contentWidth_px = 118;
 
@@ -95,11 +87,11 @@ public class DistributionPanel extends AbstractContentProvider implements IUiCon
 			barFill = new ActionProvidedBarFill(ratio -> {
 				ShortPoint2D position = positionSupplier.getPosition();
 				if (position != null) {
-					return new SetMaterialDistributionSettingsAction(position, materialType, buildingType, ratio);
+					return Optional.of(new SetMaterialDistributionSettingsAction(position, materialType, buildingType, ratio));
 				} else {
-					return null;
+					return Optional.empty();
 				}
-			}, Labels.getName(buildingType) + "-distribution-barfill");
+			});
 			Label rowTitle = new Label(Labels.getName(buildingType), EFontSize.SMALL, EHorizontalAlignment.LEFT);
 
 			addChild(rowTitle, 0f, 1f - textHeight, 1f, 1f);
@@ -123,10 +115,10 @@ public class DistributionPanel extends AbstractContentProvider implements IUiCon
 
 		private final List<BuildingDistributionSettingPanel> buildingDistributionSettings;
 
-		MaterialDistributionPanel(EMaterialType materialType, IPositionSupplier positionSupplier) {
-			EBuildingType[] buildingsForMaterial = MaterialsOfBuildings.getBuildingTypesRequestingMaterial(materialType);
+		MaterialDistributionPanel(EMaterialType materialType, IPositionSupplier positionSupplier, IInGamePlayer player) {
+			EBuildingType[] buildingsForMaterial = MaterialsOfBuildings.getBuildingTypesRequestingMaterial(materialType, player!=null?player.getCivilisation():ECivilisation.ROMAN);
 
-			buildingDistributionSettings = J8Arrays.stream(buildingsForMaterial)
+			buildingDistributionSettings = Arrays.stream(buildingsForMaterial)
 					.map(buildingType -> new BuildingDistributionSettingPanel(materialType, buildingType, positionSupplier))
 					.collect(Collectors.toList());
 
@@ -152,7 +144,7 @@ public class DistributionPanel extends AbstractContentProvider implements IUiCon
 		private final MaterialButton materialButton;
 		private final MaterialDistributionPanel configurationPanel;
 
-		private MaterialDistributionTab(EMaterialType materialType, IPositionSupplier positionSupplier) {
+		private MaterialDistributionTab(EMaterialType materialType, IPositionSupplier positionSupplier, IInGamePlayer player) {
 			MaterialDistributionTab thisTab = this;
 			materialButton = new MaterialButton(new ExecutableAction() {
 				@Override
@@ -161,17 +153,17 @@ public class DistributionPanel extends AbstractContentProvider implements IUiCon
 				}
 			}, materialType);
 
-			configurationPanel = new MaterialDistributionPanel(materialType, positionSupplier);
+			configurationPanel = new MaterialDistributionPanel(materialType, positionSupplier, player);
 		}
 	}
 
-	private final UIPanel panel;
+	private UIPanel panel;
 	private final UiLocationDependingContentUpdater<IMaterialDistributionSettings> uiContentUpdater = new UiLocationDependingContentUpdater<>(this::currentDistributionSettingsProvider);
 
 	private MaterialDistributionTab currentTab;
 
 	public DistributionPanel() {
-		panel = buildPanel();
+		panel = null;
 		uiContentUpdater.addListener(this);
 	}
 
@@ -191,9 +183,19 @@ public class DistributionPanel extends AbstractContentProvider implements IUiCon
 		return panel;
 	}
 
+	private IInGamePlayer player = null;
+
+	public void setPlayer(IInGamePlayer player) {
+		uiContentUpdater.setPlayer(player);
+		this.player = player;
+
+		panel = buildPanel();
+	}
+
 	private List<MaterialDistributionTab> createTabs(IPositionSupplier positionSupplier) {
-		return J8Arrays.stream(MATERIAL_TYPES_FOR_DISTRIBUTION)
-				.map(materialType -> new MaterialDistributionTab(materialType, positionSupplier))
+		return Arrays.stream(EMaterialType.values())
+				.filter(EMaterialType::isDistributionConfigurable)
+				.map(materialType -> new MaterialDistributionTab(materialType, positionSupplier, player))
 				.collect(Collectors.toList());
 	}
 
@@ -225,7 +227,7 @@ public class DistributionPanel extends AbstractContentProvider implements IUiCon
 
 	private IMaterialDistributionSettings currentDistributionSettingsProvider(IGraphicsGrid grid, ShortPoint2D position) {
 		if (currentTab != null) {
-			if (grid.getPlayerIdAt(position.x, position.y) >= 0) {
+			if (player != null && player.equals(grid.getPlayerAt(position.x, position.y))) {
 				return grid.getPartitionData(position.x, position.y).getPartitionSettings().getDistributionSettings(currentTab.materialButton.getMaterial());
 			}
 		}

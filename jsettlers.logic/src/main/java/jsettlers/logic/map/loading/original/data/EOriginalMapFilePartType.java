@@ -29,7 +29,7 @@ public enum EOriginalMapFilePartType {
 	SETTLERS(7, "Settlers"),
 	BUILDINGS(8, "Buildings"),
 	STACKS(9, "Stacks"),
-	UNKNOWN_10(10, "UNKNOWN_10"), // - maybe the winning conditions
+	WIN_COND(10, "Victory Condition"),
 	QUEST_TEXT(11, "QuestText"),
 	QUEST_TIP(12, "QuestTip");
 

@@ -15,6 +15,8 @@
 package jsettlers.logic.map.grid.partition.manager.materials;
 
 import jsettlers.common.material.EMaterialType;
+import jsettlers.common.player.ECivilisation;
+import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.logic.map.grid.partition.manager.materials.offers.EOfferPriority;
 import jsettlers.logic.map.grid.partition.manager.materials.offers.OffersList;
@@ -33,7 +35,7 @@ import java.io.IOException;
 public class MaterialsManagerTest {
 	private final OffersList offersList = new OffersList(null);
 	private final JoblessSupplierMock joblessSupplier = new JoblessSupplierMock();
-	private final MaterialsManager manager = new MaterialsManager(joblessSupplier, offersList, new PartitionManagerSettings());
+	private final MaterialsManager manager = new MaterialsManager(joblessSupplier, offersList, new PartitionManagerSettings(ECivilisation.ASIAN));
 
 	@Test
 	public void testSerialization() throws IOException, ClassNotFoundException {

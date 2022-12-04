@@ -14,122 +14,146 @@
  *******************************************************************************/
 package jsettlers.logic.movable;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
+import jsettlers.algorithms.fogofwar.FoWTask;
 import jsettlers.algorithms.path.Path;
-import jsettlers.common.buildings.EBuildingType;
+import jsettlers.algorithms.simplebehaviortree.BehaviorTreeHelper;
+import jsettlers.algorithms.simplebehaviortree.IBooleanConditionFunction;
+import jsettlers.algorithms.simplebehaviortree.IEDirectionSupplier;
+import jsettlers.algorithms.simplebehaviortree.IEMaterialTypeSupplier;
+import jsettlers.algorithms.simplebehaviortree.IShortPoint2DSupplier;
+import jsettlers.algorithms.simplebehaviortree.IShortSupplier;
+import jsettlers.algorithms.simplebehaviortree.Node;
+import jsettlers.algorithms.simplebehaviortree.NodeStatus;
+import jsettlers.algorithms.simplebehaviortree.Tick;
+import jsettlers.algorithms.simplebehaviortree.nodes.Guard;
+import jsettlers.common.CommonConstants;
+import jsettlers.common.action.EMoveToType;
 import jsettlers.common.map.shapes.HexGridArea;
 import jsettlers.common.mapobject.EMapObjectType;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.common.material.ESearchType;
-import jsettlers.common.menu.messages.SimpleMessage;
 import jsettlers.common.movable.EDirection;
+import jsettlers.common.movable.EEffectType;
 import jsettlers.common.movable.EMovableAction;
 import jsettlers.common.movable.EMovableType;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.selectable.ESelectionType;
-import jsettlers.logic.buildings.military.IBuildingOccupyableMovable;
-import jsettlers.logic.buildings.military.occupying.IOccupyableBuilding;
 import jsettlers.logic.constants.Constants;
 import jsettlers.logic.constants.MatchConstants;
+import jsettlers.logic.movable.cargo.CargoShipMovable;
+import jsettlers.logic.movable.civilian.AlchemistMovable;
+import jsettlers.logic.movable.civilian.BakerMovable;
+import jsettlers.logic.movable.civilian.BearerMovable;
+import jsettlers.logic.movable.civilian.BricklayerMovable;
+import jsettlers.logic.movable.civilian.DiggerMovable;
+import jsettlers.logic.movable.civilian.DonkeyFarmerMovable;
+import jsettlers.logic.movable.civilian.HealerMovable;
+import jsettlers.logic.movable.civilian.MelterMovable;
+import jsettlers.logic.movable.civilian.MinerMovable;
+import jsettlers.logic.movable.civilian.PigFarmerMovable;
+import jsettlers.logic.movable.civilian.SawMillerMovable;
+import jsettlers.logic.movable.civilian.SimpleBuildingWorkerMovable;
+import jsettlers.logic.movable.civilian.SmithMovable;
 import jsettlers.logic.movable.interfaces.AbstractMovableGrid;
-import jsettlers.logic.movable.interfaces.IAttackable;
 import jsettlers.logic.movable.interfaces.ILogicMovable;
-import jsettlers.logic.movable.strategies.FleeStrategy;
-import jsettlers.logic.movable.strategies.military.SoldierStrategy;
+import jsettlers.logic.movable.military.BowmanMovable;
+import jsettlers.logic.movable.military.InfantryMovable;
+import jsettlers.logic.movable.military.MageMovable;
+import jsettlers.logic.movable.other.FerryMovable;
+import jsettlers.logic.movable.specialist.GeologistMovable;
+import jsettlers.logic.movable.specialist.PioneerMovable;
+import jsettlers.logic.movable.specialist.ThiefMovable;
 import jsettlers.logic.player.Player;
-import jsettlers.logic.timer.RescheduleTimer;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.EnumMap;
+import java.util.LinkedList;
+import java.util.Map;
+
+import static jsettlers.algorithms.simplebehaviortree.BehaviorTreeHelper.*;
 
 /**
  * Central Movable class of JSettlers.
  *
  * @author Andreas Eberle
  */
-public final class Movable implements ILogicMovable {
-	private static final long serialVersionUID = -705947810059935865L;
+public abstract class Movable implements ILogicMovable, FoWTask {
+	private static final long serialVersionUID = -705947810059935866L;
 
 	private static final int SHIP_PUSH_DISTANCE = 10;
-
-	private static final HashMap<Integer, ILogicMovable>      movablesByID = new HashMap<>();
-	private static final ConcurrentLinkedQueue<ILogicMovable> allMovables  = new ConcurrentLinkedQueue<>();
-	private static       int                                  nextID       = Integer.MIN_VALUE;
+	private static final int BEHAVIOUR_RETRY_COUNT = 3;
 
 	protected final AbstractMovableGrid grid;
-	private final   int                 id;
-	private final   Player              player;
+	private final     int                 id;
+	protected final   Player              player;
 
-	private EMovableState state = EMovableState.DOING_NOTHING;
+	private EMovableState state = EMovableState.ACTIVE;
 
-	private EMovableType    movableType;
-	private MovableStrategy strategy;
+	private final EMovableType    movableType;
 
 	private EMaterialType  materialType  = EMaterialType.NO_MATERIAL;
 	private EMovableAction movableAction = EMovableAction.NO_ACTION;
 	private EDirection     direction;
+	private final Map<EEffectType, Integer> effectEnd = new EnumMap<>(EEffectType.class);
 
 	private int   animationStartTime;
 	private short animationDuration;
 
-	private ShortPoint2D position;
+	public transient ShortPoint2D oldFowPosition = null;
+	protected ShortPoint2D position;
 
-	private ShortPoint2D requestedTargetPosition = null;
-	private Path         path;
+	protected Path path;
 
-	private float         health;
+	protected float         health;
 	private boolean       visible           = true;
-	private boolean       enableNothingToDo = true;
-	private ILogicMovable pushedFrom;
+	private ShortPoint2D pushedFrom;
 
 	private boolean isRightstep = false;
-	private int     flockDelay  = 700;
-
-	private EMaterialType takeDropMaterial;
+	protected int     flockDelay  = 700;
 
 	private transient boolean selected    = false;
 	private transient boolean soundPlayed = false;
 
-	// the following data only for ship passengers
-	private ILogicMovable ferryToEnter = null;
+	protected boolean playerControlled;
 
-	public Movable(AbstractMovableGrid grid, EMovableType movableType, ShortPoint2D position, Player player) {
+	private boolean leavePosition = false;
+
+	private int unitGroup = -1;
+
+	private transient Tick<? extends Movable> tick;
+
+	protected Movable(AbstractMovableGrid grid, EMovableType movableType, ShortPoint2D position, Player player, Movable replace) {
 		this.grid = grid;
 		this.position = position;
 		this.player = player;
-		this.strategy = MovableStrategy.getStrategy(this, movableType);
 		this.movableType = movableType;
-		this.health = movableType.getHealth();
 
-		this.direction = EDirection.VALUES[MatchConstants.random().nextInt(EDirection.NUMBER_OF_DIRECTIONS)];
+		this.tick = new Tick<>(this, MovableManager.getBehaviourFor(movableType));
 
-		RescheduleTimer.add(this, Constants.MOVABLE_INTERRUPT_PERIOD);
+		if(replace != null) {
+			this.health = replace.getHealth()/replace.getMovableType().getHealth()*movableType.getHealth();
+			this.direction = replace.getDirection();
+			if(movableType == replace.movableType) {
+				this.materialType = replace.materialType;
+			}
+		} else {
+			this.health = movableType.getHealth();
+			this.direction = EDirection.VALUES[MatchConstants.random().nextInt(EDirection.NUMBER_OF_DIRECTIONS)];
+		}
 
-		this.id = nextID++;
-		movablesByID.put(this.id, this);
-		allMovables.offer(this);
+		playerControlled = movableType.playerControllable;
 
-		grid.enterPosition(position, this, true);
+		this.id = MovableManager.requestId(this, replace);
 	}
 
-	@SuppressWarnings("unchecked")
-	public static void readStaticState(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-		nextID = ois.readInt();
-		allMovables.clear();
-		allMovables.addAll((Collection<? extends ILogicMovable>) ois.readObject());
-		movablesByID.putAll((Map<? extends Integer, ? extends ILogicMovable>) ois.readObject());
+	public int getUnitGroup() {
+		return this.unitGroup;
 	}
 
-	public static void writeStaticState(ObjectOutputStream oos) throws IOException {
-		oos.writeInt(nextID);
-		oos.writeObject(allMovables);
-		oos.writeObject(movablesByID);
+	public void setUnitGroup(int unitGroup) {
+		this.unitGroup = unitGroup;
 	}
 
 	/**
@@ -138,237 +162,312 @@ public final class Movable implements ILogicMovable {
 	 * @param targetPosition
 	 * 		Desired position the movable should move to
 	 */
-	public final void moveTo(ShortPoint2D targetPosition) {
-		if (movableType.isPlayerControllable() && strategy.canBeControlledByPlayer() && !alreadyWalkingToPosition(targetPosition)) {
-			this.requestedTargetPosition = targetPosition;
-		}
+	@Override
+	public void moveTo(ShortPoint2D targetPosition, EMoveToType moveToType) {
 	}
 
-	private boolean alreadyWalkingToPosition(ShortPoint2D targetPosition) {
-		return this.state == EMovableState.PATHING && this.path.getTargetPosition().equals(targetPosition);
+	private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
+		ois.defaultReadObject();
+
+		EMovableType type = (EMovableType) ois.readObject();
+		tick = Tick.deserialize(ois, this, MovableManager.getBehaviourFor(type));
+	}
+
+	private void writeObject(ObjectOutputStream oos) throws IOException {
+		oos.defaultWriteObject();
+
+		oos.writeObject(movableType);
+		tick.serialize(oos);
 	}
 
 	public void leavePosition() {
-		if (state != EMovableState.DOING_NOTHING || !enableNothingToDo) {
+		if (isBusy()) {
 			return;
 		}
 
-		int offset = MatchConstants.random().nextInt(EDirection.NUMBER_OF_DIRECTIONS);
+		leavePosition = true;
+	}
 
-		for (int i = 0; i < EDirection.NUMBER_OF_DIRECTIONS; i++) {
-			EDirection currDir = EDirection.VALUES[(i + offset) % EDirection.NUMBER_OF_DIRECTIONS];
-			if (goInDirection(currDir, EGoInDirectionMode.GO_IF_ALLOWED_AND_FREE)) {
-				break;
+	protected static <T extends Movable> Node<T> setDirectionNode(EDirection direction) {
+		return action(mov -> mov.setDirection(direction));
+	}
+
+	protected static <T extends Movable> Node<T> setDirectionNode(IEDirectionSupplier<T> direction) {
+		return action(mov -> mov.setDirection(direction.apply(mov)));
+	}
+
+	protected static <T extends Movable> Node<T> setMaterialNode(EMaterialType material) {
+		return action(mov -> mov.setMaterial(material));
+	}
+
+	protected static <T extends Movable> Node<T> setMaterial(IEMaterialTypeSupplier<T> material) {
+		return action(mov -> mov.setMaterial(material.apply(mov)));
+	}
+
+	protected static <T extends Movable> Node<T> hide() {
+		return action(mov -> mov.setVisible(false));
+	}
+
+	protected static <T extends Movable> Node<T> show() {
+		return action(mov -> mov.setVisible(true));
+	}
+
+	protected static <T extends Movable> Node<T> crouchDown(Node<T> child) {
+		return sequence(
+				playAction(EMovableAction.BEND_DOWN, Constants.MOVABLE_BEND_DURATION),
+				child,
+				playAction(EMovableAction.RAISE_UP, Constants.MOVABLE_BEND_DURATION)
+		);
+	}
+
+	protected static <T extends Movable> Node<T> drop(IEMaterialTypeSupplier<T> materialType, boolean offerMaterial) {
+		return crouchDown(
+				action(mov -> {
+					EMaterialType takeDropMaterial = materialType.apply(mov);
+
+					if (takeDropMaterial == null || !takeDropMaterial.isDroppable()) return;
+
+					mov.setMaterial(EMaterialType.NO_MATERIAL);
+					mov.grid.dropMaterial(mov.position, takeDropMaterial, offerMaterial, false);
+				})
+		);
+	}
+
+	protected static <T extends Movable> Node<T> take(IEMaterialTypeSupplier<T> materialType, boolean fromMap) {
+		return sequence(
+				condition(mov -> !fromMap || mov.grid.canTakeMaterial(mov.position, materialType.apply(mov))),
+				crouchDown(
+					action(mov -> {
+						EMaterialType material = materialType.apply(mov);
+						mov.grid.takeMaterial(mov.position, material);
+						mov.setMaterial(material);
+					})
+				)
+		);
+	}
+
+	protected static <T extends Movable> Node<T> goInDirectionIfAllowedAndFreeNode(IEDirectionSupplier<T> direction) {
+		return sequence(
+				condition(mov -> {
+					ShortPoint2D targetPosition = direction.apply(mov).getNextHexPoint(mov.getPosition());
+
+					if ((mov.grid.isValidPosition(mov, targetPosition.x, targetPosition.y) && mov.grid.hasNoMovableAt(targetPosition.x, targetPosition.y))) {
+						mov.path = new Path(targetPosition);
+						return true;
+					}
+					return false;
+				}),
+				followPath(mov -> true)
+		);
+	}
+
+	protected static <T extends Movable> Node<T> goInDirectionIfFree(IEDirectionSupplier<T> direction) {
+		return sequence(
+				condition(mov -> {
+					EDirection realDirection = direction.apply(mov);
+
+					ShortPoint2D targetPosition = realDirection.getNextHexPoint(mov.position);
+					if(mov.grid.isFreePosition(targetPosition.x, targetPosition.y)) {
+						mov.setDirection(realDirection);
+						return true;
+					} else {
+						return false;
+					}
+				}),
+				goSingleStep(mov -> mov.getDirection().getNextHexPoint(mov.position))
+		);
+	}
+
+	protected static <T extends Movable> Node<T> goInDirectionWaitFree(EDirection direction) {
+		return sequence(
+				action(mov -> {
+					mov.setDirection(direction);
+					mov.path = new Path(direction.getNextHexPoint(mov.getPosition()));
+				}),
+				followPath(mov -> true)
+		);
+	}
+
+	private ShortPoint2D markedTarget = null;
+
+	protected static <T extends Movable> Node<T> markDuring(IShortPoint2DSupplier<T> markPosition, Node<T> child) {
+		return resetAfter(mov -> {
+					Movable mmov = mov;
+					mmov.grid.setMarked(mmov.markedTarget, false);
+					mmov.markedTarget = null;
+				},
+				sequence(
+						action(mov -> {
+							Movable mmov = mov;
+							mmov.markedTarget = markPosition.apply(mov);
+							mmov.grid.setMarked(mmov.markedTarget, true);
+						}),
+						child
+				)
+		);
+	}
+
+	protected static <T extends Movable> Node<T> followPresearchedPathMarkTarget(IBooleanConditionFunction<T> pathStep) {
+		return markDuring(mov -> mov.path.getTargetPosition(), followPresearchedPath(pathStep));
+	}
+
+	protected static <T extends Movable> Node<T> followPresearchedPath() {
+		return followPresearchedPath(mov -> true);
+	}
+
+	protected static <T extends Movable> Node<T> followPresearchedPath(IBooleanConditionFunction<T> pathStep) {
+		return sequence(
+				action(mov -> {
+					assert mov.path != null : "path must be non-null to be able to followPresearchedPath()!";
+				}),
+				followPath(pathStep)
+
+		);
+	}
+
+	/**
+	 *
+	 * @param duration
+	 * 			duration in milliseconds
+	 */
+	protected static <T extends Movable> Node<T> playAction(EMovableAction action, short duration) {
+		return playAction(action, mov -> duration);
+	}
+
+	/**
+	 *
+	 * @param duration
+	 * 			duration in milliseconds
+	 */
+	protected static <T extends Movable> Node<T> playAction(EMovableAction action, IShortSupplier<T> duration) {
+		return resetAfter(mov -> ((Movable)mov).movableAction = EMovableAction.NO_ACTION,
+				sequence(
+					action(mov -> {
+						Movable realMov = mov;
+
+						realMov.playAnimation(action, duration.apply(mov));
+
+						realMov.soundPlayed = false;
+					}),
+					sleep(mov -> (int)((Movable)mov).animationDuration)
+			)
+		);
+	}
+	protected static <T extends Movable> Node<T> goToPos(IShortPoint2DSupplier<T> target) {
+		return goToPos(target, mov -> true);
+	}
+
+	protected static <T extends Movable> Node<T> goToPos(IShortPoint2DSupplier<T> target, IBooleanConditionFunction<T> pathStep) {
+		return sequence(
+				condition(mov -> {
+					mov.path = mov.grid.calculatePathTo(mov, target.apply(mov));
+					return mov.path != null;
+				}),
+				followPath(pathStep)
+		);
+	}
+
+
+	protected void findWayAroundObstacle() {
+		if (!path.hasOverNextStep()) { // if path has no position left
+			return;
+		}
+
+		EDirection direction = EDirection.getApproxDirection(position, path.getOverNextPos());
+
+		EDirection rightDir = direction.getNeighbor(-1);
+		EDirection leftDir = direction.getNeighbor(1);
+
+		ShortPoint2D straightPos = direction.getNextHexPoint(position);
+		ShortPoint2D twoStraightPos = direction.getNextHexPoint(position, 2);
+
+		ShortPoint2D rightPos = rightDir.getNextHexPoint(position);
+		ShortPoint2D rightStraightPos = direction.getNextHexPoint(rightPos);
+		ShortPoint2D straightRightPos = rightDir.getNextHexPoint(straightPos);
+
+		ShortPoint2D leftPos = leftDir.getNextHexPoint(position);
+		ShortPoint2D leftStraightPos = direction.getNextHexPoint(leftPos);
+		ShortPoint2D straightLeftPos = leftDir.getNextHexPoint(straightPos);
+
+		ShortPoint2D overNextPos = path.getOverNextPos();
+
+		LinkedList<ShortPoint2D[]> possiblePaths = new LinkedList<>();
+
+		if (twoStraightPos.equals(overNextPos)) {
+			if (grid.isValidPosition(this, rightPos.x, rightPos.y) && grid.isValidPosition(this, rightStraightPos.x, rightStraightPos.y)) {
+				possiblePaths.add(new ShortPoint2D[]{
+						rightPos,
+						rightStraightPos});
+			} else if (grid.isValidPosition(this, leftPos.x, leftPos.y) && grid.isValidPosition(this, leftStraightPos.x, leftStraightPos.y)) {
+				possiblePaths.add(new ShortPoint2D[]{
+						leftPos,
+						leftStraightPos});
 			} else {
-				ILogicMovable movableAtPos = grid.getMovableAt(currDir.getNextTileX(position.x), currDir.getNextTileY(position.y));
-				if (movableAtPos != null) {
-					movableAtPos.push(this);
-				}
+				// TODO @Andreas Eberle maybe calculate a new path
+			}
+		}
+
+		if (rightStraightPos.equals(overNextPos) && grid.isValidPosition(this, rightPos.x, rightPos.y)) {
+			possiblePaths.add(new ShortPoint2D[]{rightPos});
+		}
+		if (leftStraightPos.equals(overNextPos) && grid.isValidPosition(this, leftPos.x, leftPos.y)) {
+			possiblePaths.add(new ShortPoint2D[]{leftPos});
+		}
+
+		if ((straightRightPos.equals(overNextPos) || straightLeftPos.equals(overNextPos))
+				&& grid.isValidPosition(this, straightPos.x, straightPos.y) && grid.hasNoMovableAt(straightPos.x, straightPos.y)) {
+			possiblePaths.add(new ShortPoint2D[]{straightPos});
+
+		} else {
+			// TODO @Andreas Eberle maybe calculate a new path
+		}
+
+		// try to find a way without a movable or with a pushable movable.
+		for (ShortPoint2D[] pathPrefix : possiblePaths) { // check if any of the paths is free of movables
+			ShortPoint2D firstPosition = pathPrefix[0];
+			ILogicMovable movable = grid.getMovableAt(firstPosition.x, firstPosition.y);
+			if (movable == null) {
+				path.goToNextStep();
+				path = new Path(path, pathPrefix);
 			}
 		}
 	}
 
 	@Override
 	public int timerEvent() {
-		if (state == EMovableState.DEAD) {
+		if (!isAlive()) {
 			return -1;
 		}
 
-		switch (state) { // ensure animation is finished, if not, reschedule
-			case GOING_SINGLE_STEP:
-			case PLAYING_ACTION:
-			case TAKE:
-			case DROP:
-			case PATHING:
-			case WAITING:
-				int remainingAnimationTime = animationStartTime + animationDuration - MatchConstants.clock().getTime();
-				if (remainingAnimationTime > 0) {
-					return remainingAnimationTime;
-				}
-				break;
-			default:
-				break;
+		NodeStatus status = NodeStatus.SUCCESS;
+
+		// continue behaviour if the previous run was successful
+		for(int i = 0; i < BEHAVIOUR_RETRY_COUNT && status == NodeStatus.SUCCESS && state == EMovableState.ACTIVE; i++) {
+			tick.root.setInvocationDelay(0);
+			status = tick.tick();
 		}
 
-		switch (state) {
-			case TAKE:
-			case DROP:
-				if (this.movableAction != EMovableAction.RAISE_UP) {
-					break;
-				} // TAKE and DROP are finished if we get here and we the action is RAISE_UP, otherwise continue with second part.
+		leavePosition = false;
 
-			case WAITING:
-			case GOING_SINGLE_STEP:
-			case PLAYING_ACTION:
-				setState(EMovableState.DOING_NOTHING); // the action is finished, as the time passed
-				movableAction = EMovableAction.NO_ACTION;
-
-			case PATHING:
-			case DOING_NOTHING:
-				if (visible) {
-					checkPlayerOfCurrentPosition();
-				}
-				break;
-
-			default:
-				break;
+		int delay = tick.root.getInvocationDelay();
+		if(delay < Constants.MOVABLE_INTERRUPT_PERIOD) {
+			return Constants.MOVABLE_INTERRUPT_PERIOD;
 		}
 
-		if (requestedTargetPosition != null) {
-			if (strategy.canBeControlledByPlayer()) {
-				switch (state) {
-					case PATHING:
-						// if we're currently pathing, stop former pathing and calculate a new path
-						setState(EMovableState.DOING_NOTHING);
-						this.movableAction = EMovableAction.NO_ACTION;
-						this.path = null;
-
-					case DOING_NOTHING:
-						ShortPoint2D oldTargetPos = path != null ? path.getTargetPosition() : null;
-						ShortPoint2D oldPos = position;
-						boolean foundPath = goToPos(requestedTargetPosition); // progress is reset in here
-						requestedTargetPosition = null;
-
-						if (foundPath) {
-							this.strategy.moveToPathSet(oldPos, oldTargetPos, path.getTargetPosition());
-							return animationDuration; // we already follow the path and initiated the walking
-						} else {
-							break;
-						}
-
-					default:
-						break;
-				}
-			} else {
-				requestedTargetPosition = null;
-			}
-		}
-
-		switch (state) {
-			case GOING_SINGLE_STEP:
-			case PLAYING_ACTION:
-				setState(EMovableState.DOING_NOTHING);
-				this.movableAction = EMovableAction.NO_ACTION;
-				break;
-
-			case PATHING:
-				pathingAction();
-				break;
-
-			case TAKE:
-				grid.takeMaterial(position, takeDropMaterial);
-				setMaterial(takeDropMaterial);
-				playAnimation(EMovableAction.RAISE_UP, Constants.MOVABLE_BEND_DURATION);
-				strategy.tookMaterial();
-				break;
-			case DROP:
-				if (takeDropMaterial != null && takeDropMaterial.isDroppable()) {
-					boolean offerMaterial = strategy.droppingMaterial();
-					grid.dropMaterial(position, takeDropMaterial, offerMaterial, false);
-				}
-				setMaterial(EMaterialType.NO_MATERIAL);
-				playAnimation(EMovableAction.RAISE_UP, Constants.MOVABLE_BEND_DURATION);
-				break;
-
-			default:
-				break;
-		}
-
-		if (state == EMovableState.DOING_NOTHING) { // if movable is currently doing nothing
-			if (strategy != null) {
-				strategy.action(); // let the strategy work
-			}
-			if (state == EMovableState.DOING_NOTHING) { // if movable is still doing nothing after strategy, consider doingNothingAction()
-				if (this.isShip()) {
-					pushShips();
-				}
-				if (visible && enableNothingToDo) {
-					return doingNothingAction();
-				} else {
-					return Constants.MOVABLE_INTERRUPT_PERIOD;
-				}
-			}
-		}
-
-		return animationDuration;
-	}
-
-	private void pathingAction() {
-		if (path == null || !path.hasNextStep() || ferryToEnter == null && !strategy.checkPathStepPreconditions(path.getTargetPosition(), path.getStep())) {
-			// if path is finished, or canceled by strategy return from here
-			setState(EMovableState.DOING_NOTHING);
-			movableAction = EMovableAction.NO_ACTION;
-			path = null;
-			if (ferryToEnter != null) {
-				enterFerry();
-			}
-			return;
-		}
-
-		ILogicMovable blockingMovable = grid.getMovableAt(path.nextX(), path.nextY());
-		if (blockingMovable == null) { // if we can go on to the next step
-			if (grid.isValidNextPathPosition(this, path.getNextPos(), path.getTargetPosition())) { // next position is valid
-				goSinglePathStep();
-
-			} else { // next position is invalid
-				movableAction = EMovableAction.NO_ACTION;
-				animationDuration = Constants.MOVABLE_INTERRUPT_PERIOD; // recheck shortly
-				Path newPath = grid.calculatePathTo(this, path.getTargetPosition()); // try to find a new path
-
-				if (newPath == null) { // no path found
-					setState(EMovableState.DOING_NOTHING);
-
-					strategy.pathAborted(path.getTargetPosition()); // inform strategy
-					path = null;
-				} else {
-					this.path = newPath; // continue with new path
-					if (grid.hasNoMovableAt(path.nextX(), path.nextY())) { // path is valid, but maybe blocked (leaving blocked area)
-						goSinglePathStep();
-					}
-				}
-			}
-
-		} else { // step not possible, so try it next time
-			movableAction = EMovableAction.NO_ACTION;
-			boolean pushedSuccessfully = blockingMovable.push(this);
-			if (!pushedSuccessfully) {
-				path = strategy.findWayAroundObstacle(position, path);
-				animationDuration = Constants.MOVABLE_INTERRUPT_PERIOD; // recheck shortly
-			} else if (movableAction == EMovableAction.NO_ACTION) {
-				animationDuration = Constants.MOVABLE_INTERRUPT_PERIOD; // recheck shortly
-			} // else: push initiated our next step
-		}
-		if (this.isShip()) { // ships need more space
-			pushShips();
-		}
-	}
-
-	private void enterFerry() {
-		int distanceToFerry = this.getPosition().getOnGridDistTo(ferryToEnter.getPosition());
-		if (distanceToFerry <= Constants.MAX_FERRY_ENTRANCE_DISTANCE) {
-			if (ferryToEnter.addPassenger(this)) {
-				grid.leavePosition(this.getPosition(), this);
-				setState(EMovableState.ON_FERRY);
-			}
-		}
-		ferryToEnter = null;
+		return delay;
 	}
 
 	private void pushShips() {
+		if(!isShip()) return;
+
 		HexGridArea.stream(position.x, position.y, 1, SHIP_PUSH_DISTANCE)
 				   .filterBounds(grid.getWidth(), grid.getHeight())
 				   .forEach((x, y) -> {
 					   ILogicMovable blockingMovable = grid.getMovableAt(x, y);
 					   if (blockingMovable != null && blockingMovable.isShip()) {
-						   blockingMovable.push(this);
+						   //blockingMovable.push(this);
 					   }
 				   });
-	}
-
-	@Override
-	public void goSinglePathStep() {
-		initGoingSingleStep(path.getNextPos());
-		path.goToNextStep();
 	}
 
 	@Override
@@ -377,195 +476,176 @@ public final class Movable implements ILogicMovable {
 	}
 
 	@Override
-	public void leaveFerryAt(ShortPoint2D position) {
-		this.position = position;
-		setState(EMovableState.DOING_NOTHING);
-		requestedTargetPosition = null;
-		grid.enterPosition(position, this, true);
+	public int getViewDistance() {
+		return movableType.getViewDistance();
 	}
 
 	@Override
-	public ILogicMovable getPushedFrom() {
-		return pushedFrom;
+	public boolean continueFoW() {
+		return state != EMovableState.DEAD;
 	}
 
-	private void initGoingSingleStep(ShortPoint2D position) {
-		direction = EDirection.getDirection(this.position, position);
-		playAnimation(EMovableAction.WALKING, movableType.getStepDurationMs());
-		grid.leavePosition(this.position, this);
-		grid.enterPosition(position, this, false);
-		this.position = position;
-		isRightstep = !isRightstep;
+	@Override
+	public ShortPoint2D getFoWPosition() {
+		return position;
 	}
 
-	private int doingNothingAction() {
-		if (this.isShip()) {
-			return flockDelay;
-		}
-		if (grid.isBlockedOrProtected(position.x, position.y)) {
-			Path newPath = grid.searchDijkstra(this, position.x, position.y, (short) 50, ESearchType.NON_BLOCKED_OR_PROTECTED);
-			if (newPath == null) {
-				kill();
-				return -1;
-			} else {
-				followPath(newPath);
-				return animationDuration;
+	@Override
+	public ShortPoint2D getOldFoWPosition() {
+		return oldFowPosition;
+	}
+
+	@Override
+	public void setOldFoWPosition(ShortPoint2D position) {
+		oldFowPosition = position;
+	}
+
+	private static <T extends Movable> Node<T> goSingleStep(IShortPoint2DSupplier<T> target) {
+		return sequence(
+			action(mov -> {
+				Movable realMov = mov;
+				ShortPoint2D targetPosition = target.apply(mov);
+
+				mov.setDirection(EDirection.getApproxDirection(mov.position, targetPosition));
+				mov.grid.leavePosition(mov.position, mov);
+				mov.grid.enterPosition(targetPosition, mov, false);
+				realMov.position = targetPosition;
+				realMov.isRightstep = !realMov.isRightstep;
+
+			}),
+			playAction(EMovableAction.WALKING, mov -> mov.getMovableType().getStepDurationMs())
+		);
+	}
+
+	protected static <T extends Movable> Guard<T> doingNothingGuard() {
+		return guard(mov -> true, doingNothingAction());
+	}
+
+	protected static <T extends Movable> Node<T> doingNothingAction() {
+		return selector(
+				idleAction(),
+				sequence(
+					action(mov -> {
+						int turnDirection = MatchConstants.random().nextInt(-8, 8);
+						if (Math.abs(turnDirection) <= 1) {
+							mov.lookInDirection(mov.getDirection().getNeighbor(turnDirection));
+						}
+					}),
+					sleep(mov -> mov.flockDelay)
+				)
+		);
+	}
+
+	protected static <T extends Movable> Node<T> idleAction() {
+		return selector(
+				sequence(
+					condition(mov -> ((Movable) mov).pushedFrom != null),
+					selector(
+						// we should either move out of his way
+						sequence(
+							condition(Movable::setRandomFreeDirection),
+							goInDirectionIfAllowedAndFreeNode(Movable::getDirection)
+						),
+						// or switch positions
+						sequence(
+							goSingleStep(mov -> ((Movable)mov).pushedFrom)
+						)
+					)
+				),
+				sequence(
+					condition(mov -> ((Movable) mov).leavePosition),
+					selector(
+						goInDirectionIfAllowedAndFreeNode(mov -> EDirection.VALUES[0]),
+						goInDirectionIfAllowedAndFreeNode(mov -> EDirection.VALUES[1]),
+						goInDirectionIfAllowedAndFreeNode(mov -> EDirection.VALUES[2]),
+						goInDirectionIfAllowedAndFreeNode(mov -> EDirection.VALUES[3]),
+						goInDirectionIfAllowedAndFreeNode(mov -> EDirection.VALUES[4]),
+						goInDirectionIfAllowedAndFreeNode(mov -> EDirection.VALUES[5])
+					)
+				),
+				sequence(
+					condition(Movable::isShip),
+					action(Movable::pushShips),
+					sleep(mov -> mov.flockDelay)
+				),
+				sequence(
+					condition(mov -> mov.grid.isBlockedOrProtected(mov.position.x, mov.position.y)),
+					selector(
+						sequence(
+							condition(mov -> mov.preSearchPath(true, mov.position.x, mov.position.y, (short) 50, ESearchType.NON_BLOCKED_OR_PROTECTED)),
+							followPresearchedPath()
+						),
+						// just "succeed" after dying
+						action(Movable::kill)
+					)
+				),
+				// flock to decentralize
+				sequence(
+					condition(mov -> {
+						ShortPoint2D decentVector = mov.grid.calcDecentralizeVector(mov.position.x, mov.position.y);
+
+						EDirection randomDirection = mov.getDirection().getNeighbor(MatchConstants.random().nextInt(-2, 2));
+						int dx = randomDirection.gridDeltaX + decentVector.x;
+						int dy = randomDirection.gridDeltaY + decentVector.y;
+
+						if (ShortPoint2D.getOnGridDist(dx, dy) >= 2) {
+							mov.flockDelay = Math.max(mov.flockDelay - 100, 500);
+							mov.flockDirection = EDirection.getApproxDirection(0, 0, dx, dy);
+							return true;
+						} else {
+							mov.flockDelay = Math.min(mov.flockDelay + 100, 1000);
+							return false;
+						}
+					}),
+					selector(
+						goInDirectionIfAllowedAndFreeNode(mov -> mov.flockDirection),
+						sequence(
+							condition(Movable::setRandomFreeDirection),
+							goInDirectionIfAllowedAndFreeNode(Movable::getDirection)
+						)
+					)
+				)
+		);
+	}
+
+	private boolean setRandomFreeDirection() {
+		int start = MatchConstants.random().nextInt(8);
+
+		for(int i = 0; i < EDirection.NUMBER_OF_DIRECTIONS; i++) {
+			EDirection dir = EDirection.VALUES[(start + i) % EDirection.NUMBER_OF_DIRECTIONS];
+
+			ShortPoint2D neighbor = dir.getNextHexPoint(position);
+
+			if(neighbor != null && grid.isFreePosition(neighbor.x, neighbor.y)) {
+				setDirection(dir);
+				return true;
 			}
-		} else {
-			if (flockToDecentralize()) {
-				return animationDuration;
-			} else {
-				int turnDirection = MatchConstants.random().nextInt(-8, 8);
-				if (Math.abs(turnDirection) <= 1) {
-					lookInDirection(direction.getNeighbor(turnDirection));
-				}
-			}
-
-			return flockDelay;
 		}
+
+		return false;
 	}
 
-	/**
-	 * Tries to walk the movable into a position where it has a minimum distance to others.
-	 *
-	 * @return true if the movable moves to flock, false if no flocking is required.
-	 */
-	private boolean flockToDecentralize() {
-		ShortPoint2D decentVector = grid.calcDecentralizeVector(position.x, position.y);
-
-		EDirection randomDirection = direction.getNeighbor(MatchConstants.random().nextInt(-1, 1));
-		int dx = randomDirection.gridDeltaX + decentVector.x;
-		int dy = randomDirection.gridDeltaY + decentVector.y;
-
-		if (ShortPoint2D.getOnGridDist(dx, dy) >= 2) {
-			flockDelay = Math.max(flockDelay - 100, 500);
-			return this.goInDirection(EDirection.getApproxDirection(0, 0, dx, dy), EGoInDirectionMode.GO_IF_ALLOWED_AND_FREE);
-		} else {
-			flockDelay = Math.min(flockDelay + 100, 1000);
-			return false;
-		}
-	}
+	protected EDirection flockDirection;
 
 	/**
 	 * A call to this method indicates this movable that it shall leave it's position to free the position for another movable.
 	 *
 	 * @param pushingMovable
 	 * 		The movable pushing at this movable. This should be the movable that want's to get the position!
-	 * @return true if this movable will move out of it's way in the near future <br>
-	 * false if this movable doesn't move.
 	 */
 	@Override
-	public boolean push(ILogicMovable pushingMovable) {
-		if (state == EMovableState.DEAD) {
-			return false;
-		}
+	public void push(ILogicMovable pushingMovable) {
+		if(!(pushingMovable instanceof Movable)) return;
 
-		switch (state) {
-			case DOING_NOTHING:
-				if (!enableNothingToDo) { // don't go to random direction if movable shouldn't do something in DOING_NOTHING
-					return false;
-				}
+		Movable realPushing = (Movable) pushingMovable;
 
-				if (goToRandomDirection(pushingMovable)) { // try to find free direction
-					return true; // if we found a free direction, go there and tell the pushing one we'll move
+		// other movable can actually push us
+		if(id <= realPushing.id) return;
 
-				} else { // if we didn't find a direction, check if it's possible to exchange positions
-					if (pushingMovable.getPath() == null || !pushingMovable.getPath().hasNextStep()) {
-						return false; // the other movable just pushed to get space, we can't do anything for it here.
-
-					} else if (pushingMovable.getMovableType().isPlayerControllable()
-						|| strategy.isValidPosition(pushingMovable.getPosition())) { // exchange positions
-						EDirection directionToPushing = EDirection.getApproxDirection(this.position, pushingMovable.getPosition());
-						pushingMovable.goSinglePathStep(); // if no free direction found, exchange the positions of the movables
-						goInDirection(directionToPushing, EGoInDirectionMode.GO_IF_ALLOWED_WAIT_TILL_FREE);
-						return true;
-
-					} else { // exchange not possible, as the location is not valid.
-						return false;
-					}
-				}
-
-			case PATHING:
-				if (path == null || pushingMovable.getPath() == null || !pushingMovable.getPath().hasNextStep()) {
-					return false; // the other movable just pushed to get space, so we can't do anything for it in this state.
-				}
-
-				if (animationStartTime + animationDuration <= MatchConstants.clock().getTime() && this.path.hasNextStep()) {
-					ShortPoint2D nextPos = path.getNextPos();
-					if (pushingMovable.getPosition() == nextPos) { // two movables going in opposite direction and wanting to exchange positions
-						pushingMovable.goSinglePathStep();
-						this.goSinglePathStep();
-
-					} else {
-						if (grid.hasNoMovableAt(nextPos.x, nextPos.y)) {
-							// this movable isn't blocked, so just let it's pathingAction() handle this
-						} else if (pushedFrom == null) {
-							try {
-								this.pushedFrom = pushingMovable;
-								return grid.getMovableAt(nextPos.x, nextPos.y).push(this);
-							} finally {
-								this.pushedFrom = null;
-							}
-						} else {
-							while (pushingMovable != this) {
-								pushingMovable.goSinglePathStep();
-								pushingMovable = pushingMovable.getPushedFrom();
-							}
-							this.goSinglePathStep();
-						}
-					}
-				}
-				return true;
-
-			case GOING_SINGLE_STEP:
-			case PLAYING_ACTION:
-			case TAKE:
-			case DROP:
-			case WAITING:
-				return false; // we can't do anything
-
-			case DEBUG_STATE:
-				return false;
-
-			default:
-				assert false : "got pushed in unhandled state: " + state;
-				return false;
-		}
-	}
-
-	@Override
-	public Path getPath() {
-		return path;
-	}
-
-	public boolean isProbablyPushable(ILogicMovable pushingMovable) {
-		switch (state) {
-			case DOING_NOTHING:
-				return true;
-			case PATHING:
-				return path != null && pushingMovable.getPath() != null && pushingMovable.getPath().hasNextStep();
-			default:
-				return false;
-		}
-	}
-
-	private boolean goToRandomDirection(ILogicMovable pushingMovable) {
-		int offset = MatchConstants.random().nextInt(EDirection.NUMBER_OF_DIRECTIONS);
-		EDirection pushedFromDir = EDirection.getApproxDirection(this.getPosition(), pushingMovable.getPosition());
-		if (pushedFromDir == null) {
-			return false;
-		}
-
-		for (int i = 0; i < EDirection.NUMBER_OF_DIRECTIONS; i++) {
-			EDirection currDir = EDirection.VALUES[(i + offset) % EDirection.NUMBER_OF_DIRECTIONS];
-			if (currDir != pushedFromDir && currDir != pushedFromDir.rotateRight(1)
-				&& currDir != pushedFromDir.rotateRight(EDirection.NUMBER_OF_DIRECTIONS - 1)
-				&& goInDirection(currDir, EGoInDirectionMode.GO_IF_ALLOWED_AND_FREE)) {
-				return true;
-			}
-		}
-
-		return false;
+		// ask behaviour how to react
+		pushedFrom = pushingMovable.getPosition();
+		tick.tick();
+		pushedFrom = null;
 	}
 
 	/**
@@ -575,27 +655,11 @@ public final class Movable implements ILogicMovable {
 	 * The material type to be set
 	 * @return {@link EMaterialType} that has been set before.
 	 */
-	final EMaterialType setMaterial(EMaterialType materialType) {
+	public final EMaterialType setMaterial(EMaterialType materialType) {
 		assert materialType != null : "MaterialType may not be null";
 		EMaterialType former = this.materialType;
 		this.materialType = materialType;
 		return former;
-	}
-
-	/**
-	 * Lets this movable execute the given action with given duration.
-	 *
-	 * @param movableAction
-	 * 		action to be animated.
-	 * @param duration
-	 * 		duration the animation should last (in seconds). // TODO change to milliseconds
-	 */
-	final void playAction(EMovableAction movableAction, float duration) {
-		assert state == EMovableState.DOING_NOTHING : "can't do playAction() if state isn't DOING_NOTHING. curr state: " + state;
-
-		playAnimation(movableAction, (short) (duration * 1000));
-		setState(EMovableState.PLAYING_ACTION);
-		this.soundPlayed = false;
 	}
 
 	private void playAnimation(EMovableAction movableAction, short duration) {
@@ -605,114 +669,17 @@ public final class Movable implements ILogicMovable {
 	}
 
 	/**
-	 * @param materialToTake
-	 * The material type to take
-	 * @return true if the animation will be executed.
-	 */
-	final boolean take(EMaterialType materialToTake, boolean takeFromMap) {
-		if (!takeFromMap || grid.canTakeMaterial(position, materialToTake)) {
-			this.takeDropMaterial = materialToTake;
-
-			playAnimation(EMovableAction.BEND_DOWN, Constants.MOVABLE_BEND_DURATION);
-			setState(EMovableState.TAKE);
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-	final void drop(EMaterialType materialToDrop) {
-		this.takeDropMaterial = materialToDrop;
-
-		playAnimation(EMovableAction.BEND_DOWN, Constants.MOVABLE_BEND_DURATION);
-		setState(EMovableState.DROP);
-	}
-
-	/**
-	 * @param sleepTime
-	 * 		time to sleep in milliseconds
-	 */
-	final void sleep(short sleepTime) {
-		assert state == EMovableState.DOING_NOTHING : "can't do sleep() if state isn't DOING_NOTHING. curr state: " + state;
-
-		playAnimation(EMovableAction.NO_ACTION, sleepTime);
-		setState(EMovableState.WAITING);
-	}
-
-	/**
 	 * Lets this movable look in the given direction.
 	 *
 	 * @param direction
 	 * The direction to look.
 	 */
-	final void lookInDirection(EDirection direction) {
+	public final void lookInDirection(EDirection direction) {
 		this.direction = direction;
 	}
 
-	/**
-	 * Lets this movable go to the given position.
-	 *
-	 * @param targetPos
-	 * 		position to move to.
-	 * @return true if it was possible to calculate a path to the given position<br>
-	 * false if it wasn't possible to get a path.
-	 */
-	final boolean goToPos(ShortPoint2D targetPos) {
-		assert state == EMovableState.DOING_NOTHING : "can't do goToPos() if state isn't DOING_NOTHING. curr state: " + state;
-
-		Path path = grid.calculatePathTo(this, targetPos);
-		if (path == null) {
-			if (ferryToEnter != null) {
-				enterFerry();
-			}
-			return false;
-		} else {
-			followPath(path);
-			return this.path != null;
-		}
-	}
-
-	/**
-	 * Tries to go a step in the given direction.
-	 *
-	 * @param direction
-	 * 		direction to go
-	 * @param mode
-	 * 		Use the given mode to go.<br>
-	 * @return true if the step can and will immediately be executed. <br>
-	 * false if the target position is generally blocked or a movable occupies that position.
-	 */
-	final boolean goInDirection(EDirection direction, EGoInDirectionMode mode) {
-		ShortPoint2D targetPosition = direction.getNextHexPoint(position);
-
-		switch (mode) {
-			case GO_IF_ALLOWED_WAIT_TILL_FREE: {
-				this.direction = direction;
-				setState(EMovableState.PATHING);
-				this.followPath(new Path(targetPosition));
-				return true;
-			}
-			case GO_IF_ALLOWED_AND_FREE:
-				if ((grid.isValidPosition(this, targetPosition.x, targetPosition.y) && grid.hasNoMovableAt(targetPosition.x, targetPosition.y))) {
-					initGoingSingleStep(targetPosition);
-					setState(EMovableState.GOING_SINGLE_STEP);
-					return true;
-				} else {
-					break;
-				}
-			case GO_IF_FREE:
-				if (grid.isFreePosition(targetPosition.x, targetPosition.y)) {
-					initGoingSingleStep(targetPosition);
-					setState(EMovableState.GOING_SINGLE_STEP);
-					return true;
-				} else {
-					break;
-				}
-		}
-		return false;
-	}
-
-	final void setPosition(ShortPoint2D position) {
+	@Override
+	public final void setPosition(ShortPoint2D position) {
 		if (visible) {
 			grid.leavePosition(this.position, this);
 			grid.enterPosition(position, this, true);
@@ -721,13 +688,15 @@ public final class Movable implements ILogicMovable {
 		this.position = position;
 	}
 
-	final void setVisible(boolean visible) {
-		if (this.visible == visible) { // nothing to change
-		} else if (this.visible) { // is visible and gets invisible
-			grid.leavePosition(position, this);
-		} else {
-			grid.enterPosition(position, this, true);
-		}
+	public final void setVisible(boolean visible) {
+		if (this.visible != visible) {
+			if (this.visible) { // is visible and gets invisible
+				grid.leavePosition(position, this);
+			} else {
+				grid.enterPosition(position, this, true);
+			}
+		}  // nothing to change
+
 
 		this.visible = visible;
 	}
@@ -736,15 +705,13 @@ public final class Movable implements ILogicMovable {
 	 * @param dijkstra
 	 * 		if true, dijkstra algorithm is used<br>
 	 * 		if false, in area finder is used.
-	 * @param centerX
-	 * @param centerY
-	 * @param radius
-	 * @param searchType
+	 * @param centerX the x coordinate of the center of the search area
+	 * @param centerY the y coordinate of the center of the search area
+	 * @param radius the radius of the search area
+	 * @param searchType the type of search to conduct
 	 * @return true if a path has been found.
 	 */
-	final boolean preSearchPath(boolean dijkstra, short centerX, short centerY, short radius, ESearchType searchType) {
-		assert state == EMovableState.DOING_NOTHING : "this method can only be invoked in state DOING_NOTHING";
-
+	public final boolean preSearchPath(boolean dijkstra, short centerX, short centerY, short radius, ESearchType searchType) {
 		if (dijkstra) {
 			this.path = grid.searchDijkstra(this, centerX, centerY, radius, searchType);
 		} else {
@@ -754,60 +721,116 @@ public final class Movable implements ILogicMovable {
 		return path != null;
 	}
 
-	final ShortPoint2D followPresearchedPath() {
-		assert this.path != null : "path mustn't be null to be able to followPresearchedPath()!";
-		followPath(this.path);
-		return path.getTargetPosition();
+	protected boolean isBusy() {
+		return state != EMovableState.ACTIVE;
 	}
 
-	final void enableNothingToDoAction(boolean enable) {
-		this.enableNothingToDo = enable;
-	}
-
-	void abortPath() {
-		path = null;
-	}
-
-	boolean isOnOwnGround() {
+	public boolean isOnOwnGround() {
 		return grid.getPlayerAt(position) == player;
 	}
 
-	private void followPath(Path path) {
-		this.path = path;
-		setState(EMovableState.PATHING);
-		this.movableAction = EMovableAction.NO_ACTION;
-		pathingAction();
+	private static <T extends Movable> Node<T> followPath(IBooleanConditionFunction<T> pathStep) {
+		return resetAfter(mov -> mov.path = null,
+				sequence(
+					condition(mov -> mov.path != null),
+
+					repeat(mov -> mov.path.hasNextStep(),
+						guard(pathStep,
+							sequence(
+								action2(Movable::setupNextStep),
+								goSingleStep(mov -> mov.path.getNextPos()),
+								action(mov -> mov.path.goToNextStep()),
+								action(Movable::pushShips)
+							)
+						)
+					)
+			)
+		);
+	}
+
+	private NodeStatus canGoNextStep() {
+		boolean valid = grid.isValidNextPathPosition(this, path.getNextPos(), path.getTargetPosition());
+		if(!valid) {
+			path = grid.calculatePathTo(this, path.getTargetPosition());
+
+			valid = (path != null);
+		}
+
+		if(!valid) return NodeStatus.FAILURE;
+
+		for(int i = 0; i < 4; i++) {
+			ILogicMovable blockingMovable = grid.getMovableAt(path.nextX(), path.nextY());
+
+			if(blockingMovable == null) break;
+
+			switch (i) {
+				case 0:
+					findWayAroundObstacle();
+					break;
+				case 1:
+					int remainingSteps = path.getRemainingSteps();
+
+					if(remainingSteps > CommonConstants.MOVABLE_PATH_REPAIR_DISTANCE) {
+						ShortPoint2D prefixTarget = path.getNextPos(CommonConstants.MOVABLE_PATH_REPAIR_DISTANCE);
+						Path newPrefix = grid.calculatePathTo(this, prefixTarget);
+
+						if (newPrefix != null) {
+							path.goToNextStep(CommonConstants.MOVABLE_PATH_REPAIR_DISTANCE);
+							path = new Path(path, newPrefix);
+						}
+					} else {
+						path = grid.calculatePathTo(this, path.getTargetPosition());
+						if(path == null) return NodeStatus.FAILURE;
+					}
+					break;
+				case 2:
+					blockingMovable.push(this);
+					if(!isAlive()) return NodeStatus.RUNNING;
+					break;
+				case 3:
+					return NodeStatus.RUNNING;
+			}
+		}
+
+		return NodeStatus.SUCCESS;
+	}
+
+	private NodeStatus setupNextStep() {
+		NodeStatus pathStatus = canGoNextStep();
+
+		if(pathStatus != NodeStatus.RUNNING) {
+			return pathStatus;
+		}
+
+		if(pushedFrom != null) {
+			if(pushedFrom.equals(path.getNextPos())) return NodeStatus.SUCCESS;
+
+			if(!setRandomFreeDirection()) {
+				setDirection(EDirection.getApproxDirection(position, pushedFrom));
+			}
+
+			// swap positions and then continue to target
+			if(pushedFrom.equals(path.getTargetPosition())) {
+				path = new Path(pushedFrom);
+			} else {
+				path = new Path(grid.calculatePathTo(this, path.getTargetPosition(), pushedFrom), pushedFrom);
+			}
+			return NodeStatus.SUCCESS;
+		} else {
+			if(isAlive()) {
+				setDirection(EDirection.getApproxDirection(position, path.getNextPos()));
+			}
+			return NodeStatus.RUNNING;
+		}
 	}
 
 	/**
 	 * Sets the state to the given one and resets the movable to a clean start of this state.
 	 *
-	 * @param newState
+	 * @param newState the new state of the movable
 	 */
-	private void setState(EMovableState newState) {
+	protected void setState(EMovableState newState) {
 		this.state = newState;
-	}
-
-	/**
-	 * Used for networking to identify movables over the network.
-	 *
-	 * @param id
-	 * 		id to be looked for
-	 * @return returns the movable with the given ID<br>
-	 * or null if the id can not be found
-	 */
-	public static ILogicMovable getMovableByID(int id) {
-		return movablesByID.get(id);
-	}
-
-	public static ConcurrentLinkedQueue<ILogicMovable> getAllMovables() {
-		return allMovables;
-	}
-
-	public static void resetState() {
-		allMovables.clear();
-		movablesByID.clear();
-		nextID = Integer.MIN_VALUE;
 	}
 
 	/**
@@ -815,23 +838,46 @@ public final class Movable implements ILogicMovable {
 	 */
 	@Override
 	public final void kill() {
-		if (state == EMovableState.DEAD) {
+		if(!isAlive()) return;
+
+		decoupleMovable();
+
+		spawnGhost();
+
+		killMovable();
+	}
+
+	private void spawnGhost() {
+		ShortPoint2D ghostPosition = getGhostPosition();
+		if(ghostPosition != null) {
+			grid.addSelfDeletingMapObject(position, EMapObjectType.GHOST, Constants.GHOST_PLAY_DURATION, player);
+		}
+	}
+
+	protected ShortPoint2D getGhostPosition() {
+		// position of the movable on a ferry is the position it loaded into the ferry => not correct => don't show ghost
+		return isOnFerry()? null : position;
+	}
+
+	protected void decoupleMovable() {
+		if (!isAlive()) {
 			return; // this movable already died.
 		}
 
 		grid.leavePosition(this.position, this);
+
+		MovableManager.remove(this);
+	}
+
+	protected void killMovable() {
 		this.health = -200;
-		this.strategy.strategyKilledEvent(path != null ? path.getTargetPosition() : null);
-
-		if (state != EMovableState.ON_FERRY) { // position of the movable on a ferry is the position it loaded into the ferry => not correct => don't show ghost
-			grid.addSelfDeletingMapObject(position, EMapObjectType.GHOST, Constants.GHOST_PLAY_DURATION, player);
-		}
-
 		this.state = EMovableState.DEAD;
 		this.selected = false;
+		position = null;
+	}
 
-		movablesByID.remove(this.getID());
-		allMovables.remove(this);
+	public boolean isOnFerry() {
+		return state == EMovableState.ON_FERRY;
 	}
 
 	/**
@@ -859,13 +905,7 @@ public final class Movable implements ILogicMovable {
 	}
 
 	@Override
-	public final void stopOrStartWorking(boolean stop) {
-		strategy.stopOrStartWorking(stop);
-	}
-
-	@Override
-	public EBuildingType getGarrisonedBuildingType() {
-		return this.strategy.getBuildingType();
+	public void stopOrStartWorking(boolean stop) {
 	}
 
 	@Override
@@ -915,7 +955,7 @@ public final class Movable implements ILogicMovable {
 
 	@Override
 	public final boolean isAlive() {
-		return health > 0;
+		return state != EMovableState.DEAD;
 	}
 
 	@Override
@@ -929,11 +969,6 @@ public final class Movable implements ILogicMovable {
 	}
 
 	@Override
-	public final short getViewDistance() {
-		return Constants.MOVABLE_VIEW_DISTANCE;
-	}
-
-	@Override
 	public final void debug() {
 		System.out.println("debug: " + this);
 	}
@@ -943,111 +978,15 @@ public final class Movable implements ILogicMovable {
 		return id;
 	}
 
-	/**
-	 * Converts this movable to a movable of the given {@link EMovableType}.
-	 *
-	 * @param newMovableType
-	 * Type the movable should be converted to.
-	 */
-	public final void convertTo(EMovableType newMovableType) {
-		if (newMovableType == EMovableType.BEARER && !player.equals(grid.getPlayerAt(position))) {
-			return; // can't convert to bearer if the ground does not belong to the player
-		}
-		if (!(movableType == EMovableType.BEARER || (movableType == EMovableType.PIONEER && newMovableType == EMovableType.BEARER) || movableType == newMovableType)) {
-			System.err.println("Tried invalid conversion from " + movableType + " to " + newMovableType);
-			return; // can't convert between this types
-		}
-
-		this.health = (this.health * newMovableType.getHealth()) / this.movableType.getHealth();
-		this.movableType = newMovableType;
-		setVisible(true); // ensure the movable is visible
-		setStrategy(MovableStrategy.getStrategy(this, newMovableType));
-	}
-
-	private void setStrategy(MovableStrategy newStrategy) {
-		this.strategy.strategyKilledEvent(path != null ? path.getTargetPosition() : null);
-		this.strategy = newStrategy;
-		this.movableAction = EMovableAction.NO_ACTION;
-		setState(EMovableState.DOING_NOTHING);
-		grid.notifyAttackers(position, this, true);
-	}
-
-	public final IBuildingOccupyableMovable setOccupyableBuilding(IOccupyableBuilding building) {
-		if (canOccupyBuilding()) {
-			return ((SoldierStrategy) strategy).setOccupyableBuilding(building);
-		} else {
-			return null;
-		}
-	}
-
-	public final boolean canOccupyBuilding() {
-		return movableType.getSelectionType() == ESelectionType.SOLDIERS;
-	}
-
-	@Override
-	public final boolean isAttackable() {
-		return strategy != null && strategy.isAttackable();
-	}
-
-	public void moveToFerry(ILogicMovable ferry, ShortPoint2D entrancePosition) {
-		this.ferryToEnter = ferry;
-		moveTo(entrancePosition);
-	}
-
-	/**
-	 * This method may only be called if this movable shall be informed about a movable that's in it's search radius.
-	 *
-	 * @param other
-	 * 		The other movable.
-	 */
-	@Override
-	public final void informAboutAttackable(IAttackable other) {
-		strategy.informAboutAttackable(other);
-	}
-
-	@Override
-	public final void receiveHit(float hitStrength, ShortPoint2D attackerPos, byte attackingPlayer) {
-		if (strategy.receiveHit()) {
-			this.health -= hitStrength;
-			if (health <= 0) {
-				this.kill();
-			}
-		}
-
-		player.showMessage(SimpleMessage.attacked(attackingPlayer, attackerPos));
-	}
-
-	@Override
-	public boolean isTower() {
-		return false;
-	}
-
-	private void checkPlayerOfCurrentPosition() {
-		checkPlayerOfPosition(grid.getPlayerAt(position));
-	}
-
-	public void checkPlayerOfPosition(Player playerOfPosition) {
-		if (playerOfPosition != player && movableType.needsPlayersGround() && strategy.getClass() != FleeStrategy.class) {
-			setStrategy(new FleeStrategy(this));
-		}
-	}
-
 	@Override
 	public String toString() {
 		return "Movable: " + id + " position: " + position + " player: " + player.playerId + " movableType: " + movableType
 			+ " direction: " + direction + " material: " + materialType;
 	}
 
-	private enum EMovableState {
-		PLAYING_ACTION,
-		PATHING,
-		DOING_NOTHING,
-		GOING_SINGLE_STEP,
-		WAITING,
+	protected enum EMovableState {
+		ACTIVE,
 		ON_FERRY,
-
-		TAKE,
-		DROP,
 
 		DEAD,
 
@@ -1065,34 +1004,134 @@ public final class Movable implements ILogicMovable {
 		this.direction = direction;
 	}
 
+	public void addEffect(EEffectType effect) {
+		effectEnd.put(effect, effect.getTime()*1000 + MatchConstants.clock().getTime());
+	}
+
 	@Override
-	public boolean addPassenger(ILogicMovable movable) {
-		return strategy.addPassenger(movable);
+	public boolean hasEffect(EEffectType effect) {
+		return getEffectTime(effect) > 0;
 	}
 
-	public List<? extends ILogicMovable> getPassengers() {
-		return strategy.getPassengers();
+	protected int getEffectTime(EEffectType effect) {
+		if(!effectEnd.containsKey(effect)) return -MatchConstants.clock().getTime();
+		return effectEnd.get(effect) - MatchConstants.clock().getTime();
 	}
 
-	public void unloadFerry() {
-		if (this.getMovableType() != EMovableType.FERRY) {
-			return;
+	protected static <T extends Movable> Guard<T> handleFrozenEffect() {
+		return guard(mov -> mov.hasEffect(EEffectType.FROZEN),
+				BehaviorTreeHelper.sleep(mov -> mov.getEffectTime(EEffectType.FROZEN))
+		);
+	}
+
+
+	public static Movable createMovable(EMovableType movableType, Player player, ShortPoint2D position, AbstractMovableGrid grid) {
+		return createMovable(movableType, player, position, grid, null);
+	}
+
+	protected static Movable createMovable(EMovableType movableType, Player player, ShortPoint2D position, AbstractMovableGrid grid, Movable replaceMovable) {
+		if(replaceMovable != null) replaceMovable.decoupleMovable();
+
+		Movable movable = chooseMovableClass(movableType, player, position, grid, replaceMovable);
+
+		MovableManager.add(movable);
+		grid.enterPosition(position, movable, true);
+
+		if(replaceMovable != null) replaceMovable.killMovable();
+		return movable;
+	}
+
+	private static Movable chooseMovableClass(EMovableType movableType, Player player, ShortPoint2D position, AbstractMovableGrid grid, Movable movable) {
+		switch (movableType) {
+			case SWORDSMAN_L1:
+			case SWORDSMAN_L2:
+			case SWORDSMAN_L3:
+			case PIKEMAN_L1:
+			case PIKEMAN_L2:
+			case PIKEMAN_L3:
+				return new InfantryMovable(grid, movableType, position, player, movable);
+
+			case BOWMAN_L1:
+			case BOWMAN_L2:
+			case BOWMAN_L3:
+				return new BowmanMovable(grid, movableType, position, player, movable);
+
+			case MAGE:
+				return new MageMovable(grid, position, player, movable);
+
+
+			case BEARER:
+				return new BearerMovable(grid, position, player, movable);
+			case DIGGER:
+				return new DiggerMovable(grid, position, player, movable);
+			case BRICKLAYER:
+				return new BricklayerMovable(grid, position, player, movable);
+
+
+			case THIEF:
+				return new ThiefMovable(grid, position, player, movable);
+			case PIONEER:
+				return new PioneerMovable(grid, position, player, movable);
+			case GEOLOGIST:
+				return new GeologistMovable(grid, position, player, movable);
+
+			case CARGO_SHIP:
+				return new CargoShipMovable(grid, position, player, movable);
+			case FERRY:
+				return new FerryMovable(grid, position, player, movable);
+
+			case WHITEFLAGGED_DONKEY:
+			case DONKEY:
+				return new BearerMovable(grid, position, player, movable);
+
+			case FISHERMAN:
+			case STONECUTTER:
+			case WATERWORKER:
+			case LUMBERJACK:
+			case FORESTER:
+			case WINEGROWER:
+			case FARMER:
+			case DOCKWORKER:
+			case MILLER:
+			case SLAUGHTERER:
+			case CHARCOAL_BURNER:
+			case BREWER:
+			case RICE_FARMER:
+			case BEEKEEPER:
+			case DISTILLER:
+			case MEAD_BREWER:
+				return new SimpleBuildingWorkerMovable(grid, movableType, position, player, movable);
+
+
+			case ALCHEMIST:
+				return new AlchemistMovable(grid, position, player, movable);
+
+			case SMITH:
+				return new SmithMovable(grid, position, player, movable);
+
+			case MELTER:
+				return new MelterMovable(grid, position, player, movable);
+
+			case MINER:
+				return new MinerMovable(grid, position, player, movable);
+
+			case BAKER:
+				return new BakerMovable(grid, position, player, movable);
+
+			case SAWMILLER:
+				return new SawMillerMovable(grid, position, player, movable);
+
+			case DONKEY_FARMER:
+				return new DonkeyFarmerMovable(grid, position, player, movable);
+
+			case PIG_FARMER:
+				return new PigFarmerMovable(grid, position, player, movable);
+
+			case HEALER:
+				return new HealerMovable(grid, position, player, movable);
+
+			default:
+				throw new AssertionError("movable type " + movableType + " is not mapped to a movable class!");
 		}
-		strategy.unloadFerry();
-	}
-
-	@Override
-	public EMaterialType getCargoType(int stack) {
-		return strategy.getCargoType(stack);
-	}
-
-	@Override
-	public int getCargoCount(int stack) {
-		return strategy.getCargoCount(stack);
-	}
-
-	@Override
-	public int getNumberOfCargoStacks() {
-		return strategy.getNumberOfCargoStacks();
 	}
 }

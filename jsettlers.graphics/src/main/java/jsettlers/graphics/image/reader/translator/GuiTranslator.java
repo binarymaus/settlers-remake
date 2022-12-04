@@ -56,7 +56,7 @@ public class GuiTranslator implements DatBitmapTranslator<SingleImage> {
 	}
 
 	@Override
-	public SingleImage createImage(ImageMetadata metadata, short[] array, String name) {
+	public SingleImage createImage(ImageMetadata metadata, ImageDataProducer array, String name) {
 		return new SingleImage(metadata, array, name);
 	}
 

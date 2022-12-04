@@ -28,6 +28,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import jsettlers.main.android.core.GameManager;
+import jsettlers.main.android.core.GameStarter;
 import jsettlers.main.android.core.controls.GameMenu;
 import jsettlers.main.android.core.events.SingleLiveEvent;
 import jsettlers.main.android.core.resources.scanner.AndroidResourcesLoader;
@@ -36,6 +37,7 @@ public class MainMenuViewModel extends ViewModel {
 
 	private final GameManager gameManager;
 	private final AndroidResourcesLoader androidResourcesLoader;
+	private final GameStarter gameStarter;
 
 	private final ResumeStateData resumeStateData = new ResumeStateData();
 	private final MutableLiveData<Boolean> areResourcesLoaded = new MutableLiveData<>();
@@ -43,9 +45,11 @@ public class MainMenuViewModel extends ViewModel {
 	private final SingleLiveEvent<Void> showLoadSinglePlayer = new SingleLiveEvent<>();
 	private final SingleLiveEvent<Void> showMultiplayerPlayer = new SingleLiveEvent<>();
 	private final SingleLiveEvent<Void> showJoinMultiplayerPlayer = new SingleLiveEvent<>();
+	private final MutableLiveData<Boolean> multiplayerStatus = new MutableLiveData<>();
 
-	public MainMenuViewModel(GameManager gameManager, AndroidResourcesLoader androidResourcesLoader) {
+	public MainMenuViewModel(GameManager gameManager, AndroidResourcesLoader androidResourcesLoader, GameStarter gameStarter) {
 		this.gameManager = gameManager;
+		this.gameStarter = gameStarter;
 		this.androidResourcesLoader = androidResourcesLoader;
 
 		areResourcesLoaded.setValue(androidResourcesLoader.setup());
@@ -73,6 +77,10 @@ public class MainMenuViewModel extends ViewModel {
 
 	public LiveData<Void> getShowJoinMultiplayerPlayer() {
 		return showJoinMultiplayerPlayer;
+	}
+
+	public LiveData<Boolean> getMultiplayerStatus() {
+		return multiplayerStatus;
 	}
 
 	public void resourceDirectoryChosen(File resourceDirectory) {
@@ -112,6 +120,11 @@ public class MainMenuViewModel extends ViewModel {
 		if (areResourcesLoaded.getValue() == Boolean.TRUE) {
 			showLoadSinglePlayer.call();
 		}
+	}
+
+	public void toggleServerSelected() {
+		gameStarter.toggleServer();
+		multiplayerStatus.postValue(gameStarter.isServerRunning());
 	}
 
 	public void newMultiPlayerSelected() {
@@ -199,10 +212,12 @@ public class MainMenuViewModel extends ViewModel {
 
 		private final Application application;
 		private final GameManager gameManager;
+		private final GameStarter gameStarter;
 
 		public Factory(Application application) {
 			this.application = application;
 			gameManager = (GameManager) application;
+			gameStarter = (GameStarter) application;
 		}
 
 		@Override
@@ -210,7 +225,8 @@ public class MainMenuViewModel extends ViewModel {
 			if (modelClass == MainMenuViewModel.class) {
 				return (T) new MainMenuViewModel(
 						gameManager,
-						new AndroidResourcesLoader(application));
+						new AndroidResourcesLoader(application),
+						gameStarter);
 			}
 			throw new RuntimeException("MainMenuViewModel.Factory doesn't know how to create a: " + modelClass.toString());
 		}

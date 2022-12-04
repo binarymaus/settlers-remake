@@ -14,7 +14,7 @@
  *******************************************************************************/
 package jsettlers.graphics.map.controls.original.panel.button;
 
-import static java8.util.J8Arrays.stream;
+import static java.util.Arrays.stream;
 
 import java.util.Collection;
 

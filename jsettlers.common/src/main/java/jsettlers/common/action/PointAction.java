@@ -17,7 +17,7 @@ package jsettlers.common.action;
 import jsettlers.common.position.ShortPoint2D;
 
 /**
- * This action states that the user wants something to move to the given position.
+ * This action states that the user wants something to happen at the given position.
  *
  * @author Michael Zangl
  */
@@ -26,7 +26,7 @@ public class PointAction extends Action {
 	private final ShortPoint2D position;
 
 	/**
-	 * Creates a new moveto aciton.
+	 * Creates a new point action
 	 *
 	 * @param type
 	 *            The type of this action.

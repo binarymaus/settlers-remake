@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 import go.graphics.GLDrawContext;
 import jsettlers.common.images.ImageLink;
@@ -40,6 +41,7 @@ public class UIPanel implements UIElement {
 	private ImageLink background;
 
 	private boolean attached = false;
+	protected float intensity = 1;
 
 	/**
 	 * Sets the background. file=-1 means no background
@@ -119,6 +121,10 @@ public class UIPanel implements UIElement {
 		}
 	}
 
+	public void setIntensity(float intensity) {
+		this.intensity = intensity;
+	}
+
 	/**
 	 * Draws an image at a given rect
 	 *
@@ -134,7 +140,7 @@ public class UIPanel implements UIElement {
 		float minY = position.getMinY();
 		float maxX = position.getMaxX();
 		float maxY = position.getMaxY();
-		image.drawImageAtRect(gl, minX, minY, maxX-minX, maxY-minY);
+		image.drawImageAtRect(gl, minX, minY, maxX-minX, maxY-minY, intensity);
 	}
 
 	protected ImageLink getBackgroundImage() {
@@ -163,13 +169,13 @@ public class UIPanel implements UIElement {
 			child.drawAt(gl);
 		}
 
-		public Action getActionRelative(float parentx, float parenty) {
+		public Optional<Action> getActionRelative(float parentx, float parenty) {
 			if (left <= parentx && parentx <= right && bottom <= parenty && parenty <= top) {
 				float relativex = (parentx - left) / (right - left);
 				float relativey = (parenty - bottom) / (top - bottom);
 				return child.getAction(relativex, relativey);
 			} else {
-				return null;
+				return Optional.empty();
 			}
 		}
 
@@ -203,14 +209,14 @@ public class UIPanel implements UIElement {
 	}
 
 	@Override
-	public Action getAction(float relativex, float relativey) {
+	public Optional<Action> getAction(float relativex, float relativey) {
 		for (ChildLink link : children) {
-			Action action = link.getActionRelative(relativex, relativey);
-			if (action != null) {
+			Optional<Action> action = link.getActionRelative(relativex, relativey);
+			if (action.isPresent()) {
 				return action;
 			}
 		}
-		return null;
+		return Optional.empty();
 	}
 
 	@Override

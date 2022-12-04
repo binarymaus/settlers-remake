@@ -15,7 +15,7 @@
 
 package jsettlers.main.android.gameplay.controlsmenu.goods;
 
-import static java8.util.J8Arrays.stream;
+import static java.util.Arrays.stream;
 
 import android.app.Activity;
 import android.arch.lifecycle.LiveData;
@@ -80,6 +80,8 @@ public class ProductionViewModel extends ViewModel {
 	}
 
 	private ProductionState[] productionStates() {
+		if(!positionControls.isInPlayerPartition()) return new ProductionState[0];
+
 		IMaterialProductionSettings materialProductionSettings = positionControls.getCurrentPartitionData().getPartitionSettings().getMaterialProductionSettings();
 
 		return stream(productionMaterials)

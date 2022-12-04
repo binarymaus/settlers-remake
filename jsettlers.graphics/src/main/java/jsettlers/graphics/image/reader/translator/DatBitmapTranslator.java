@@ -60,9 +60,9 @@ public interface DatBitmapTranslator<T extends Image> {
 	 * @param metadata
 	 * 		The image metadata
 	 * @param array
-	 * 		The array of image pixels.
+	 * 		The function to lazily create the array
 	 * @return The image
 	 */
-	T createImage(ImageMetadata metadata, short[] array, String name);
+	T createImage(ImageMetadata metadata, ImageDataProducer array, String name);
 
 }

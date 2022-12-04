@@ -31,6 +31,7 @@ public final class LoggerManager {
 	private static final HashMap<String, StreamLogger> LOGGERS = new HashMap<>();
 
 	static {
+		LOG_FOLDER.mkdir();
 		Logger logger;
 		try {
 			logger = new StreamLogger("rootLogger", new File(LOG_FOLDER, "server-" + Logger.getDateFormat().format(new Date()) + ".log"));

@@ -25,12 +25,15 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
 
+import java.util.function.Consumer;
+
 import jsettlers.ai.highlevel.AiExecutor;
+import jsettlers.common.CommitInfo;
 import jsettlers.common.CommonConstants;
+import jsettlers.common.logging.MultiplexingOutputStream;
 import jsettlers.common.map.IGraphicsGrid;
 import jsettlers.common.menu.EGameError;
 import jsettlers.common.menu.EProgressState;
-import jsettlers.common.menu.IGameExitListener;
 import jsettlers.common.menu.IMapInterfaceConnector;
 import jsettlers.common.menu.IStartedGame;
 import jsettlers.common.menu.IStartingGame;
@@ -46,13 +49,12 @@ import jsettlers.logic.buildings.trading.HarborBuilding;
 import jsettlers.logic.buildings.trading.MarketBuilding;
 import jsettlers.logic.constants.MatchConstants;
 import jsettlers.logic.map.grid.MainGrid;
-import jsettlers.logic.map.grid.partition.PartitionsGrid;
 import jsettlers.logic.map.loading.IGameCreator;
 import jsettlers.logic.map.loading.IGameCreator.MainGridWithUiSettings;
 import jsettlers.logic.map.loading.MapLoadException;
 import jsettlers.logic.map.loading.MapLoader;
-import jsettlers.logic.movable.Movable;
-import jsettlers.logic.player.Player;
+import jsettlers.logic.movable.MovableManager;
+import jsettlers.logic.player.InitialGameState;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.logic.timer.RescheduleTimer;
 import jsettlers.main.replay.ReplayUtils;
@@ -69,14 +71,12 @@ public class JSettlersGame {
 	private final Object stopMutex = new Object();
 
 	private final IGameCreator mapCreator;
-	private final long randomSeed;
-	private final byte playerId;
-	private final PlayerSetting[] playerSettings;
 	private final INetworkConnector networkConnector;
 	private final boolean multiplayer;
 	private final DataInputStream replayFileInputStream;
 
 	private final GameRunner gameRunner;
+	private final InitialGameState initialGameState;
 
 	private boolean started = false;
 	private boolean stopped = false;
@@ -85,25 +85,24 @@ public class JSettlersGame {
 	private PrintStream systemErrorStream;
 	private PrintStream systemOutStream;
 
-	private JSettlersGame(IGameCreator mapCreator, long randomSeed, INetworkConnector networkConnector, byte playerId,
-			PlayerSetting[] playerSettings, boolean controlAll, boolean multiplayer, DataInputStream replayFileInputStream) {
+	private JSettlersGame(IGameCreator mapCreator, INetworkConnector networkConnector, InitialGameState initialGameState,
+			boolean controlAll, boolean multiplayer, DataInputStream replayFileInputStream) {
 		configureLogging(mapCreator);
+
+		this.initialGameState = initialGameState;
 
 		System.out.println("OS version: " + System.getProperty("os.name") + " " + System.getProperty("os.arch") + " "
 				+ System.getProperty("os.version"));
 		System.out.println("Java version: " + System.getProperty("java.vendor") + " " + System.getProperty("java.version"));
-		System.out.println("JsettlersGame(): seed: " + randomSeed + " playerId: " + playerId + " availablePlayers: "
-				+ Arrays.toString(playerSettings) + " multiplayer: " + multiplayer + " mapCreator: " + mapCreator);
+		System.out.println("JSettlers version: " + CommitInfo.COMMIT_HASH_SHORT + " " + CommitInfo.BUILD_TIME);
+		System.out.println("JSettlersGame(): initialGameState: " + initialGameState + " multiplayer: " + multiplayer + " mapCreator: " + mapCreator);
 
 		if (mapCreator == null) {
 			throw new IllegalArgumentException("No mapCreator provided (mapCreator==null).");
 		}
 
 		this.mapCreator = mapCreator;
-		this.randomSeed = randomSeed;
 		this.networkConnector = networkConnector;
-		this.playerId = playerId;
-		this.playerSettings = playerSettings;
 		this.multiplayer = multiplayer;
 		this.replayFileInputStream = replayFileInputStream;
 
@@ -117,23 +116,19 @@ public class JSettlersGame {
 
 	/**
 	 * @param mapCreator
-	 * @param randomSeed
 	 * @param networkConnector
-	 * @param playerId
 	 */
-	public JSettlersGame(IGameCreator mapCreator, long randomSeed, INetworkConnector networkConnector, byte playerId, PlayerSetting[] playerSettings) {
-		this(mapCreator, randomSeed, networkConnector, playerId, playerSettings, CommonConstants.CONTROL_ALL, true, null);
+	public JSettlersGame(IGameCreator mapCreator, INetworkConnector networkConnector, InitialGameState initialGameState) {
+		this(mapCreator, networkConnector, initialGameState, CommonConstants.CONTROL_ALL, true, null);
 	}
 
 	/**
 	 * Creates a new {@link JSettlersGame} object with an {@link OfflineNetworkConnector}.
 	 *
 	 * @param mapCreator
-	 * @param randomSeed
-	 * @param playerId
 	 */
-	public JSettlersGame(IGameCreator mapCreator, long randomSeed, byte playerId, PlayerSetting[] playerSettings) {
-		this(mapCreator, randomSeed, new OfflineNetworkConnector(), playerId, playerSettings, CommonConstants.CONTROL_ALL, false, null);
+	public JSettlersGame(IGameCreator mapCreator, InitialGameState initialGameState) {
+		this(mapCreator, new OfflineNetworkConnector(), initialGameState, CommonConstants.CONTROL_ALL, false, null);
 	}
 
 	public static JSettlersGame loadFromReplayFile(ReplayUtils.IReplayStreamProvider loadableReplayFile, INetworkConnector networkConnector, ReplayStartInformation replayStartInformation)
@@ -143,8 +138,7 @@ public class JSettlersGame {
 			replayStartInformation.deserialize(replayFileInputStream);
 
 			MapLoader mapCreator = loadableReplayFile.getMap(replayStartInformation);
-			return new JSettlersGame(mapCreator, replayStartInformation.getRandomSeed(), networkConnector, (byte) replayStartInformation.getPlayerId(),
-					replayStartInformation.getReplayablePlayerSettings(), true, false, replayFileInputStream);
+			return new JSettlersGame(mapCreator, networkConnector, replayStartInformation.getReplayableGameState(), true, false, replayFileInputStream);
 		} catch (IOException e) {
 			throw new MapLoadException("Could not deserialize " + loadableReplayFile, e);
 		}
@@ -158,28 +152,15 @@ public class JSettlersGame {
 	public synchronized IStartingGame start() {
 		if (!started) {
 			started = true;
-			new Thread(null, gameRunner, "GameThread", 128 * 1024).start();
+			new Thread(null, gameRunner, "GameThread", 16 * 1024 * 1024).start();
 		}
 		return gameRunner;
 	}
 
 	public void stop() {
 		synchronized (stopMutex) {
-			printEndgameStatistic();
 			stopped = true;
 			stopMutex.notifyAll();
-		}
-	}
-
-	// TODO remove me when an EndgameStatistic screen exists.
-	private void printEndgameStatistic() {
-		PartitionsGrid partitionsGrid = gameRunner.getMainGrid().getPartitionsGrid();
-		System.out.println("Endgame statistic:");
-		for (byte playerId = 0; playerId < partitionsGrid.getNumberOfPlayers(); playerId++) {
-			Player player = partitionsGrid.getPlayer(playerId);
-			if (player != null) {
-				System.out.println("Player " + playerId + ": " + player.getEndgameStatistic());
-			}
 		}
 	}
 
@@ -194,10 +175,9 @@ public class JSettlersGame {
 		private GameTimeProvider gameTimeProvider;
 		private EProgressState progressState;
 		private float progress;
-		private IGameExitListener exitListener;
+		private Consumer<IStartedGame> exitListener;
 		private boolean gameRunning;
 		private AiExecutor aiExecutor;
-		private WinLoseTracker winLoseTracker;
 
 		@Override
 		public void run() {
@@ -208,7 +188,7 @@ public class JSettlersGame {
 				updateProgressListener(EProgressState.LOADING, 0.1f);
 
 				clearState();
-				MatchConstants.init(networkConnector.getGameClock(), randomSeed);
+				MatchConstants.init(networkConnector.getGameClock(), initialGameState.getRandomSeed());
 				try {
 					MatchConstants.clock().setReplayLogStream(createReplayFileStream());
 				} catch (IOException e) {
@@ -218,16 +198,16 @@ public class JSettlersGame {
 
 				updateProgressListener(EProgressState.LOADING_MAP, 0.3f);
 
-				MainGridWithUiSettings gridWithUiState = mapCreator.loadMainGrid(playerSettings);
+				MainGridWithUiSettings gridWithUiState = mapCreator.loadMainGrid(initialGameState.getPlayerSettings(), initialGameState.getStartResources());
 				mainGrid = gridWithUiState.getMainGrid();
-				PlayerState playerState = gridWithUiState.getPlayerState(playerId);
+				PlayerState playerState = gridWithUiState.getPlayerState(initialGameState.getPlayerId());
 
 				RescheduleTimer.schedule(MatchConstants.clock()); // schedule timer
 
 				updateProgressListener(EProgressState.LOADING_IMAGES, 0.7f);
 				gameTimeProvider = new GameTimeProvider(MatchConstants.clock());
 
-				mainGrid.initForPlayer(playerId, playerState.getFogOfWar());
+				mainGrid.initForPlayer(initialGameState.getPlayerId(), playerState.getFogOfWar());
 				mainGrid.startThreads();
 
 				waitForStartingGameListener();
@@ -244,15 +224,12 @@ public class JSettlersGame {
 
 				final IMapInterfaceConnector connector = startingGameListener.preLoadFinished(this);
 				GuiInterface guiInterface = new GuiInterface(connector, MatchConstants.clock(), networkConnector.getTaskScheduler(),
-						mainGrid.getGuiInputGrid(), this, playerId, multiplayer);
+						mainGrid.getGuiInputGrid(), this, initialGameState.getPlayerId(), multiplayer);
 				connector.loadUIState(playerState.getUiState()); // This is required after the GuiInterface instantiation so that
 				// ConstructionMarksThread has it's mapArea variable initialized via the EActionType.SCREEN_CHANGE event.
 
-				aiExecutor = new AiExecutor(playerSettings, mainGrid, networkConnector.getTaskScheduler());
-				networkConnector.getGameClock().schedule(aiExecutor, (short) 10000);
-
-				winLoseTracker = new WinLoseTracker(mainGrid, playerId);
-				networkConnector.getGameClock().schedule(winLoseTracker, (short) 5000);
+				aiExecutor = new AiExecutor(initialGameState.getPlayerSettings(), mainGrid, networkConnector.getTaskScheduler());
+				networkConnector.getGameClock().schedule(aiExecutor, (short) 1000);
 
 				MatchConstants.clock().startExecution(); // WARNING: GAME CLOCK IS STARTED!
 				// NO CONFIGURATION AFTER THIS POINT! =================================
@@ -287,7 +264,7 @@ public class JSettlersGame {
 			} finally {
 				shutdownFinished = true;
 				if (exitListener != null) {
-					exitListener.gameExited(this);
+					exitListener.accept(this);
 				}
 			}
 		}
@@ -299,8 +276,7 @@ public class JSettlersGame {
 		private DataOutputStream createReplayFileStream() throws IOException {
 			DataOutputStream replayFileStream = new DataOutputStream(createReplayWriteStream());
 
-			ReplayStartInformation replayInfo = new ReplayStartInformation(randomSeed, mapCreator.getMapName(), mapCreator.getMapId(), playerId,
-					playerSettings);
+			ReplayStartInformation replayInfo = new ReplayStartInformation(mapCreator.getMapName(), mapCreator.getMapId(), initialGameState);
 			replayInfo.serialize(replayFileStream);
 			replayFileStream.flush();
 
@@ -365,7 +341,12 @@ public class JSettlersGame {
 
 		@Override
 		public IInGamePlayer getInGamePlayer() {
-			return mainGrid.getPartitionsGrid().getPlayer(playerId);
+			return mainGrid.getPartitionsGrid().getPlayer(initialGameState.getPlayerId());
+		}
+
+		@Override
+		public IInGamePlayer[] getAllInGamePlayers() {
+			return mainGrid.getPartitionsGrid().getPlayers();
 		}
 
 		@Override
@@ -384,7 +365,7 @@ public class JSettlersGame {
 		}
 
 		@Override
-		public void setGameExitListener(IGameExitListener exitListener) {
+		public void setGameExitListener(Consumer<IStartedGame> exitListener) {
 			this.exitListener = exitListener;
 		}
 
@@ -403,11 +384,18 @@ public class JSettlersGame {
 			systemErrorStream = System.err;
 			systemOutStream = System.out;
 
-			if (!CommonConstants.ENABLE_CONSOLE_LOGGING) {
-				PrintStream outLogStream = new PrintStream(ResourceManager.writeUserFile(getLogFile(mapcreator, "_out.log")));
-				System.setOut(outLogStream);
-				System.setErr(outLogStream);
+			OutputStream logStream;
+			OutputStream errStream;
+			OutputStream logFileStream = ResourceManager.writeUserFile(getLogFile(mapcreator, "_out.log"));
+			if(CommonConstants.ENABLE_CONSOLE_LOGGING) {
+				logStream = new MultiplexingOutputStream(System.out, logFileStream);
+				errStream = new MultiplexingOutputStream(System.err, logFileStream);
+			} else {
+				logStream = logFileStream;
+				errStream = logFileStream;
 			}
+			System.setOut(new PrintStream(logStream));
+			System.setErr(new PrintStream(errStream));
 		} catch (IOException ex) {
 			throw new RuntimeException("Error setting up logging.", ex);
 		}
@@ -426,10 +414,8 @@ public class JSettlersGame {
 
 	public static void clearState() {
 		RescheduleTimer.stopAndClear();
-		Movable.resetState();
+		MovableManager.resetState();
 		Building.clearState();
-		MarketBuilding.clearState();
-		HarborBuilding.clearState();
 		MatchConstants.clearState();
 	}
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2015
+ * Copyright (c) 2015 - 2020
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -28,8 +28,12 @@ import jsettlers.network.server.match.Match;
  */
 public class DedicatedServerApp {
 
-	public static void main(String args[]) throws IOException {
-		GameServerThread gameServer = new GameServerThread(false);
+	public static void main(String[] args) throws IOException {
+		boolean lan = false;
+		if(args.length == 1 && args[0].equals("--broadcast")) {
+			lan = true;
+		}
+		GameServerThread gameServer = new GameServerThread(lan);
 		gameServer.start();
 
 		Scanner s = new Scanner(System.in);
@@ -47,5 +51,6 @@ public class DedicatedServerApp {
 			}
 		}
 		s.close();
+		gameServer.shutdown();
 	}
 }

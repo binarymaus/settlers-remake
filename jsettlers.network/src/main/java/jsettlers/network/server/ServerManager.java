@@ -24,6 +24,11 @@ import jsettlers.network.infrastructure.channel.Channel;
 import jsettlers.network.infrastructure.channel.reject.RejectPacket;
 import jsettlers.network.server.db.IDBFacade;
 import jsettlers.network.server.exceptions.NotAllPlayersReadyException;
+import jsettlers.network.server.listeners.ChangeCivilisationPacketListener;
+import jsettlers.network.server.listeners.ChangePlayerCountPacketListener;
+import jsettlers.network.server.listeners.ChangePlayerTypePacketListener;
+import jsettlers.network.server.listeners.ChangePositionPacketListener;
+import jsettlers.network.server.listeners.ChangeTeamPacketListener;
 import jsettlers.network.server.listeners.ChatMessageForwardingListener;
 import jsettlers.network.server.listeners.IdentifyUserListener;
 import jsettlers.network.server.listeners.ReadyStatePacketListener;
@@ -34,6 +39,7 @@ import jsettlers.network.server.listeners.matches.JoinMatchListener;
 import jsettlers.network.server.listeners.matches.LeaveMatchListener;
 import jsettlers.network.server.listeners.matches.OpenNewMatchListener;
 import jsettlers.network.server.listeners.matches.StartMatchListener;
+import jsettlers.network.server.match.EPlayerState;
 import jsettlers.network.server.match.Match;
 import jsettlers.network.server.match.MatchesListSendingTimerTask;
 import jsettlers.network.server.match.Player;
@@ -86,6 +92,11 @@ public class ServerManager implements IServerManager {
 			channel.registerListener(new TimeSyncForwardingListener(this, player));
 			channel.registerListener(new ReadyStatePacketListener(this, player));
 			channel.registerListener(new StartFinishedSignalListener(this, player));
+			channel.registerListener(new ChangeCivilisationPacketListener(this, player));
+			channel.registerListener(new ChangePlayerTypePacketListener(this, player));
+			channel.registerListener(new ChangePositionPacketListener(this, player));
+			channel.registerListener(new ChangeTeamPacketListener(this, player));
+			channel.registerListener(new ChangePlayerCountPacketListener(this, player));
 
 			return true;
 		} else {
@@ -108,7 +119,7 @@ public class ServerManager implements IServerManager {
 
 	@Override
 	public void createNewMatch(OpenNewMatchPacket matchInfo, Player player) {
-		Match match = new Match(matchInfo.getMatchName(), matchInfo.getMaxPlayers(), matchInfo.getMapInfo(), matchInfo.getRandomSeed());
+		Match match = new Match(matchInfo.getMatchName(), matchInfo.getMaxPlayers(), matchInfo.getMapInfo(), player, matchInfo.getRandomSeed());
 		database.storeMatch(match);
 
 		joinMatch(match, player);
@@ -179,6 +190,77 @@ public class ServerManager implements IServerManager {
 		} catch (IllegalStateException e) {
 			player.sendPacket(NetworkConstants.ENetworkKey.REJECT_PACKET,
 					new RejectPacket(NetworkConstants.ENetworkMessage.INVALID_STATE_ERROR, NetworkConstants.ENetworkKey.CHANGE_READY_STATE));
+		}
+	}
+
+	private Match verifyAndGetMatch(Player player) {
+		EPlayerState.assertState(player.getState(), EPlayerState.IN_MATCH);
+		Match match = player.getMatch();
+
+		if(match.getHost() != player) {
+			throw new IllegalStateException("Player " + player + " is not the host of " + match + "!");
+		}
+
+		return match;
+	}
+
+	@Override
+	public void setCivilisationForSlot(Player player, byte slot, byte civilisation) {
+		try {
+			Match match = verifyAndGetMatch(player);
+
+			match.setSlotCivilisation(slot, civilisation);
+		} catch (IllegalStateException e) {
+			player.sendPacket(NetworkConstants.ENetworkKey.REJECT_PACKET,
+					new RejectPacket(NetworkConstants.ENetworkMessage.INVALID_STATE_ERROR, NetworkConstants.ENetworkKey.CHANGE_CIVILISATION));
+		}
+	}
+
+	@Override
+	public void setPlayerTypeForSlot(Player player, byte slot, byte playerType) {
+		try {
+			Match match = verifyAndGetMatch(player);
+
+			match.setSlotPlayerType(slot, playerType);
+		} catch (IllegalStateException e) {
+			player.sendPacket(NetworkConstants.ENetworkKey.REJECT_PACKET,
+					new RejectPacket(NetworkConstants.ENetworkMessage.INVALID_STATE_ERROR, NetworkConstants.ENetworkKey.CHANGE_PLAYER_TYPE));
+		}
+	}
+
+	@Override
+	public void setPositionForSlot(Player player, byte slot, byte position) {
+		try {
+			Match match = verifyAndGetMatch(player);
+
+			match.setSlotPosition(slot, position);
+		} catch (IllegalStateException e) {
+			player.sendPacket(NetworkConstants.ENetworkKey.REJECT_PACKET,
+					new RejectPacket(NetworkConstants.ENetworkMessage.INVALID_STATE_ERROR, NetworkConstants.ENetworkKey.CHANGE_POSITION));
+		}
+	}
+
+	@Override
+	public void setTeamForSlot(Player player, byte slot, byte team) {
+		try {
+			Match match = verifyAndGetMatch(player);
+
+			match.setSlotTeam(slot, team);
+		} catch (IllegalStateException e) {
+			player.sendPacket(NetworkConstants.ENetworkKey.REJECT_PACKET,
+					new RejectPacket(NetworkConstants.ENetworkMessage.INVALID_STATE_ERROR, NetworkConstants.ENetworkKey.CHANGE_TEAM));
+		}
+	}
+
+	@Override
+	public void setPlayerCount(Player player, int playerCount) {
+		try {
+			Match match = verifyAndGetMatch(player);
+
+			match.setPlayerCount(playerCount);
+		} catch (IllegalStateException e) {
+			player.sendPacket(NetworkConstants.ENetworkKey.REJECT_PACKET,
+					new RejectPacket(NetworkConstants.ENetworkMessage.INVALID_STATE_ERROR, NetworkConstants.ENetworkKey.CHANGE_PLAYER_COUNT));
 		}
 	}
 

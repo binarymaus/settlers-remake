@@ -17,6 +17,7 @@ package jsettlers.common.action;
 import jsettlers.common.map.shapes.MapRectangle;
 import jsettlers.common.action.Action;
 import jsettlers.common.action.EActionType;
+import jsettlers.common.position.ShortPoint2D;
 
 /**
  * This action is fired whenever the visible map area has been changed by the user.
@@ -27,6 +28,7 @@ import jsettlers.common.action.EActionType;
 public class ScreenChangeAction extends Action {
 
 	private final MapRectangle screenArea;
+	private final ShortPoint2D centerPosition;
 
 	/**
 	 * Creates a new screen change action.
@@ -34,9 +36,10 @@ public class ScreenChangeAction extends Action {
 	 * @param screenArea
 	 *            the area
 	 */
-	public ScreenChangeAction(MapRectangle screenArea) {
+	public ScreenChangeAction(MapRectangle screenArea, ShortPoint2D centerPosition) {
 		super(EActionType.SCREEN_CHANGE);
 		this.screenArea = screenArea;
+		this.centerPosition = centerPosition;
 	}
 
 	/**
@@ -48,4 +51,12 @@ public class ScreenChangeAction extends Action {
 		return screenArea;
 	}
 
+	/**
+	 * Gets the center position of the new screen.
+	 *
+	 * @return The center psotion.
+	 */
+	public ShortPoint2D getCenterPosition() {
+		return centerPosition;
+	}
 }

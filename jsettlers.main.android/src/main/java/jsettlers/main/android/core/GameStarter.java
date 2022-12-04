@@ -46,4 +46,8 @@ public interface GameStarter {
 	void setJoinPhaseMultiPlayerConnector(IJoinPhaseMultiplayerGameConnector joinPhaseMultiplayerGameConnector);
 
 	IMapInterfaceConnector gameStarted(IStartedGame game);
+
+	void toggleServer();
+
+	boolean isServerRunning();
 }

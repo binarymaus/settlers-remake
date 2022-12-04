@@ -20,4 +20,6 @@ package go.graphics.swing.sound;
  */
 public interface ISoundSettingsProvider {
 	float getVolume();
+	float getMusicVolume();
+	boolean isMusicPlayAll();
 }

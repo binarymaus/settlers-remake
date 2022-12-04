@@ -44,15 +44,22 @@ public class MatchInfoUpdatePacket extends Packet {
 	@Override
 	public void serialize(DataOutputStream dos) throws IOException {
 		updateReason.writeTo(dos);
-		updatedPlayer.serialize(dos);
+		dos.writeBoolean(updatedPlayer != null);
+		if (updatedPlayer != null) {
+			updatedPlayer.serialize(dos);
+		}
 		matchInfo.serialize(dos);
 	}
 
 	@Override
 	public void deserialize(DataInputStream dis) throws IOException {
 		updateReason = ENetworkMessage.readFrom(dis);
-		updatedPlayer = new PlayerInfoPacket();
-		updatedPlayer.deserialize(dis);
+		if(dis.readBoolean()) {
+			updatedPlayer = new PlayerInfoPacket();
+			updatedPlayer.deserialize(dis);
+		} else {
+			updatedPlayer = null;
+		}
 		matchInfo = new MatchInfoPacket();
 		matchInfo.deserialize(dis);
 	}

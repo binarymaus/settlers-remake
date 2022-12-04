@@ -148,10 +148,10 @@ public final class MapDrawContext implements IGLProvider {
 		// beginTime = System.nanoTime();
 
 		float zoom = screen.getZoom();
-		gl2.setGlobalAttributes(0, 0, 0, zoom, zoom, 1);
 
 		offsetX = (int) (-screen.getLeft()+.5f);
 		offsetY = (int) (-screen.getBottom()+.5f);
+		gl2.setGlobalAttributes(offsetX, offsetY, 0, zoom, zoom, 1);
 	}
 
 	private int offsetX, offsetY;
@@ -197,7 +197,7 @@ public final class MapDrawContext implements IGLProvider {
 	 *            The y coordinate in draw space.
 	 * @return The map position under the point.
 	 */
-	private ShortPoint2D getPositionUnder(float screenX, float screenY) {
+	public ShortPoint2D getPositionUnder(float screenX, float screenY) {
 		// do a three step iteration by using the coordinate transformation and the map height
 		int mapX = getConverter().getMapX(screenX, screenY);
 		int mapY = getConverter().getMapY(screenX, screenY);
@@ -206,10 +206,10 @@ public final class MapDrawContext implements IGLProvider {
 			return new ShortPoint2D(mapX, mapY);
 		}
 
-		float height = map.getHeightAt(mapX, mapY);
+		float height = map.getVisibleHeightAt(mapX, mapY);
 		mapX = (int) (getConverter().getExactMapXwithHeight(screenX, screenY, height) + 0.5);
 		mapY = (int) (getConverter().getExactMapYwithHeight(screenX, screenY, height) + 0.5);
-		height = map.getHeightAt(mapX, mapY);
+		height = map.getVisibleHeightAt(mapX, mapY);
 		mapX = (int) (getConverter().getExactMapXwithHeight(screenX, screenY, height) + 0.5);
 		mapY = (int) (getConverter().getExactMapYwithHeight(screenX, screenY, height) + 0.5);
 
@@ -250,7 +250,7 @@ public final class MapDrawContext implements IGLProvider {
 	 *            The player to get the color for.
 	 * @return The color.
 	 */
-	public Color getPlayerColor(byte player) {
+	public static Color getPlayerColor(byte player) {
 		if (player >= 0) {
 			return PLAYER_COLORS[player % PLAYER_COLORS.length];
 		} else {
@@ -447,12 +447,12 @@ public final class MapDrawContext implements IGLProvider {
 	 * @return The landscape type.
 	 */
 	public ELandscapeType getLandscape(int x, int y) {
-		return map.getLandscapeTypeAt(x, y);
+		return map.getVisibleLandscapeTypeAt(x, y);
 	}
 
 	public int getHeight(int x, int y) {
 		if (x >= 0 && x < map.getWidth() && y >= 0 && y < map.getHeight()) {
-			return map.getHeightAt(x, y);
+			return map.getVisibleHeightAt(x, y);
 		} else {
 			return 0;
 		}
@@ -462,7 +462,7 @@ public final class MapDrawContext implements IGLProvider {
 		return map.getVisibleStatus(x, y);
 	}
 
-	public IDirectGridProvider getFow() {
+	public IDirectGridProvider getDGP() {
 		if(map instanceof IDirectGridProvider) {
 			return ((IDirectGridProvider)map);
 		}

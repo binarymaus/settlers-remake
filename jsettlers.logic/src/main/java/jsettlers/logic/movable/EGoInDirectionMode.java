@@ -19,6 +19,5 @@ package jsettlers.logic.movable;
  */
 public enum EGoInDirectionMode {
     GO_IF_ALLOWED_AND_FREE,
-    GO_IF_ALLOWED_WAIT_TILL_FREE,
-    GO_IF_FREE
+    GO_IF_ALLOWED_WAIT_TILL_FREE
 }

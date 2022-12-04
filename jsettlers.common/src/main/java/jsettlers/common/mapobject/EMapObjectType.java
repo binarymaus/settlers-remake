@@ -18,6 +18,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 public enum EMapObjectType {
+	TREE_BURNING,
 	TREE_GROWING,
 	TREE_ADULT,
 	TREE_DEAD,
@@ -29,7 +30,11 @@ public enum EMapObjectType {
 	WINE_GROWING,
 	WINE_HARVESTABLE,
 	WINE_DEAD,
-	WINE_BOWL,
+
+	/**
+	 * Map objects with type manna bowl must implement {@link IMannaBowlObject}
+	 */
+	MANNA_BOWL,
 
 	WAVES,
 	STONE,
@@ -66,12 +71,12 @@ public enum EMapObjectType {
 	BUILDINGSITE_POST,
 
 	/**
-	 * in front of a door
+	 * in front of a door. Should implement {@link jsettlers.common.player.IPlayerable}
 	 */
 	FLAG_DOOR,
 
 	/**
-	 * on top of the roof
+	 * on top of the roof. Should implement {@link jsettlers.common.player.IPlayerable}
 	 */
 	FLAG_ROOF,
 
@@ -99,12 +104,13 @@ public enum EMapObjectType {
 	/**
 	 * Type to represent a Building
 	 * <p />
-	 * {@link IMapObject}s of this type must implement {@link IBuildingMapObject}.
+	 * {@link IMapObject}s of this type must implement {@link jsettlers.common.buildings.IBuilding}.
 	 */
 	BUILDING,
 
 	/**
-	 * Type to represent the Building shown when placing for construction.
+	 * Type to represent the Building shown when placing for construction.<br>
+	 * {@link IMapObject}s of this type must implement {@link jsettlers.common.buildings.IBuilding}
 	 */
 	PLACEMENT_BUILDING,
 
@@ -112,6 +118,8 @@ public enum EMapObjectType {
 	 * Simple smoke
 	 */
 	SMOKE,
+
+	SMOKE_WITH_FIRE,
 
 	/**
 	 * A pig. Progress is ignored.
@@ -146,8 +154,32 @@ public enum EMapObjectType {
 	 */
 	INFORMABLE_MAP_OBJECT,
 
+	EYE,
+
+	/**
+	 * {@link IMapObject}s of this type must implement {@link ISpecializedMapObject}
+	 */
+	SPELL_EFFECT,
+
+	/**
+	 * {@link IMapObject}s of this type must implement {@link jsettlers.common.movable.IShipInConstruction}
+	 */
 	FERRY,
-	CARGO_SHIP;
+	/**
+	 * {@link IMapObject}s of this type must implement {@link jsettlers.common.movable.IShipInConstruction}
+	 */
+	CARGO_SHIP,
+
+	RICE_GROWING,
+	RICE_HARVESTABLE,
+	RICE_DEAD,
+
+	HIVE_EMPTY,
+	HIVE_GROWING,
+	HIVE_HARVESTABLE,
+
+	SWAMP_DECORATION,
+	;
 
 	public static final EMapObjectType[] VALUES = EMapObjectType.values();
 	public final byte ordinal;
@@ -167,6 +199,7 @@ public enum EMapObjectType {
 			EMapObjectType.CUT_OFF_STONE,
 			EMapObjectType.DESERT_DECORATION,
 			EMapObjectType.PLANT_DECORATION,
+			EMapObjectType.SWAMP_DECORATION,
 			EMapObjectType.TREE_DEAD);
 
 	EMapObjectType() {

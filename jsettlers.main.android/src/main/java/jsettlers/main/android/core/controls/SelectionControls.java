@@ -15,6 +15,7 @@
 
 package jsettlers.main.android.core.controls;
 
+import jsettlers.common.player.IInGamePlayer;
 import jsettlers.common.selectable.ISelectionSet;
 
 /**
@@ -24,6 +25,8 @@ public interface SelectionControls {
 	ISelectionSet getCurrentSelection();
 
 	void deselect();
+
+	IInGamePlayer getPlayer();
 
 	void addSelectionListener(SelectionListener selectionListener);
 

@@ -39,16 +39,12 @@ public final class TempleBuilding extends Building {
 
 	public TempleBuilding(Player player, ShortPoint2D position, IBuildingsGrid buildingsGrid) {
 		super(EBuildingType.TEMPLE, player, position, buildingsGrid);
-	}
-
-	@Override
-	public boolean isOccupied() {
-		return true;
+		setOccupied(true);
 	}
 
 	@Override
 	protected int subTimerEvent() {
-		IRequestStack wineStack = getWineStack();
+		IRequestStack wineStack = getMannaStack();
 
 		if (wineStack.pop()) {
 			getPlayer().getMannaInformation().increaseManna();
@@ -58,18 +54,16 @@ public final class TempleBuilding extends Building {
 		}
 	}
 
-	private IRequestStack getWineStack() {
+	private IRequestStack getMannaStack() {
 		List<? extends IRequestStack> stacks = super.getStacks();
 		assert stacks.size() == 1;
 
-		IRequestStack wineStack = stacks.get(0);
-		assert wineStack.getMaterialType() == EMaterialType.WINE;
-		return wineStack;
+		return stacks.get(0);
 	}
 
 	@Override
 	protected int constructionFinishedEvent() {
-		super.grid.getMapObjectsManager().addWineBowl(super.getDoor(), getWineStack());
+		super.grid.getMapObjectsManager().addMannaBowl(super.getDoor(), getMannaStack(), getPlayer().getCivilisation());
 		return CHECK_DELAY;
 	}
 
@@ -81,6 +75,6 @@ public final class TempleBuilding extends Building {
 	@Override
 	protected void killedEvent() {
 		ShortPoint2D door = super.getDoor();
-		super.grid.getMapObjectsManager().removeMapObjectType(door.x, door.y, EMapObjectType.WINE_BOWL);
+		super.grid.getMapObjectsManager().removeMapObjectType(door.x, door.y, EMapObjectType.MANNA_BOWL);
 	}
 }

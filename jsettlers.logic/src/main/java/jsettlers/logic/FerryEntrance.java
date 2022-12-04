@@ -15,16 +15,17 @@
 package jsettlers.logic;
 
 import jsettlers.common.position.ShortPoint2D;
+import jsettlers.logic.movable.interfaces.IFerryMovable;
 import jsettlers.logic.movable.interfaces.ILogicMovable;
 
 /**
  * Created by Rudolf Polzer on 14.06.17.
  */
 public class FerryEntrance {
-	public final ILogicMovable ferry;
+	public final IFerryMovable ferry;
 	public final ShortPoint2D  entrance;
 
-	public FerryEntrance(ILogicMovable ferry, ShortPoint2D entrance) {
+	public FerryEntrance(IFerryMovable ferry, ShortPoint2D entrance) {
 		this.ferry = ferry;
 		this.entrance = entrance;
 	}

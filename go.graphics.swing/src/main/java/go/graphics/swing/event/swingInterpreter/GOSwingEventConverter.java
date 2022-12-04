@@ -15,13 +15,12 @@
 package go.graphics.swing.event.swingInterpreter;
 
 import java.awt.Component;
-import java.awt.GraphicsConfiguration;
-import java.awt.GraphicsDevice;
 import java.awt.Window;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.HierarchyListener;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -29,11 +28,15 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
-import java.lang.reflect.Field;
+import java.awt.geom.AffineTransform;
+import java.util.EnumSet;
+import java.util.Set;
 
 import go.graphics.UIPoint;
 import go.graphics.event.GOEventHandlerProvider;
+import go.graphics.event.command.EModifier;
 import go.graphics.event.interpreter.AbstractEventConverter;
+import java.util.function.Supplier;
 
 /**
  * This class listens to swing events, converts them to a go events and sends them to handlers.
@@ -52,7 +55,9 @@ public class GOSwingEventConverter extends AbstractEventConverter
 	 */
 	private boolean panWithButton3;
 
-	private int scaleFactor = 1;
+	private final Supplier<Double> scaleFactor;
+
+	private int modifiers;
 
 	/**
 	 * Creates a new event converter, that converts swing events to go events.
@@ -64,6 +69,10 @@ public class GOSwingEventConverter extends AbstractEventConverter
 	 */
 	public GOSwingEventConverter(Component component, GOEventHandlerProvider provider) {
 		super(provider);
+		this.scaleFactor = () -> {
+			AffineTransform trans = component.getGraphicsConfiguration().getDefaultTransform();
+			return (trans != null) ? trans.getScaleX() : 1.0;
+		};
 
 		component.setFocusTraversalKeysEnabled(false);
 
@@ -78,57 +87,36 @@ public class GOSwingEventConverter extends AbstractEventConverter
 	}
 
 	private UIPoint convertToLocal(MouseEvent e) {
-		return new UIPoint(e.getX() * scaleFactor, (e.getComponent().getHeight() - e.getY()) * scaleFactor);
+		return new UIPoint(e.getX() * scaleFactor.get(), (e.getComponent().getHeight() - e.getY()) * scaleFactor.get());
 
-	}
-
-	private void updateScaleFactor(Component component) {
-		GraphicsConfiguration config = component.getGraphicsConfiguration();
-		if (config == null) {
-			return;
-		}
-
-		GraphicsDevice myScreen = config.getDevice();
-
-		try {
-			Field field = myScreen.getClass().getDeclaredField("scale");
-			if (field == null) {
-				return;
-			}
-			field.setAccessible(true);
-			Object scaleOfField = field.get(myScreen);
-			if (scaleOfField instanceof Integer) {
-				scaleFactor = ((Integer) scaleOfField).intValue();
-			}
-		} catch (NoSuchFieldException exception) {
-			// if there is no Field scale then we have a scale factor of 1
-			// this is expected for Oracle JRE < 1.7.0_u40
-		} catch (Exception exception) {
-			exception.printStackTrace();
-		}
 	}
 
 	@Override
 	public void mouseEntered(MouseEvent e) {
+		updateModifiers(e);
 		startHover(convertToLocal(e));
 	}
 
 	@Override
 	public void mouseMoved(MouseEvent e) {
+		updateModifiers(e);
 		updateHoverPosition(convertToLocal(e));
 	}
 
 	@Override
 	public void mouseExited(MouseEvent e) {
+		updateModifiers(e);
 		endHover(convertToLocal(e));
 	}
 
 	@Override
 	public void mouseClicked(MouseEvent e) {
+		updateModifiers(e);
 	}
 
 	@Override
 	public void mousePressed(MouseEvent e) {
+		updateModifiers(e);
 		int mouseButton = e.getButton();
 		UIPoint local = convertToLocal(e);
 		if (mouseButton == MouseEvent.BUTTON1) {
@@ -144,6 +132,7 @@ public class GOSwingEventConverter extends AbstractEventConverter
 
 	@Override
 	public void mouseDragged(MouseEvent e) {
+		updateModifiers(e);
 		UIPoint local = convertToLocal(e);
 		updateDrawPosition(local);
 		updatePanPosition(local);
@@ -152,6 +141,7 @@ public class GOSwingEventConverter extends AbstractEventConverter
 
 	@Override
 	public void mouseReleased(MouseEvent e) {
+		updateModifiers(e);
 		UIPoint local = convertToLocal(e);
 		if (e.getButton() == MouseEvent.BUTTON1) {
 			endDraw(local);
@@ -166,8 +156,9 @@ public class GOSwingEventConverter extends AbstractEventConverter
 
 	@Override
 	public void keyPressed(KeyEvent e) {
+		updateModifiers(e);
 		String text = getKeyName(e);
-		startKeyEvent(text);
+		startKeyEvent(text, getCurrentModifiers());
 		/*
 		 * if (ongoingKeyEvent == null) { if (e.getKeyCode() == KeyEvent.VK_ESCAPE) { ongoingKeyEvent.setHandler(getCancelHandler()); } else if
 		 * (e.getKeyCode() == KeyEvent.VK_UP) { ongoingKeyEvent.setHandler(getPanHandler(0, -KEYPAN)); } else if (e.getKeyCode() == KeyEvent.VK_DOWN)
@@ -185,6 +176,21 @@ public class GOSwingEventConverter extends AbstractEventConverter
 		String text = KeyEvent.getKeyText(e.getKeyCode());
 		if (text == null || text.length() != 1) {
 			switch (e.getKeyCode()) {
+			case KeyEvent.VK_1:
+				text = "1";
+				break;
+			case KeyEvent.VK_2:
+				text = "2";
+				break;
+			case KeyEvent.VK_3:
+				text = "3";
+				break;
+			case KeyEvent.VK_4:
+				text = "4";
+				break;
+			case KeyEvent.VK_5:
+				text = "5";
+				break;
 			case KeyEvent.VK_LEFT:
 				text = "LEFT";
 				break;
@@ -257,6 +263,9 @@ public class GOSwingEventConverter extends AbstractEventConverter
 			case KeyEvent.VK_TAB:
 				text = "TAB";
 				break;
+			case KeyEvent.VK_CONTROL:
+				text = "CTRL";
+				break;
 			default:
 				text = "" + e.getKeyChar();
 			}
@@ -266,6 +275,7 @@ public class GOSwingEventConverter extends AbstractEventConverter
 
 	@Override
 	public void keyReleased(KeyEvent e) {
+		updateModifiers(e);
 		endKeyEvent(getKeyName(e));
 	}
 
@@ -275,6 +285,7 @@ public class GOSwingEventConverter extends AbstractEventConverter
 
 	@Override
 	public void mouseWheelMoved(MouseWheelEvent e) {
+		updateModifiers(e);
 		float factor = (float) Math.exp(-e.getUnitsToScroll() / 20.0);
 		startZoom();
 		endZoomEvent(factor, convertToLocal(e));
@@ -286,12 +297,10 @@ public class GOSwingEventConverter extends AbstractEventConverter
 
 	@Override
 	public void componentMoved(ComponentEvent componentEvent) {
-		updateScaleFactor(componentEvent.getComponent());
 	}
 
 	@Override
 	public void componentShown(ComponentEvent componentEvent) {
-		updateScaleFactor(componentEvent.getComponent());
 	}
 
 	@Override
@@ -308,11 +317,29 @@ public class GOSwingEventConverter extends AbstractEventConverter
 		if (component == null) {
 			return;
 		} else if (component instanceof Window) {
-			updateScaleFactor(component);
 			component.addComponentListener(this);
 			childComponent.removeComponentListener(this);
 		} else {
 			privateRegisterComponentListenerToParentWindowOf(component.getParent(), childComponent);
 		}
+	}
+
+	private void updateModifiers(InputEvent e) {
+		modifiers = e.getModifiersEx();
+	}
+	
+	@Override
+	protected Set<EModifier> getCurrentModifiers() {
+		EnumSet<EModifier> set = EnumSet.noneOf(EModifier.class);
+		if ((modifiers & (InputEvent.CTRL_DOWN_MASK)) != 0) {
+			set.add(EModifier.CTRL);
+		}
+		if ((modifiers & (InputEvent.ALT_DOWN_MASK)) != 0) {
+			set.add(EModifier.ALT);
+		}
+		if ((modifiers & (InputEvent.SHIFT_DOWN_MASK)) != 0) {
+			set.add(EModifier.SHIFT);
+		}
+		return set;
 	}
 }
