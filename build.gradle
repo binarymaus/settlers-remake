@@ -159,6 +159,12 @@ task releaseJSettlers(type: Zip) {
         from tasks.getByPath(':jsettlers.mapcreator:jar')
         from tasks.getByPath(':jsettlers.tools:jar')
 
+        from project.getRootProject().file('jsettlers.main.swing/src/main/resources/jsettlers/main/swing/icon.png')
+
+        into('dist') {
+            from project.getRootProject().file('dist')
+        }
+
         into('maps') {
             from project.getRootProject().file('maps/release')
         }

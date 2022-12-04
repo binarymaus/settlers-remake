@@ -16,6 +16,7 @@ package jsettlers.logic.map.grid;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.BitSet;
 import java.util.Date;
@@ -142,7 +143,7 @@ import jsettlers.logic.player.PlayerSetting;
  * @author Andreas Eberle
  */
 public final class MainGrid implements Serializable {
-	private static final long serialVersionUID = 3824511313693431423L;
+	private static final long serialVersionUID = 3824511313693431424L;
 
 	final String mapId;
 	final String mapName;
@@ -234,9 +235,18 @@ public final class MainGrid implements Serializable {
 
 	private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
 		ois.defaultReadObject();
+
+		short width = ois.readShort();
+		short height = ois.readShort();
+
 		initAdditional();
 		this.bordersThread.checkArea(0, 0, width, height);
-		movablePathfinderGrid.initPathfinders();
+	}
+
+	private void writeObject(ObjectOutputStream oos) throws IOException {
+		oos.defaultWriteObject();
+		oos.writeShort(width);
+		oos.writeShort(height);
 	}
 
 	public void startThreads() {
@@ -1236,18 +1246,33 @@ public final class MainGrid implements Serializable {
 	}
 
 	final class MovablePathfinderGrid extends AbstractMovableGrid {
-		private static final long serialVersionUID = 4006228724969442801L;
+		private static final long serialVersionUID = 4006228724969442802L;
 
 		private transient PathfinderGrid    pathfinderGrid;
 		private transient AbstractAStar     aStar;
 		transient         DijkstraAlgorithm dijkstra; // not private, because it's used by BuildingsGrid
 		private transient InAreaFinder      inAreaFinder;
 
-		public MovablePathfinderGrid() {
-			initPathfinders();
+		private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
+			ois.defaultReadObject();
+
+			short width = ois.readShort();
+			short height = ois.readShort();
+
+			initPathfinders(width, height);
 		}
 
-		private void initPathfinders() {
+		private void writeObject(ObjectOutputStream oos) throws IOException {
+			oos.defaultWriteObject();
+			oos.writeShort(width);
+			oos.writeShort(height);
+		}
+
+		public MovablePathfinderGrid() {
+			initPathfinders(width, height);
+		}
+
+		private void initPathfinders(short width, short height) {
 			pathfinderGrid = new PathfinderGrid();
 
 			aStar = new BucketQueueAStar(pathfinderGrid, width, height);

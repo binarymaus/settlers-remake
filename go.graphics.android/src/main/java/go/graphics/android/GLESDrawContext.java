@@ -24,14 +24,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-import java.nio.ShortBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import go.graphics.AbstractColor;
 import go.graphics.BackgroundDrawHandle;
 import go.graphics.GLDrawContext;
 import go.graphics.BufferHandle;
+import go.graphics.ImageData;
 import go.graphics.ManagedHandle;
 import go.graphics.MultiDrawHandle;
 import go.graphics.TextureHandle;
@@ -101,39 +100,34 @@ public class GLESDrawContext extends GLDrawContext {
 	/**
 	 * Returns a texture id which is positive or 0. It returns a negative number on error.
 	 *
-	 * @param width
-	 *            The width of the image.
-	 * @param height
-	 *            The height of the image.
-	 * @param data
-	 *            The data as array. It needs to have a length of width * height and each element is a color with: 4 bits red, 4 bits green, 4 bits
-	 *            blue and 4 bits alpha.
+	 * @param image The data as array. It needs to have a length of width * height and each element is a color with: 4 bits red, 4 bits green, 4 bits
+	 *              blue and 4 bits alpha.
 	 * @return The id of the generated texture.
 	 */
-	public TextureHandle generateTexture(int width, int height, ShortBuffer data, String name) {
+	public TextureHandle generateTexture(ImageData image, String name) {
 		int[] textureIndexes = new int[1];
 		glGenTextures(1, textureIndexes, 0);
 		TextureHandle texture = new GLESTextureHandle(this, textureIndexes[0]);
 
 		bindTexture(texture);
-		resizeTexture(texture, width, height, data);
+		resizeTexture(texture, image);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		return texture;
 	}
 
-	public TextureHandle resizeTexture(TextureHandle textureIndex, int width, int height, ShortBuffer data) {
+	public TextureHandle resizeTexture(TextureHandle textureIndex, ImageData image) {
 		bindTexture(textureIndex);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_SHORT_4_4_4_4, data);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.getWidth(), image.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, image.getReadData32());
 		return textureIndex;
 	}
 
 	public void updateTexture(TextureHandle textureIndex, int left, int bottom,
-							  int width, int height, ShortBuffer data) {
+							  ImageData image) {
 		bindTexture(textureIndex);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, left, bottom, width, height,
-				GL_RGBA, GL_UNSIGNED_SHORT_4_4_4_4, data);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, left, bottom, image.getWidth(), image.getHeight(),
+				GL_RGBA, GL_UNSIGNED_BYTE, image.getReadData32());
 	}
 
 	protected void bindTexture(TextureHandle texture) {

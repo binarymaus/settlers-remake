@@ -112,10 +112,7 @@ public class SwingManagedJSettlers {
 			JOptionPane.showMessageDialog(null, Labels.getString("settlers-folder-still-invalid"));
 		}
 
-		final SelectSettlersFolderDialog folderChooser = new SelectSettlersFolderDialog();
-		SwingUtilities.invokeLater(() -> folderChooser.setVisible(true));
-
-		File selectedFolder = folderChooser.waitForUserInput();
+		File selectedFolder = SelectSettlersFolderDialog.askForFolder();
 		if (selectedFolder == null) {
 			String noFolderSelectedMessage = Labels.getString("error-no-settlers-3-folder-selected");
 			JOptionPane.showMessageDialog(null, noFolderSelectedMessage);

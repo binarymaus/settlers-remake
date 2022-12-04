@@ -44,6 +44,8 @@ public class CustomGraphicsInterceptor {
 	public static DatFileReader prependCustomGraphics(int fileIndex, DatFileReader reader, ImageProvider imageProvider) {
 		if (fileIndex == 36) { // use our own ships
 			return new CustomShipsDatFile(reader, imageProvider);
+		} else if(fileIndex == 23) {
+			return new CustomEgyptianBuildingsDatFile(reader, imageProvider);
 		}
 		return reader;
 	}

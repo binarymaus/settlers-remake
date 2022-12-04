@@ -17,25 +17,25 @@ package jsettlers.graphics.image.reader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.ShortBuffer;
+import java.nio.IntBuffer;
 
-public class ShortArrayWriter implements ImageArrayProvider {
+public class IntArrayWriter implements ImageArrayProvider {
 	private static final short TRANSPARENT = 0;
-	private ShortBuffer array;
+	private IntBuffer array;
 	private int width;
 	private int line;
 
 	@Override
 	public void startImage(int width, int height) throws IOException {
 		if (width == 0 && height == 0) {
-			array = ByteBuffer.allocateDirect(2).asShortBuffer();
+			array = ByteBuffer.allocateDirect(4).asIntBuffer();
 		}
 		this.width = width;
-		array = ByteBuffer.allocateDirect(width * height * 2).order(ByteOrder.nativeOrder()).asShortBuffer();
+		array = ByteBuffer.allocateDirect(width * height * 4).order(ByteOrder.nativeOrder()).asIntBuffer();
 	}
 
 	@Override
-	public void writeLine(short[] data, int linelength) throws IOException {
+	public void writeLine(int[] data, int linelength) throws IOException {
 		int offset = line * width;
 		for (int i = 0; i < linelength; i++) {
 			array.put(offset + i, data[i]);
@@ -47,7 +47,7 @@ public class ShortArrayWriter implements ImageArrayProvider {
 		line++;
 	}
 
-	public ShortBuffer getArray() {
+	public IntBuffer getArray() {
 		return array;
 	}
 

@@ -14,29 +14,40 @@
  *******************************************************************************/
 package jsettlers.graphics.map.draw;
 
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.IntBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 import go.graphics.AdvancedUpdateBufferCache;
 import go.graphics.BackgroundDrawHandle;
 import go.graphics.GLDrawContext;
 import go.graphics.IllegalBufferException;
+import go.graphics.ImageData;
 import go.graphics.TextureHandle;
 
 import go.graphics.VkDrawContext;
 import jsettlers.common.CommonConstants;
+import jsettlers.common.images.ImageLink;
 import jsettlers.common.landscape.ELandscapeType;
 import jsettlers.common.map.IDirectGridProvider;
 import jsettlers.common.map.IGraphicsBackgroundListener;
 import jsettlers.common.map.shapes.MapRectangle;
 import jsettlers.common.position.FloatRectangle;
+import jsettlers.graphics.image.Image;
+import jsettlers.graphics.image.NullImage;
 import jsettlers.graphics.image.SingleImage;
 import jsettlers.graphics.image.reader.translator.DatBitmapTranslator;
 import jsettlers.graphics.map.MapDrawContext;
 import jsettlers.graphics.image.reader.DatFileReader;
 import jsettlers.graphics.image.reader.ImageArrayProvider;
 import jsettlers.graphics.image.reader.ImageMetadata;
+
+import javax.imageio.ImageIO;
 
 /**
  * The map background.
@@ -837,13 +848,12 @@ public class Background implements IGraphicsBackgroundListener {
 
 			// ...
 	};
-
-	private static final Object preloadMutex = new Object();
+	private static final ImageLink ALTERNATIVE_BACKGROUND = ImageLink.fromName("background");
 
 	private final int bufferWidth; // in map points.
 	private final int bufferHeight; // in map points.
 
-	private static TextureHandle texture = null;
+	private static Map<Boolean, TextureHandle> textures = new HashMap<>();
 
 	private BackgroundDrawHandle backgroundHandle = null;
 
@@ -853,54 +863,88 @@ public class Background implements IGraphicsBackgroundListener {
 
 	private final int mapWidth, mapHeight;
 
-	private static short[] preloadedTexture = null;
-
-	private static short[] getTexture() {
-		short[] data = new short[TEXTURE_SIZE * TEXTURE_SIZE];
+	private static ImageData getTextureData(boolean original) {
+		int[] data = new int[TEXTURE_SIZE * TEXTURE_SIZE];
 		try {
 			addTextures(data);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return data;
+
+		ImageData orig = new ImageData(TEXTURE_SIZE, TEXTURE_SIZE);
+		orig.getWriteData32().put(data).rewind();
+
+		if(original) {
+			return orig;
+		}
+
+
+		Image img = ImageProvider.getInstance().getImage(ALTERNATIVE_BACKGROUND);
+		if(img instanceof NullImage || (!(img instanceof SingleImage))) {
+			return orig;
+		}
+
+		ImageData alt = ((SingleImage)img).getData();
+
+		ImageData origScaled = orig.convert(alt.getWidth(), alt.getHeight());
+
+		IntBuffer altBfr = alt.getWriteData32();
+		IntBuffer origBfr = origScaled.getReadData32();
+
+		int size = altBfr.limit();
+		for(int i = 0; i < size; i++) {
+			int value = altBfr.get(i);
+			if ((value & 0xFF) == 0) {
+				altBfr.put(i, origBfr.get(i));
+			}
+		}
+		altBfr.rewind();
+		return alt;
 	}
 
-	static void preloadTexture() {
-		synchronized (preloadMutex) {
-			if (preloadedTexture == null) {
-				preloadedTexture = getTexture();
-				ImageProvider.getInstance().addPreloadTask(Background::getTexture);
+	private static void saveOriginal(ImageData data) {
+		IntBuffer image = data.getReadData32();
+		final int width = data.getWidth();
+		final int height = data.getHeight();
+
+		BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+		for(int y = 0; y < height; y++) {
+			for(int x = 0; x < width; x++) {
+				int color = image.get(y*height+x);
+				img.setRGB(x, y, color);
 			}
+		}
+		try {
+			ImageIO.write(img, "PNG", new File("background.png"));
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 
-	private static TextureHandle getTexture(GLDrawContext context) {
+	private static TextureHandle getTextureData(GLDrawContext context, boolean original) {
+		TextureHandle texture = textures.get(original);
+
 		if (texture == null || !texture.isValid()) {
 			long startTime = System.currentTimeMillis();
-			short[] data;
-			synchronized (preloadMutex) {
-				if (preloadedTexture != null) {
-					data = preloadedTexture;
-					// free the array
-					preloadedTexture = null;
-				} else {
-					data = getTexture();
-				}
-			}
-			ByteBuffer buffer = ByteBuffer.allocateDirect(data.length * 2).order(ByteOrder.nativeOrder());
-			buffer.asShortBuffer().put(data);
-			texture = context.generateTexture(TEXTURE_SIZE, TEXTURE_SIZE, buffer.asShortBuffer(), "background");
+			ImageData data = getTextureData(original);
+			texture = context.generateTexture(data, "background-" + (original?"original":"custom"));
+			textures.put(original, texture);
 
 			//System.out.println("Background texture generated in " + (System.currentTimeMillis() - startTime) + "ms");
 		}
 		return texture;
+
+	}
+
+	private static TextureHandle getTextureData(GLDrawContext context) {
+		return getTextureData(context, DrawConstants.FORCE_ORIGINAL);
 	}
 
 	private static class ImageWriter implements ImageArrayProvider {
 		int arrayOffset;
 		int cellSize;
 		int maxOffset;
-		short[] data;
+		int[] data;
 
 		// nothing to do. We assume images are a rectangle and have the right size.
 		@Override
@@ -908,7 +952,7 @@ public class Background implements IGraphicsBackgroundListener {
 		}
 
 		@Override
-		public void writeLine(short[] data, int length) {
+		public void writeLine(int[] data, int length) {
 			if (arrayOffset < maxOffset) {
 				for (int i = 0; i < cellSize; i++) {
 					this.data[arrayOffset + i] = data[i % length];
@@ -926,7 +970,7 @@ public class Background implements IGraphicsBackgroundListener {
 	 * @throws IOException
 	 *            If the necessary file reader is missing
 	 */
-	private static void addTextures(short[] data) throws IOException {
+	private static void addTextures(int[] data) throws IOException {
 		DatFileReader reader = ImageProvider.getInstance().getFileReader(LAND_FILE);
 		if (reader == null) {
 			throw new IOException("Could not get a file reader for the file.");
@@ -1104,6 +1148,8 @@ public class Background implements IGraphicsBackgroundListener {
 
 		updateGeometry(context, screenArea);
 
+		backgroundHandle.texture = getTextureData(gl);
+
 		backgroundHandle.regionCount = screenArea.getLines();
 		backgroundHandle.regions = new int[backgroundHandle.regionCount*2];
 		for(int i = 0; i < backgroundHandle.regionCount; i++) {
@@ -1124,7 +1170,7 @@ public class Background implements IGraphicsBackgroundListener {
 
 	private void generateGeometry(MapDrawContext context) throws IllegalBufferException {
 		int vertices = bufferWidth*bufferHeight*3*2;
-		backgroundHandle = context.getGl().createBackgroundDrawCall(vertices, getTexture(context.getGl()));
+		backgroundHandle = context.getGl().createBackgroundDrawCall(vertices, getTextureData(context.getGl()));
 
 		fowEnabled = hasdgp && dgp.isFoWEnabled();
 
@@ -1344,6 +1390,6 @@ public class Background implements IGraphicsBackgroundListener {
 	 * Invalidates the background texture.
 	 */
 	static void invalidateTexture() {
-		texture = null;
+		textures.clear();
 	}
 }

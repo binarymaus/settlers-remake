@@ -1,7 +1,7 @@
 package jsettlers.graphics.image.reader.translator;
 
-import java.nio.ShortBuffer;
+import go.graphics.ImageData;
 
 public interface ImageDataProducer {
-	ShortBuffer produceData();
+	ImageData produceData();
 }

@@ -19,9 +19,12 @@ import java.nio.ByteOrder;
 
 import go.graphics.EUnifiedMode;
 import go.graphics.GLDrawContext;
+
+import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 import jsettlers.common.Color;
 import jsettlers.graphics.image.reader.ImageMetadata;
+import go.graphics.ImageData;
 import jsettlers.graphics.image.reader.translator.ImageDataProducer;
 
 /**
@@ -105,21 +108,46 @@ public class SettlerImage extends SingleImage {
 		return shadow;
 	}
 
-	protected ShortBuffer generateTextureData() {
+	protected ImageData generateTextureData() {
 		toffsetX = offsetX;
 		toffsetY = offsetY;
 
 		int tx = offsetX+width;
 		int ty = offsetY+height;
 
-		if(torso != null) {
+		ImageData data = getData();
+
+		float scaleX = data.getWidth()/(float) width;
+		float scaleY = data.getHeight()/(float) height;
+		if(width == 0) {
+			scaleX = 1;
+		}
+
+		if(height == 0) {
+			scaleY = 1;
+		}
+
+		ImageData torsoData = null;
+		ImageData shadowData = null;
+
+		if(torso != null && torso.width != 0 && torso.height != 0) {
+			torsoData = torso.getData();
+
+			scaleX = Math.max(scaleX, torsoData.getWidth()/(float)torso.width);
+			scaleY = Math.max(scaleY, torsoData.getHeight()/(float)torso.height);
+
 			if(torso.offsetX < toffsetX) toffsetX = torso.offsetX;
 			if(torso.offsetY < toffsetY) toffsetY = torso.offsetY;
 			if(torso.offsetX+torso.width > tx) tx = torso.offsetX+torso.width;
 			if(torso.offsetY+torso.height > ty) ty = torso.offsetY+torso.height;
 		}
 
-		if(shadow != null) {
+		if(shadow != null && shadow.width != 0 && shadow.height != 0) {
+			shadowData = shadow.getData();
+
+			scaleX = Math.max(scaleX, shadowData.getWidth()/(float)shadow.width);
+			scaleY = Math.max(scaleY, shadowData.getHeight()/(float)shadow.height);
+
 			if(shadow.offsetX < toffsetX) toffsetX = shadow.offsetX;
 			if(shadow.offsetY < toffsetY) toffsetY = shadow.offsetY;
 			if(shadow.offsetX+shadow.width > tx) tx = shadow.offsetX+shadow.width;
@@ -129,64 +157,83 @@ public class SettlerImage extends SingleImage {
 		twidth = tx-toffsetX;
 		theight = ty-toffsetY;
 
-		ShortBuffer tdata = ByteBuffer.allocateDirect(twidth * theight * 2).order(ByteOrder.nativeOrder()).asShortBuffer();
+		int texWidth = (int) (twidth*scaleX);
+		int texHeight = (int) (theight*scaleY);
 
-		short[] temp = new short[0];
+		IntBuffer tdata = ByteBuffer.allocateDirect(texWidth * texHeight * 4)
+				.order(ByteOrder.nativeOrder())
+				.asIntBuffer();
 
-		if(shadow != null) {
-			ShortBuffer shadowData = shadow.getData();
+		int[] temp = new int[0];
 
-			int hoffX = shadow.offsetX-toffsetX;
-			int hoffY = shadow.offsetY-toffsetY;
+		if(shadowData != null) {
+			int sdWidth = (int) (shadow.width*scaleX);
+			int sdHeight = (int) (shadow.height*scaleY);
 
-			if(temp.length < shadow.width) temp = new short[shadow.width];
+			shadowData = shadowData.convert(sdWidth, sdHeight);
 
-			for(int y = 0;y != shadow.height;y++) {
-				shadowData.position(y*shadow.width);
-				shadowData.get(temp, 0, shadow.width);
+			int hoffX = (int) ((shadow.offsetX-toffsetX)*scaleX);
+			int hoffY = (int) ((shadow.offsetY-toffsetY)*scaleY);
 
-				for(int x = 0;x != shadow.width;x++) {
+			if(temp.length < sdWidth) temp = new int[sdWidth];
+
+			IntBuffer shadowBfr = shadowData.getReadData32();
+
+			for(int y = 0;y != sdHeight;y++) {
+				shadowBfr.position(y*sdWidth);
+				shadowBfr.get(temp, 0, sdWidth);
+
+				for(int x = 0;x != sdWidth;x++) {
 					if(temp[x] == 0) continue;
-					tdata.put((y+hoffY)*twidth+hoffX+x, (short)((temp[x]&0xF)<<8)); // move alpha to green
+					tdata.put((y+hoffY)*texWidth+hoffX+x, (temp[x]&0xFF)<<16); // move alpha to green
 				}
 			}
 		}
 
-		if(torso != null) {
-			ShortBuffer torsoData = torso.getData();
+		if(torsoData != null) {
+			int tdWidth = (int) (torso.width*scaleX);
+			int tdHeight = (int) (torso.height*scaleY);
 
-			int toffX = torso.offsetX-toffsetX;
-			int toffY = torso.offsetY-toffsetY;
+			torsoData = torsoData.convert(tdWidth, tdHeight);
 
-			if(temp.length < torso.width) temp = new short[torso.width];
+			int toffX = (int) ((torso.offsetX-toffsetX)*scaleX);
+			int toffY = (int) ((torso.offsetY-toffsetY)*scaleY);
 
-			for(int y = 0;y != torso.height;y++) {
-				torsoData.position(y*torso.width);
-				torsoData.get(temp, 0, torso.width);
+			if(temp.length < tdWidth) temp = new int[tdWidth];
 
-				for(int x = 0;x != torso.width;x++) {
+			IntBuffer torsoBfr = torsoData.getReadData32();
+
+			for(int y = 0;y != tdHeight;y++) {
+				torsoBfr.position(y*tdWidth);
+				torsoBfr.get(temp, 0, tdWidth);
+
+				for(int x = 0;x != tdWidth;x++) {
 					if(temp[x] == 0) continue;
-					tdata.put((y+toffY)*twidth+toffX+x, (short) ((temp[x]&0xF0)|0xF000)); // strip out everything except blue channel and set full red channel
+					tdata.put((y+toffY)*texWidth+toffX+x, (temp[x]&0xFF00)|0xFF000000); // strip out everything except blue channel and set full red channel
 				}
 			}
 		}
 
-		int soffX = offsetX-toffsetX;
-		int soffY = offsetY-toffsetY;
+		int dWidth = (int) (width*scaleX);
+		int dHeight = (int) (height*scaleY);
 
-		if(temp.length < width) temp = new short[width];
+		data = data.convert(dWidth, dHeight);
 
-		ShortBuffer data = getData();
+		int soffX = (int) ((offsetX-toffsetX)*scaleX);
+		int soffY = (int) ((offsetY-toffsetY)*scaleY);
 
-		for(int y = 0;y != height;y++) {
-			//System.out.println("Trying to read position " + y*width);
-			data.position(y*width);
-			data.get(temp, 0, width);
+		if(temp.length < dWidth) temp = new int[dWidth];
 
-			for(int x = 0;x != width;x++) {
-				if(temp[x] != 0) tdata.put((y+soffY)*twidth+soffX+x, temp[x]);
+		IntBuffer bfr = data.getReadData32();
+
+		for(int y = 0;y != dHeight;y++) {
+			bfr.position(y*dWidth);
+			bfr.get(temp, 0, dWidth);
+
+			for(int x = 0;x != dWidth;x++) {
+				if(temp[x] != 0) tdata.put((y+soffY)*texWidth+soffX+x, temp[x]);
 			}
 		}
-		return tdata;
+		return ImageData.of(tdata, texWidth, texHeight);
 	}
 }

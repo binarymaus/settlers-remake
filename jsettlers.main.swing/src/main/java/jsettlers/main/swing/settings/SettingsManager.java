@@ -19,6 +19,8 @@ import go.graphics.swing.sound.ISoundSettingsProvider;
 import java.util.Optional;
 import java.util.function.Supplier;
 import jsettlers.common.CommonConstants;
+import jsettlers.common.buildings.EBuildingType;
+import jsettlers.common.player.ECivilisation;
 import jsettlers.common.resources.ResourceManager;
 
 import java.io.File;
@@ -66,6 +68,9 @@ public class SettingsManager implements ISoundSettingsProvider {
 	private static final String SETTING_REPLAY_FILE = "replay-file";
 	private static final String SETTING_TARGET_TIME = "target-time";
 	private static final String SETTING_MAPS = "maps";
+
+	private static final String SETTING_BUILDING = "building";
+	private static final String SETTING_CIVILISATION = "civ";
 
 	private static SettingsManager manager;
 
@@ -207,6 +212,16 @@ public class SettingsManager implements ISoundSettingsProvider {
 		} catch (NumberFormatException e) {
 		}
 		return 1;
+	}
+
+	public Optional<EBuildingType> getBuilding() {
+		return Optional.ofNullable(get(SETTING_BUILDING))
+				.map(s -> EBuildingType.valueOf(s.toUpperCase()));
+	}
+
+	public Optional<ECivilisation> getCivilisation() {
+		return Optional.ofNullable(get(SETTING_CIVILISATION))
+				.map(s -> ECivilisation.valueOf(s.toUpperCase()));
 	}
 
 	public EBackendType getBackend() {

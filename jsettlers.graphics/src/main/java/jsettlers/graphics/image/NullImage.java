@@ -31,7 +31,7 @@ import jsettlers.graphics.image.reader.ImageMetadata;
  */
 public final class NullImage extends SingleImage {
 	private static final float NULL_IMAGE_ALPHA = 0.5f;
-	private static final short[] NULL_DATA = new short[] { 0 };
+	private static final int[] NULL_DATA = new int[] { 0 };
 	private static final int HALFSIZE = 3;
 	private static final ImageMetadata NULL_IMAGE_METADATA = new ImageMetadata();
 
@@ -58,7 +58,7 @@ public final class NullImage extends SingleImage {
 	}
 
 	private NullImage() {
-		super(ByteBuffer.allocateDirect(2).asShortBuffer(), 1, 1, 0, 0, "placeholder/null");
+		super(ByteBuffer.allocateDirect(4).asIntBuffer(), 1, 1, 0, 0, "placeholder/null");
 	}
 
 

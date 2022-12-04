@@ -1,13 +1,12 @@
 package go.graphics.swing.opengl;
 
+import go.graphics.ImageData;
 import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.ARBInstancedArrays;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.KHRDebug;
-import org.lwjgl.system.MemoryUtil;
-import org.lwjgl.system.Platform;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,10 +15,7 @@ import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.nio.ShortBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.function.Supplier;
 
 import go.graphics.AbstractColor;
 import go.graphics.BackgroundDrawHandle;
@@ -94,14 +90,14 @@ public class LWJGLDrawContext extends GLDrawContext {
 	private float ulm;
 
 
-	public TextureHandle generateTexture(int width, int height, ShortBuffer data, String name) {
+	public TextureHandle generateTexture(ImageData image, String name) {
 		int texture = glGenTextures();
 		if (texture == 0) {
 			return null;
 		}
 
 		TextureHandle textureHandle = new LWJGLTextureHandle(this, texture);
-		resizeTexture(textureHandle, width, height, data);
+		resizeTexture(textureHandle, image);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -111,17 +107,17 @@ public class LWJGLDrawContext extends GLDrawContext {
 		return textureHandle;
 	}
 
-	public TextureHandle resizeTexture(TextureHandle textureIndex, int width, int height, ShortBuffer data) {
+	public TextureHandle resizeTexture(TextureHandle textureIndex, ImageData image) {
 		bindTexture(textureIndex);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_SHORT_4_4_4_4, data);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.getWidth(), image.getHeight(), 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, image.getReadData32());
 		return textureIndex;
 	}
 	
 	public void updateTexture(TextureHandle texture, int left, int bottom,
-							  int width, int height, ShortBuffer data) {
+							  ImageData image) {
 		bindTexture(texture);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, left, bottom, width, height,
-				GL_RGBA, GL_UNSIGNED_SHORT_4_4_4_4, data);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, left, bottom, image.getWidth(), image.getHeight(),
+				GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, image.getReadData32());
 	}
 
 	protected void bindTexture(TextureHandle texture) {

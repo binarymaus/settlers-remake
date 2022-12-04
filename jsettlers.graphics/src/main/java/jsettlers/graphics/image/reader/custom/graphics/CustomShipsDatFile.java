@@ -24,54 +24,29 @@ import jsettlers.graphics.image.reader.EmptyDatFile;
 import jsettlers.graphics.image.sequence.SequenceList;
 import jsettlers.graphics.image.reader.WrappedAnimation;
 
-class CustomShipsDatFile extends EmptyDatFile {
-	private final DatFileReader fallback;
-	private final ImageProvider imageProvider;
+class CustomShipsDatFile extends CustomDatFile {
 
 	CustomShipsDatFile(DatFileReader fallback, ImageProvider imageProvider) {
-		this.fallback = fallback;
-		this.imageProvider = imageProvider;
+		super(fallback, imageProvider);
 	}
 
 	@Override
-	public SequenceList<Image> getSettlers() {
-		return new SequenceList<Image>() {
+	protected Sequence<Image> getCustom(int index) {
+		if (index == 0) {
+			return new WrappedAnimation(imageProvider, new AnimationSequence("cargo_ship_hull_hull", 0, 6));
+		} else if (index == 2) {
+			return new WrappedAnimation(imageProvider, new AnimationSequence("cargo_ship_structures_structures", 0, 6));
+		} else if (index == 28) {
+			return new WrappedAnimation(imageProvider, new AnimationSequence("cargo_ship_sail_sail", 0, 6));
 
-			private SequenceList<Image> fallbackSequence = fallback.getSettlers();
+		} else if (index == 4) {
+			return new WrappedAnimation(imageProvider, new AnimationSequence("cargo_ship_hull_hull", 0, 6));
+		} else if (index == 6) {
+			return new WrappedAnimation(imageProvider, new AnimationSequence("cargo_ship_structures_structures", 0, 6));
+		} else if (index == 29) {
+			return new WrappedAnimation(imageProvider, new AnimationSequence("cargo_ship_sail_sail", 0, 6));
+		}
+		return null;
 
-			@Override
-			public int size() {
-				return Math.max(30, fallbackSequence.size());
-			}
-
-			@Override
-			public Sequence<Image> get(int index) {
-				if (index < fallbackSequence.size()) {
-					Sequence<Image> sequence = fallbackSequence.get(index);
-
-					if (sequence != null) {
-						return sequence;
-					}
-				}
-
-				if (index == 0) {
-					return new WrappedAnimation(imageProvider, new AnimationSequence("cargo_ship_hull_hull", 0, 6));
-				} else if (index == 2) {
-					return new WrappedAnimation(imageProvider, new AnimationSequence("cargo_ship_structures_structures", 0, 6));
-				} else if (index == 28) {
-					return new WrappedAnimation(imageProvider, new AnimationSequence("cargo_ship_sail_sail", 0, 6));
-
-				} else if (index == 4) {
-					return new WrappedAnimation(imageProvider, new AnimationSequence("cargo_ship_hull_hull", 0, 6));
-				} else if (index == 6) {
-					return new WrappedAnimation(imageProvider, new AnimationSequence("cargo_ship_structures_structures", 0, 6));
-				} else if (index == 29) {
-					return new WrappedAnimation(imageProvider, new AnimationSequence("cargo_ship_sail_sail", 0, 6));
-
-				} else {
-					return ArraySequence.getNullSequence();
-				}
-			}
-		};
 	}
 }

@@ -22,6 +22,7 @@ import javax.swing.UIManager.LookAndFeelInfo;
 import jsettlers.common.resources.ResourceManager;
 import jsettlers.logic.map.loading.MapLoadException;
 import jsettlers.exceptionhandler.ExceptionHandler;
+import jsettlers.main.swing.JSettlersSwingUtil;
 import jsettlers.main.swing.SwingManagedJSettlers;
 import jsettlers.main.swing.resources.SwingResourceProvider;
 import jsettlers.main.swing.settings.SettingsManager;
@@ -60,7 +61,7 @@ public class MapCreatorApp {
 	private static void startWithSelectionDialog() {
 		// dummy frame for icon, TODO to test on windows, ubuntu does not display the icon...
 		JFrame dummyFrame = new JFrame();
-		dummyFrame.setIconImage(EditorFrame.APP_ICON);
+		dummyFrame.setIconImage(JSettlersSwingUtil.APP_ICON);
 		dummyFrame.setLocationRelativeTo(null);
 
 		NewOrOpenDialog dlg = new NewOrOpenDialog(dummyFrame);

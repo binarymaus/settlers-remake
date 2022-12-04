@@ -39,20 +39,18 @@ public interface DatBitmapTranslator<T extends Image> {
 	/**
 	 * Reads a color from the reader and progresses the reader so that it stands after the color.
 	 *
-	 * @param reader
-	 * 		The reader to read from
-	 * @return A short indicating the color, e.g. in 5-5-5-1 RGBA format.
-	 * @throws IOException
-	 * 		If an error occurred.
+	 * @param reader The reader to read from
+	 * @return An int indicating the color, e.g. in RGBA8 format.
+	 * @throws IOException If an error occurred.
 	 */
-	short readUntransparentColor(ByteReader reader) throws IOException;
+	int readUntransparentColor(ByteReader reader) throws IOException;
 
 	/**
 	 * gets the color that is used as transparent.
 	 *
 	 * @return A short indicating the color.
 	 */
-	short getTransparentColor();
+	int getTransparentColor();
 
 	/**
 	 * Creates a image of the given type.

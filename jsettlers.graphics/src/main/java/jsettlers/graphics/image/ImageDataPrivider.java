@@ -14,6 +14,7 @@
  *******************************************************************************/
 package jsettlers.graphics.image;
 
+import go.graphics.ImageData;
 import java.nio.ShortBuffer;
 
 /**
@@ -29,7 +30,7 @@ public interface ImageDataPrivider {
 	 * 
 	 * @return The image data.
 	 */
-	ShortBuffer getData();
+	ImageData getData();
 
 	/**
 	 * Gets the width for the image.

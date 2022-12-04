@@ -66,6 +66,7 @@ public class JSettlersFrame extends JFrame {
 
 	JSettlersFrame() throws HeadlessException {
 		setTitle("JSettlers - Version: " + CommitInfo.COMMIT_HASH_SHORT);
+		setIconImage(JSettlersSwingUtil.APP_ICON);
 
 		SettingsManager settingsManager = SettingsManager.getInstance();
 

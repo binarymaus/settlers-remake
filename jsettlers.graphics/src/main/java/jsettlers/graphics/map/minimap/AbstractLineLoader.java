@@ -32,7 +32,7 @@ import jsettlers.graphics.map.minimap.MinimapMode.SettlersMode;
  * @author Michael Zangl
  */
 public abstract class AbstractLineLoader implements Runnable {
-	protected static final short BLACK = Color.BLACK.toShortColor(1);
+	protected static final int BLACK = Color.BLACK.getRGBA();
 	protected static final short TRANSPARENT = 0;
 	private static final int Y_STEP_HEIGHT = 5;
 	private static final int X_STEP_WIDTH = 5;
@@ -50,7 +50,7 @@ public abstract class AbstractLineLoader implements Runnable {
 	/**
 	 * The explored landscape.
 	 */
-	private short[][] landscape = new short[1][1];
+	private int[][] landscape = new int[1][1];
 
 	public AbstractLineLoader(IMinimapData minimapData, MinimapMode modeSettings) {
 		this.minimapData = minimapData;
@@ -105,8 +105,8 @@ public abstract class AbstractLineLoader implements Runnable {
 	}
 
 	private void resizeBackground(int width, int height) {
-		short[][] oldLandscape = landscape;
-		landscape = new short[height][width];
+		int[][] oldLandscape = landscape;
+		landscape = new int[height][width];
 		int oldHeight = oldLandscape.length;
 		int oldWidth = oldLandscape[0].length;
 		for (int y = 0; y < height; y++) {
@@ -159,7 +159,7 @@ public abstract class AbstractLineLoader implements Runnable {
 			int centerX = (mapMaxX + mapMinX) / 2;
 			int centerY = (mapMaxY + mapMinY) / 2;
 
-			short color = TRANSPARENT;
+			int color = TRANSPARENT;
 			byte visibleStatus = map.getVisibleStatus(centerX, centerY);
 			if (visibleStatus > CommonConstants.FOG_OF_WAR_EXPLORED) {
 				color = getSettlerForArea(map, context, mapMinX, mapMinY, mapMaxX, mapMaxY);
@@ -170,9 +170,9 @@ public abstract class AbstractLineLoader implements Runnable {
 				int dheight = map.getVisibleHeightAt(centerX, mapMinY) - map.getVisibleHeightAt(centerX, Math.min(mapMinY + mapLineHeight, mapHeight - 1));
 				basecolor *= 1 + .15f * dheight;
 
-				short landscapeColor;
+				int landscapeColor;
 				if (basecolor >= 0) {
-					landscapeColor = getColorForArea(map, mapMinX, mapMinY, mapMaxX, mapMaxY).toShortColor(basecolor);
+					landscapeColor = getColorForArea(map, mapMinX, mapMinY, mapMaxX, mapMaxY).multiply(basecolor).getRGBA();
 				} else {
 					landscapeColor = BLACK;
 				}
@@ -189,7 +189,7 @@ public abstract class AbstractLineLoader implements Runnable {
 		}
 	}
 
-	protected abstract void setBuffer(int currentline, int x, short color);
+	protected abstract void setBuffer(int currentline, int x, int color);
 
 	private Color getColorForArea(IGraphicsGrid map, int mapminX, int mapminY, int mapmaxX, int mapmaxY) {
 		int centerx = (mapmaxX + mapminX) / 2;
@@ -198,14 +198,14 @@ public abstract class AbstractLineLoader implements Runnable {
 		return map.getVisibleLandscapeTypeAt(centerx, centery).color;
 	}
 
-	private short getSettlerForArea(IGraphicsGrid map, MapDrawContext context, int mapminX, int mapminY, int mapmaxX, int mapmaxY) {
+	private int getSettlerForArea(IGraphicsGrid map, MapDrawContext context, int mapminX, int mapminY, int mapmaxX, int mapmaxY) {
 		SettlersMode displaySettlers = this.modeSettings.getDisplaySettlers();
 		OccupiedAreaMode displayOccupied = this.modeSettings.getDisplayOccupied();
 		boolean displayBuildings = this.modeSettings.getDisplayBuildings();
 
-		short occupiedColor = TRANSPARENT;
-		short settlerColor = TRANSPARENT;
-		short buildingColor = TRANSPARENT;
+		int occupiedColor = TRANSPARENT;
+		int settlerColor = TRANSPARENT;
+		int buildingColor = TRANSPARENT;
 
 		for (int y = mapminY; y < mapmaxY && (displayOccupied != OccupiedAreaMode.NONE || displayBuildings || displaySettlers != SettlersMode.NONE); y++) {
 			for (int x = mapminX; x < mapmaxX
@@ -214,7 +214,7 @@ public abstract class AbstractLineLoader implements Runnable {
 				if (visible && displaySettlers != SettlersMode.NONE) {
 					IGraphicsMovable settler = map.getMovableAt(x, y);
 					if (settler != null && (displaySettlers == SettlersMode.ALL || settler.getMovableType().isPlayerControllable())) {
-						settlerColor = MapDrawContext.getPlayerColor(settler.getPlayer().getPlayerId()).toShortColor(1);
+						settlerColor = MapDrawContext.getPlayerColor(settler.getPlayer().getPlayerId()).getRGBA();
 						// don't search any more.
 						displaySettlers = SettlersMode.NONE;
 					} else if (displaySettlers != SettlersMode.NONE) {
@@ -224,7 +224,7 @@ public abstract class AbstractLineLoader implements Runnable {
 						if (building instanceof IBuilding.IOccupied) {
 							IBuilding.IOccupied occupyed = (IBuilding.IOccupied) building;
 							if (occupyed.isOccupied()) {
-								settlerColor = MapDrawContext.getPlayerColor(occupyed.getPlayer().getPlayerId()).toShortColor(1);
+								settlerColor = MapDrawContext.getPlayerColor(occupyed.getPlayer().getPlayerId()).getRGBA();
 							}
 						}
 					}
@@ -234,7 +234,7 @@ public abstract class AbstractLineLoader implements Runnable {
 					if (map.isBorder(x, y)) {
 						IPlayer player = map.getPlayerAt(x, y);
 						Color playerColor = MapDrawContext.getPlayerColor(player.getPlayerId());
-						occupiedColor = playerColor.toShortColor(1);
+						occupiedColor = playerColor.getRGBA();
 						displayOccupied = OccupiedAreaMode.NONE;
 					}
 
@@ -245,7 +245,7 @@ public abstract class AbstractLineLoader implements Runnable {
 						// Now add a landscape below that....
 						Color landscape = getColorForArea(map, mapminX, mapminY, mapmaxX, mapmaxY);
 						playerColor = landscape.toGreyScale().multiply(playerColor);
-						occupiedColor = playerColor.toShortColor(1);
+						occupiedColor = playerColor.getRGBA();
 						displayOccupied = OccupiedAreaMode.NONE;
 					}
 				}

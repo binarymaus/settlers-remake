@@ -16,6 +16,7 @@ package jsettlers.graphics.image;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 
 import go.graphics.EPrimitiveType;
@@ -24,9 +25,9 @@ import go.graphics.ManagedUnifiedDrawHandle;
 
 import java.awt.image.BufferedImage;
 
-import go.graphics.UnifiedDrawHandle;
 import jsettlers.common.Color;
 import jsettlers.graphics.image.reader.ImageMetadata;
+import go.graphics.ImageData;
 import jsettlers.graphics.image.reader.translator.ImageDataProducer;
 
 /**
@@ -72,9 +73,9 @@ public class SingleImage extends Image implements ImageDataPrivider {
 		this.name = name;
 	}
 
-	protected SingleImage(ShortBuffer data, int width, int height, int offsetX,
+	protected SingleImage(IntBuffer data, int width, int height, int offsetX,
 						  int offsetY, String name) {
-		this(() -> data, width, height, offsetX, offsetY, name);
+		this(() -> ImageData.of(data, width, height), width, height, offsetX, offsetY, name);
 	}
 
 	/**
@@ -85,7 +86,7 @@ public class SingleImage extends Image implements ImageDataPrivider {
 	 * @param data
 	 * 		The data to use.
 	 */
-	public SingleImage(ImageMetadata metadata, short[] data, String name) {
+	public SingleImage(ImageMetadata metadata, int[] data, String name) {
 		this(wrap(data), metadata.width, metadata.height, metadata.offsetX, metadata.offsetY, name);
 	}
 
@@ -102,8 +103,8 @@ public class SingleImage extends Image implements ImageDataPrivider {
 		this(data, metadata.width, metadata.height, metadata.offsetX, metadata.offsetY, name);
 	}
 
-	private static ShortBuffer wrap(short[] data) {
-		ShortBuffer bfr = ByteBuffer.allocateDirect(data.length*2).order(ByteOrder.nativeOrder()).asShortBuffer();
+	private static IntBuffer wrap(int[] data) {
+		IntBuffer bfr = ByteBuffer.allocateDirect(data.length*4).order(ByteOrder.nativeOrder()).asIntBuffer();
 		bfr.put(data);
 		bfr.rewind();
 		return bfr;
@@ -131,7 +132,7 @@ public class SingleImage extends Image implements ImageDataPrivider {
 
 	@Override
 	public void drawImageAtRect(GLDrawContext gl, float x, float y, float width, float height, float intensity) {
-		checkStaticHandles(gl);
+		checkHandles(gl);
 
 		// dark magic
 		float sx = width/(float)twidth;
@@ -142,7 +143,7 @@ public class SingleImage extends Image implements ImageDataPrivider {
 	}
 
 	@Override
-	public ShortBuffer getData() {
+	public ImageData getData() {
 		return this.data.produceData();
 	}
 
@@ -154,45 +155,32 @@ public class SingleImage extends Image implements ImageDataPrivider {
 
 	protected void checkHandles(GLDrawContext gl) {
 		if(geometryIndex == null || !geometryIndex.isValid()) {
-			ShortBuffer textureBuffer = generateTextureData();
-			geometryIndex = gl.createManagedUnifiedDrawCall(textureBuffer, toffsetX, toffsetY, twidth, theight);
+			ImageData texture = generateTextureData();
+			geometryIndex = gl.createManagedUnifiedDrawCall(texture, toffsetX, toffsetY, twidth, theight);
 		}
 	}
 
-	protected ShortBuffer generateTextureData() {
+	protected ImageData generateTextureData() {
 		return getData();
 	}
 
-	private void checkStaticHandles(GLDrawContext gl) {
+
+	@Override
+	public void drawOnlyImageWithProgressAt(GLDrawContext gl, float x, float y, float z, float u1, float v1, float u2, float v2, float fow, boolean triangle) {
 		checkHandles(gl);
 
-		if(progressHandle == null || !progressHandle.isValid()) {
-			progressHandle = gl.createUnifiedDrawCall(4, "building-progress-quad", geometryIndex.texture, GLDrawContext.createQuadGeometry(0, 0, 1, 1, 0, 0, 1, 1));
-			progressHandle.forceNoCache();
-		}
-
-		if(triProgressHandle == null || !triProgressHandle.isValid()) {
-			triProgressHandle = gl.createUnifiedDrawCall(3, "building-progress-tri", geometryIndex.texture, new float[] {0, 0, 0, 0, 0.5f, 1, 0.5f, 1, 1, 0, 1, 0});
-			triProgressHandle.forceNoCache();
-		}
-	}
-
-	private static UnifiedDrawHandle progressHandle = null;
-	private static UnifiedDrawHandle triProgressHandle = null;
-
-
-	public void drawOnlyImageWithProgressAt(GLDrawContext gl, float x, float y, float z, float u1, float v1, float u2, float v2, float fow, boolean triangle) {
-		checkStaticHandles(gl);
-
-		float nu1 = geometryIndex.texX+u1*(geometryIndex.texWidth-geometryIndex.texX);
-		float nu2 = geometryIndex.texX+u2*(geometryIndex.texWidth-geometryIndex.texX);
-
-		float nv1 = geometryIndex.texY+v1*(geometryIndex.texHeight-geometryIndex.texY);
-		float nv2 = geometryIndex.texY+v2*(geometryIndex.texHeight-geometryIndex.texY);
-
-		UnifiedDrawHandle dh = triangle?triProgressHandle:progressHandle;
-		dh.texture = geometryIndex.texture;
-		dh.drawProgress(triangle?EPrimitiveType.Triangle:EPrimitiveType.Quad, x+toffsetX+twidth*u1, y-toffsetY-theight*v1, z, twidth*(u2-u1), -theight*(v2-v1), new Color(nu1, nv1, nu2, nv2), fow);
+		BuildingProgressDrawer.drawOnlyImageWithProgressAt(gl,
+				x, y, z, u1, v1, u2, v2,
+				geometryIndex.texX,
+				geometryIndex.texWidth,
+				geometryIndex.texY,
+				geometryIndex.texHeight,
+				geometryIndex.texture,
+				toffsetX,
+				toffsetY,
+				theight,
+				twidth,
+				fow, triangle);
 	}
 
 	public BufferedImage convertToBufferedImage() {
@@ -201,13 +189,13 @@ public class SingleImage extends Image implements ImageDataPrivider {
 		}
 
 		BufferedImage rendered = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-		ShortBuffer data = getData().duplicate();
+		IntBuffer data = getData().convert(width, height).getReadData32();
 		data.rewind();
 
 		int[] rgbArray = new int[data.remaining()];
 		for (int i = 0; i < rgbArray.length; i++) {
-			short myColor = data.get();
-			rgbArray[i] = Color.convertTo32Bit(myColor);
+			int value = data.get();
+			rgbArray[i] = (value>>8)|((value&0xFF)<<24);
 		}
 
 		rendered.setRGB(0, 0, width, height, rgbArray, 0, width);
@@ -215,7 +203,7 @@ public class SingleImage extends Image implements ImageDataPrivider {
 	}
 
 	public Long hash() {
-		ShortBuffer data = getData();
+		IntBuffer data = getData().getReadData32().duplicate();
 		data.rewind();
 		long hashCode = 1L;
 		long multiplier = 1L;
@@ -223,7 +211,6 @@ public class SingleImage extends Image implements ImageDataPrivider {
 			multiplier *= 31L;
 			hashCode += (data.get() + 27L) * multiplier;
 		}
-		data.rewind();
 		return hashCode;
 	}
 }

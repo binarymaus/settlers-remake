@@ -14,6 +14,7 @@
  *******************************************************************************/
 package go.graphics.swing.vulkan;
 
+import go.graphics.ImageData;
 import go.graphics.swing.vulkan.memory.AbstractVulkanBuffer;
 import go.graphics.swing.vulkan.memory.EVulkanBufferUsage;
 import go.graphics.swing.vulkan.memory.EVulkanMemoryType;
@@ -277,11 +278,24 @@ public class VulkanDrawContext extends GLDrawContext implements VkDrawContext {
 	private boolean unifiedDataUpdated = false;
 
 	@Override
-	public TextureHandle generateTexture(int width, int height, ShortBuffer data, String name) {
-		return generateTextureInternal(width, height, data, 0L);
+	public TextureHandle generateTexture(ImageData image, String name) {
+		return generateTextureInternal(image, 0L);
 	}
 
-	private TextureHandle generateTextureInternal(int width, int height, ShortBuffer data, long descSet) {
+	private IntBuffer fixRGBA8Buffer(IntBuffer orig) {
+		IntBuffer bfr = BufferUtils.createIntBuffer(orig.remaining());
+		while(orig.hasRemaining()) {
+			int color = orig.get();
+			bfr.put(((color<<24)&0xFF000000) | ((color >> 8)&0xFFFFFF));
+		}
+		bfr.rewind();
+		return bfr;
+	}
+
+	private TextureHandle generateTextureInternal(ImageData image, long descSet) {
+		int width = image.getWidth();
+		int height = image.getHeight();
+
 		if(!commandBufferRecording) return null;
 
 		if(width == 0) width = 1;
@@ -290,7 +304,7 @@ public class VulkanDrawContext extends GLDrawContext implements VkDrawContext {
 		VulkanTextureHandle vkTexHandle = createTexture(width, height, descSet);
 		vkTexHandle.getImage().changeLayout(memCommandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		if(data != null) updateTexture(vkTexHandle, 0, 0, width, height, data);
+		if(image.getReadData32() != null) updateTexture(vkTexHandle, 0, 0, image);
 		return vkTexHandle;
 	}
 
@@ -482,13 +496,20 @@ public class VulkanDrawContext extends GLDrawContext implements VkDrawContext {
 	}
 
 	@Override
-	public void updateTexture(TextureHandle handle, List<int[]> diff, ByteBuffer data) {
+	public void updateTexture(TextureHandle handle, List<int[]> diff, Buffer data) {
 		if(!commandBufferRecording || handle == null) return;
 
 		VulkanTextureHandle vkTexture = (VulkanTextureHandle)handle;
 		if(!vkTexture.isValid()) return;
 
-		int stagingPos = prepareStagingData(data);
+		Buffer fixedBfr;
+		if(data instanceof IntBuffer) {
+			fixedBfr = fixRGBA8Buffer((IntBuffer) data);
+		} else {
+			fixedBfr = data;
+		}
+
+		int stagingPos = prepareStagingData(fixedBfr);
 
 		int count = diff.size();
 		VkBufferImageCopy.Buffer regions = VkBufferImageCopy.create(count);
@@ -507,13 +528,15 @@ public class VulkanDrawContext extends GLDrawContext implements VkDrawContext {
 	}
 
 	@Override
-	public void updateTexture(TextureHandle textureIndex, int left, int bottom, int width, int height, ShortBuffer data) {
+	public void updateTexture(TextureHandle textureIndex, int left, int bottom, ImageData image) {
+		int width = image.getWidth();
+		int height = image.getHeight();
+
 		if(!commandBufferRecording || textureIndex == null || width == 0 || height == 0) return;
 
 		VulkanTextureHandle vkTexture = (VulkanTextureHandle) textureIndex;
 		if(!vkTexture.isValid()) return;
-
-		int stagingPos = prepareStagingData(data);
+		int stagingPos = prepareStagingData(fixRGBA8Buffer(image.getReadData32()));
 
 		VkBufferImageCopy.Buffer region = VkBufferImageCopy.create(1);
 		region.get(0).imageOffset().set(left, bottom, 0);
@@ -527,13 +550,13 @@ public class VulkanDrawContext extends GLDrawContext implements VkDrawContext {
 	}
 
 	@Override
-	public TextureHandle resizeTexture(TextureHandle textureIndex, int width, int height, ShortBuffer data) {
+	public TextureHandle resizeTexture(TextureHandle textureIndex, ImageData image) {
 		if(textureIndex == null) return null;
 
 		((VulkanTextureHandle)textureIndex).setDestroy();
 		if(!commandBufferRecording) return null;
 
-		return generateTextureInternal(width, height, data, ((VulkanTextureHandle)textureIndex).descSet);
+		return generateTextureInternal(image, ((VulkanTextureHandle)textureIndex).descSet);
 	}
 
 	protected int usedStagingMemory = 0;
@@ -543,11 +566,13 @@ public class VulkanDrawContext extends GLDrawContext implements VkDrawContext {
 	private int prepareStagingData(Buffer data) {
 		ByteBuffer bdata = (data instanceof ByteBuffer)?(ByteBuffer)data : null;
 		ShortBuffer sdata = (data instanceof ShortBuffer)?(ShortBuffer)data : null;
+		IntBuffer idata = (data instanceof IntBuffer)?(IntBuffer) data : null;
 
 
 		int size;
 		if(bdata != null) size = bdata.remaining();
 		else if(sdata != null) size = sdata.remaining()*2;
+		else if(idata != null) size = idata.remaining()*4;
 		else throw new Error("Not yet implemented Buffer variant: " + data.getClass().getName());
 
 		do {
@@ -573,6 +598,7 @@ public class VulkanDrawContext extends GLDrawContext implements VkDrawContext {
 
 		if(bdata != null) mapped.put(bdata.asReadOnlyBuffer());
 		if(sdata != null) mapped.asShortBuffer().put(sdata.asReadOnlyBuffer());
+		if(idata != null) mapped.asIntBuffer().put(idata.asReadOnlyBuffer());
 
 		currentStagingBuffer.unmap();
 
@@ -633,7 +659,7 @@ public class VulkanDrawContext extends GLDrawContext implements VkDrawContext {
 	private long firstTextureDescSet = 0;
 
 	private VulkanTextureHandle createTexture(int width, int height, long descSet) {
-		VulkanImage image = memoryManager.createImage(width, height, EVulkanImageType.COLOR_IMAGE_RGBA4);
+		VulkanImage image = memoryManager.createImage(width, height, EVulkanImageType.COLOR_IMAGE_RGBA8);
 
 		long textureDescSet = descSet;
 

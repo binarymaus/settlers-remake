@@ -2,7 +2,6 @@ package go.graphics.swing.vulkan;
 
 import go.graphics.swing.vulkan.memory.VulkanImage;
 import java.awt.Dimension;
-import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 import java.util.function.BiFunction;
 import org.lwjgl.BufferUtils;
@@ -29,7 +28,7 @@ public class CustomVulkanOutput extends AbstractVulkanOutput {
 		super.init(dc);
 
 		try(MemoryStack stack = MemoryStack.stackPush()) {
-			dc.regenerateRenderPass(stack, EVulkanImageType.COLOR_IMAGE_RGBA8.getFormat());
+			dc.regenerateRenderPass(stack, EVulkanImageType.FRAMEBUFFER_RGBA8.getFormat());
 		}
 	}
 
@@ -50,7 +49,7 @@ public class CustomVulkanOutput extends AbstractVulkanOutput {
 			framebufferImage.destroy();
 			framebufferImage = null;
 		}
-		framebufferImage = dc.memoryManager.createImage(preferredSize.width, preferredSize.height, EVulkanImageType.COLOR_IMAGE_RGBA8);
+		framebufferImage = dc.memoryManager.createImage(preferredSize.width, preferredSize.height, EVulkanImageType.FRAMEBUFFER_RGBA8);
 
 		return preferredSize;
 	}

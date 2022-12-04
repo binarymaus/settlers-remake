@@ -76,5 +76,12 @@ All the options above can also be specified as command line options. For this, y
 ## Build instructions and developer's guide
 The [build instructions](https://github.com/paulwedeck/settlers-remake/wiki/Compiling-using-gradle) and the [developer's guide](https://github.com/paulwedeck/settlers-remake/wiki/Developer's%20Guide) can be found in our wiki.
 
+### Textures
+JSettlers is meant to be used with the original textures from Settlers 3.
+However we are working on replacing these with new textures that have a more permissive license.
+There is a [list](https://github.com/paulwedeck/settlers-remake/blob/master/TEXTURES.md) of textures that we didn't create ourselves but instead took from image sites on the internet
+
+
+
 ## Getting in Touch
 Besides the possibility to report bugs on Github you can also join our [JSettlers Discord](https://discord.gg/2hVV4u6). Here you can discuss on development questions and find other players to meet with. 

@@ -225,6 +225,10 @@ public final class ImageProvider {
 		}
 
 		int index = TextureMap.getIndex(link.getName());
+		if(index == -1) {
+			return NullImage.getInstance();
+		}
+
 		return indexFile.getImage(index);
 	}
 

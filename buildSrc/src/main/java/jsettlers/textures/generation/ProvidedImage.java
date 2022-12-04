@@ -15,36 +15,44 @@
 package jsettlers.textures.generation;
 
 import java.awt.image.BufferedImage;
-import java.nio.ShortBuffer;
+import java.io.IOException;
+import jsettlers.textures.generation.formats.ColorReader;
 
 public class ProvidedImage {
 
 	private final BufferedImage image;
 	private final int[] offsets;
+	private final int[] imageSize;
 
-	public ProvidedImage(BufferedImage image, int[] offsets) {
+	public ProvidedImage(BufferedImage image, int[] offsets, int[] imageSize) {
 		this.image = image;
 		this.offsets = offsets;
+		this.imageSize = imageSize;
 	}
 
-	public ShortBuffer getData() {
-		ShortBuffer data = ShortBuffer.allocate(image.getWidth() * image.getHeight());
-		for (int y = 0; y < image.getHeight(); y++) {
-			for (int x = 0; x < image.getWidth(); x++) {
+	public void getData(ColorReader reader) throws IOException {
+		for(int y = 0; y < image.getHeight(); y++) {
+			for(int x = 0; x < image.getWidth(); x++) {
 				Color color = new Color(image.getRGB(x, y));
-				data.put(color.toShortColor(1));
+				reader.readColor(color);
 			}
 		}
-		data.rewind();
-		return data;
 	}
 
-	public int getWidth() {
+	public int getTextureWidth() {
 		return image.getWidth();
 	}
 
-	public int getHeight() {
+	public int getTextureHeight() {
 		return image.getHeight();
+	}
+
+	public int getImageWidth() {
+		return imageSize[0];
+	}
+
+	public int getImageHeight() {
+		return imageSize[1];
 	}
 
 	public int getOffsetX() {

@@ -50,7 +50,7 @@ public class TextureIndex {
 	public void openTextureIndex() throws IOException {
 		generatedResourcesDirectory.mkdirs();
 		textureIndexOut = new DataOutputStream(new FileOutputStream(new File(generatedResourcesDirectory, "texturemap")));
-		textureIndexOut.write(new byte[] { 'T', 'E', 'X', '1' });
+		textureIndexOut.write(new byte[] { 'T', 'E', 'X', '2' });
 
 		generatedSourcesDirectory.mkdirs();
 		textureConstantsOut = new PrintWriter(new File(generatedSourcesDirectory, "TextureMap.java"));
@@ -66,7 +66,7 @@ public class TextureIndex {
 		textureConstantsOut.println("	public static int getIndex(String name) {");
 		textureConstantsOut.println("		int arrindex = Arrays.binarySearch(names, name);");
 		textureConstantsOut.println("		if (arrindex < 0) {");
-		textureConstantsOut.println("			throw new IllegalArgumentException(\"Could not find \" + name + \" in image map.\");");
+		textureConstantsOut.println("			return -1;");
 		textureConstantsOut.println("		}");
 		textureConstantsOut.println("		return indexes[arrindex];");
 		textureConstantsOut.println("	}");
@@ -74,7 +74,14 @@ public class TextureIndex {
 		//System.out.println("Opened texture index");
 	}
 
-	public int registerTexture(String name, int textureFile, int offsetX, int offsetY, int width, int height, Integer torsoIndex, boolean isTorso, TexturePosition position) throws IOException {
+	public int registerTexture(String name,
+							   int textureFile,
+							   int offsetX,
+							   int offsetY,
+							   int width,
+							   int height,
+							   int torsoIndex,
+							   int shadowIndex) throws IOException {
 		synchronized (imageIndexMutex) {
 			String safename = name.replaceAll("[^a-zA-Z0-9._]", "_");
 
@@ -85,13 +92,9 @@ public class TextureIndex {
 			textureIndexOut.writeShort(width);
 			textureIndexOut.writeShort(height);
 			textureIndexOut.writeShort(textureFile);
-			textureIndexOut.writeInt(torsoIndex == null ? -1 : torsoIndex);
-			textureIndexOut.writeShort(isTorso ? 1 : 0);
-
-			textureIndexOut.writeShort(toShort(position.getLeft()));
-			textureIndexOut.writeShort(toShort(position.getTop()));
-			textureIndexOut.writeShort(toShort(position.getRight()));
-			textureIndexOut.writeShort(toShort(position.getBottom()));
+			textureIndexOut.writeInt(torsoIndex);
+			textureIndexOut.writeInt(shadowIndex);
+			textureIndexOut.writeUTF(safename);
 
 			//System.out.println("Added image " + imageIndexCounter + " to texture " + textureFile + " and added to constant index as " + safename);
 

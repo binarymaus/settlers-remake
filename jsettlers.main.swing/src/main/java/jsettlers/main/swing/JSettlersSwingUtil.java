@@ -17,16 +17,24 @@ package jsettlers.main.swing;
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.image.BufferedImage;
 
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.map.loading.newmap.MapFileHeader;
+
+import javax.swing.ImageIcon;
 
 /**
  * @author Andreas Butti
  * @author codingberlin
  */
 public class JSettlersSwingUtil {
+
+	/**
+	 * Logo for windows
+	 */
+	public static final Image APP_ICON = new ImageIcon(JSettlersSwingUtil.class.getResource("icon.png")).getImage();
 
 	public static final Color DISABLE_COLOR = new Color(28, 34, 40, 150);
 

@@ -48,6 +48,8 @@ public abstract class Image {
 	public void drawOnlyImageAt(GLDrawContext gl, float x, float y, float z, Color torsoColor, float fow) {}
 	public void drawOnlyShadowAt(GLDrawContext gl, float x, float y, float z) {}
 
+	public void drawOnlyImageWithProgressAt(GLDrawContext gl, float x, float y, float z, float u1, float v1, float u2, float v2, float fow, boolean triangle) {}
+
 	/**
 	 * Draws the image at a given rectangle.
 	 * 

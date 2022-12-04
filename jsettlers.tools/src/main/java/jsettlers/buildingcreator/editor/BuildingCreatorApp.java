@@ -38,6 +38,7 @@ import jsettlers.common.position.RelativePoint;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.main.swing.SwingManagedJSettlers;
 import jsettlers.main.swing.lookandfeel.JSettlersLookAndFeelExecption;
+import jsettlers.main.swing.settings.SettingsManager;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -72,8 +73,15 @@ public class BuildingCreatorApp implements IMapInterfaceListener, Runnable {
 	@Override
 	public void run() {
 		try {
-			EBuildingType type = askType();
-			BuildingVariant variant = askVariant(type);
+
+			EBuildingType type = SettingsManager.getInstance()
+					.getBuilding()
+					.orElseGet(this::askType);
+
+			BuildingVariant variant = SettingsManager.getInstance()
+					.getCivilisation()
+					.map(type::getVariant)
+					.orElseGet(() -> askVariant(type));
 
 			definition = new BuildingDefinition(variant);
 			map = new BuildingtestMap(definition);

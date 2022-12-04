@@ -14,6 +14,7 @@
  *******************************************************************************/
 package jsettlers.graphics.image;
 
+import java.util.List;
 import jsettlers.common.images.TextureMap;
 
 import java.io.BufferedInputStream;
@@ -21,6 +22,8 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import jsettlers.graphics.image.reader.ImageMetadata;
+import jsettlers.graphics.image.reader.translator.ImageDataProducer;
 
 /**
  * This class loads the image index from a file.
@@ -28,8 +31,7 @@ import java.util.ArrayList;
  * @author Michael Zangl
  */
 public class ImageIndexFile {
-	private static final int SHORTS_PER_IMAGE = 12;
-	private ImageIndexImage[] images = null;
+	private List<SingleImage> images = null;
 
 	/**
 	 * Gets the image reference with the given index.
@@ -44,11 +46,11 @@ public class ImageIndexFile {
 				load();
 			} catch (IOException e) {
 				e.printStackTrace();
-				images = new ImageIndexImage[0];
+				images = new ArrayList<>();
 			}
 		}
-		if (index < images.length) {
-			return images[index];
+		if (index < images.size()) {
+			return images.get(index);
 		} else {
 			return NullImage.getInstance();
 		}
@@ -57,49 +59,55 @@ public class ImageIndexFile {
 	private void load() throws IOException {
 		final DataInputStream in = new DataInputStream(new BufferedInputStream(getResource("texturemap")));
 
-		ArrayList<ImageIndexTexture> textures = new ArrayList<>();
-
 		byte[] header = new byte[4];
 		in.read(header);
-		if (header[0] != 'T' || header[1] != 'E' || header[2] != 'X' || header[3] != '1') {
+		if (header[0] != 'T' || header[1] != 'E' || header[2] != 'X' || header[3] != '2') {
 			throw new IOException("Texture file has wrong version.");
 		}
 
-		int length = in.available() / 2 / SHORTS_PER_IMAGE;
-
-		images = new ImageIndexImage[length];
-		for (int i = 0; i < length; i++) {
-			images[i] = readNextImage(in, textures);
+		images = new ArrayList<>();
+		while (in.available() > 0) {
+			images.add(readNextImage(in));
 		}
 	}
 
-	private ImageIndexImage readNextImage(final DataInputStream in, ArrayList<ImageIndexTexture> textures) throws IOException {
-		int offsetX = in.readShort();
-		int offsetY = in.readShort();
+	private SingleImage readNextImage(final DataInputStream in) throws IOException {
+		int offsetX = -in.readShort();
+		int offsetY = -in.readShort();
 		short width = in.readShort();
 		short height = in.readShort();
 		short textureFileNumber = in.readShort();
 		int torsoIndex = in.readInt();
-		boolean isTorso = in.readShort() > 0;
+		int shadowIndex = in.readInt();
+		String name = in.readUTF();
 
-		float uMin = (float) in.readShort() / Short.MAX_VALUE;
-		float vMin = (float) in.readShort() / Short.MAX_VALUE;
-		float uMax = (float) in.readShort() / Short.MAX_VALUE;
-		float vMax = (float) in.readShort() / Short.MAX_VALUE;
+		ImageMetadata metadata = new ImageMetadata();
+		metadata.height = height;
+		metadata.width = width;
+		metadata.offsetX = offsetX;
+		metadata.offsetY = offsetY;
 
-		while (textureFileNumber >= textures.size()) {
-			textures.add(new ImageIndexTexture(getResource("images_" + textures.size()), "texturemap-image"+textures.size()));
+		ImageDataProducer prod = new ImageIndexImageProducer(textureFileNumber);
+
+		if(torsoIndex >= 0 || shadowIndex >= 0) {
+			SettlerImage img = new SettlerImage(metadata, prod, name);
+			img.setTorso(getImageNegSafe(torsoIndex));
+			img.setShadow(getImageNegSafe(shadowIndex));
+			return img;
+		} else {
+			return new SingleImage(metadata, prod, name);
 		}
-
-		ImageIndexImage primaryImage = new ImageIndexImage(textures.get(textureFileNumber), offsetX, offsetY, width, height, uMin, vMin, uMax, vMax, isTorso);
-
-		if (torsoIndex >= 0) {
-			primaryImage.setTorso(images[torsoIndex]);
-		}
-		return primaryImage;
 	}
 
-	private InputStream getResource(String string) {
+	private SingleImage getImageNegSafe(int index) {
+		if(index >= 0) {
+			return images.get(index);
+		}
+
+		return null;
+	}
+
+	public static InputStream getResource(String string) {
 		return TextureMap.class.getResourceAsStream(string);
 	}
 }

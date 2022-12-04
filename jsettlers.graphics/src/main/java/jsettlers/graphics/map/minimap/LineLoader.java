@@ -31,7 +31,7 @@ class LineLoader extends AbstractLineLoader {
 	/**
 	 * The minimap image, including settlers.
 	 */
-	private short[][] buffer = new short[1][1];
+	private int[][] buffer = new int[1][1];
 
 	/**
 	 * Create a new LineLoader for the original ui mini map.
@@ -48,8 +48,8 @@ class LineLoader extends AbstractLineLoader {
 
 	@Override
 	protected void resizeBuffer(int width, int height) {
-		buffer = new short[height][width];
-		for (short[] line : buffer) {
+		buffer = new int[height][width];
+		for (int[] line : buffer) {
 			Arrays.fill(line, BLACK);
 		}
 		minimap.setBufferArray(buffer);
@@ -61,7 +61,7 @@ class LineLoader extends AbstractLineLoader {
 	}
 
 	@Override
-	protected void setBuffer(int currentline, int x, short color) {
+	protected void setBuffer(int currentline, int x, int color) {
 		buffer[currentline][x] = color;
 	}
 }

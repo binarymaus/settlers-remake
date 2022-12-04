@@ -1475,15 +1475,11 @@ public class MapObjectDrawer {
 		draw(image, x, y, BUILDING_SELECTION_MARKER_Z, Color.BLACK);
 	}
 
-	private void drawWithConstructionMask(int x, int y, float maskState, Image unsafeImage, float color) {
-		if (!(unsafeImage instanceof SingleImage)) {
-			return; // should not happen
-		}
+	private void drawWithConstructionMask(int x, int y, float maskState, Image image, float color) {
 		int height = context.getHeight(x, y);
 		float viewX = context.getConverter().getViewX(x, y, height);
 		float viewY = context.getConverter().getViewY(x, y, height);
 
-		SingleImage image = (SingleImage) unsafeImage;
 		// number of tiles in x direction, can be adjusted for performance
 		int tiles = 10;
 

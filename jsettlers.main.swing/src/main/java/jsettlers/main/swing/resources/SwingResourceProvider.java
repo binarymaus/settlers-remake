@@ -35,13 +35,16 @@ public class SwingResourceProvider implements IResourceProvider {
 
 	private static File getAppHome() {
 		String os = System.getProperty("os.name", "").toLowerCase(Locale.ENGLISH);
+		String xdgCfg = System.getenv("XDG_CONFIG_HOME");
 
 		String settlersHomeDirectory;
 		if (os.startsWith("windows")) {
 			settlersHomeDirectory = System.getenv("APPDATA") + File.separator + ".jsettlers";
+		} else if(xdgCfg != null) {
+			settlersHomeDirectory = xdgCfg + File.separator + "jsettlers";
 		} else {
 			String home = System.getProperty("user.home");
-			settlersHomeDirectory = home + File.separator + ".jsettlers";
+			settlersHomeDirectory = home + File.separator + ".config" + File.separator + "jsettlers";
 		}
 
 		File dirFile = new File(settlersHomeDirectory);

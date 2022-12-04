@@ -45,6 +45,7 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 
 import jsettlers.exceptionhandler.ExceptionHandler;
+import jsettlers.main.swing.JSettlersSwingUtil;
 import jsettlers.mapcreator.localization.EditorLabels;
 
 /**
@@ -86,11 +87,6 @@ public abstract class EditorFrame extends JFrame {
 	public static final String CHECKBOX_VALUE = "checkbox-value";
 
 	/**
-	 * Logo for windows
-	 */
-	public static final Image APP_ICON = new ImageIcon(EditorFrame.class.getResource("icon.png")).getImage();
-
-	/**
 	 * Constructor
 	 * 
 	 * @param root
@@ -104,7 +100,7 @@ public abstract class EditorFrame extends JFrame {
 		setFilename("unnamed");
 
 		setLayout(new BorderLayout());
-		setIconImage(APP_ICON);
+		setIconImage(JSettlersSwingUtil.APP_ICON);
 
 		registerActions();
 

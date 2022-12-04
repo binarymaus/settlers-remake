@@ -15,6 +15,7 @@
 
 package jsettlers.main.android.core.resources;
 
+import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ import jsettlers.common.images.ImageLink;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.graphics.image.Image;
 import jsettlers.graphics.image.SingleImage;
+import go.graphics.ImageData;
 import jsettlers.graphics.map.draw.ImageProvider;
 
 public class OriginalImageProvider {
@@ -97,17 +99,24 @@ public class OriginalImageProvider {
 
 		public void load() {
 			Image loaded = ImageProvider.getInstance().getImage(image);
-			int[] colors = new int[loaded.getWidth() * loaded.getHeight()];
+			int[] colors = new int[1];
+			int width = 1;
+			int height = 1;
+
 			if (loaded instanceof SingleImage) {
-				ShortBuffer data = ((SingleImage) loaded).getData().duplicate();
-				data.rewind();
-				for (int i = 0; i < colors.length; i++) {
-					colors[i] = Color.convertTo32Bit(data.get());
-				}
+				ImageData data = ((SingleImage) loaded).getData();
+				IntBuffer bfr = data.getReadData32();
+
+				width = data.getWidth();
+				height = data.getHeight();
+
+				colors = new int[width * height];
+				bfr.get(colors);
+				bfr.rewind();
 			} else {
 				// TODO: Handle error.
 			}
-			bm = Bitmap.createBitmap(colors, 0, loaded.getWidth(), loaded.getWidth(), loaded.getHeight(), Bitmap.Config.ARGB_8888);
+			bm = Bitmap.createBitmap(colors, 0, width, width, height, Bitmap.Config.ARGB_8888);
 
 			handler.post(() -> {
 				viewsToUpdate.forEach(this::realSetAsImage);

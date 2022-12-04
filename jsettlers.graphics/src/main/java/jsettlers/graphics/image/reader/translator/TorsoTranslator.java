@@ -30,14 +30,14 @@ public class TorsoTranslator implements DatBitmapTranslator<SingleImage> {
 	private static final int TORSO_BITS = 0x1f;
 
 	@Override
-	public short getTransparentColor() {
+	public int getTransparentColor() {
 		return 0;
 	}
 
 	@Override
-	public short readUntransparentColor(ByteReader reader) throws IOException {
-		int read = (reader.read8() & TORSO_BITS) >> 1; // only 5 bits, 4 used
-		return (short) (read << 12 | read << 8 | read << 4 | 0xf); // convert to 4444
+	public int readUntransparentColor(ByteReader reader) throws IOException {
+		int read = (int) ((reader.read8() & TORSO_BITS) * 255f/31f); // convert 5->8 bits
+		return (short) (read << 24 | read << 16 | read << 8 | 0xff); // convert to 8888
 	}
 
 	@Override

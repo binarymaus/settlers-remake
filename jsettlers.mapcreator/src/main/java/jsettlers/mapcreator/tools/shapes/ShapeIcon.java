@@ -101,6 +101,17 @@ public abstract class ShapeIcon implements Icon, Cloneable {
 		}
 	};
 
+	public static final ShapeIcon SYM_POINT = new ShapeIcon() {
+		@Override
+		protected void paint(Component c, Graphics2D g, int x, int y) {
+			g.fillOval(x+3, y+3, 3, 3);
+			g.drawLine(x+3, y+3, x+15,y+3);
+
+			g.fillOval(x+11, y+11, 3, 3);
+			g.drawLine(x+11, y+11, x+3,y+11);
+		}
+	};
+
 	/**
 	 * Background color
 	 */

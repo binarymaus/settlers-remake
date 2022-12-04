@@ -28,8 +28,8 @@ import jsettlers.graphics.image.reader.ImageMetadata;
  */
 public class ShadowTranslator implements DatBitmapTranslator<SingleImage> {
 	@Override
-	public short readUntransparentColor(ByteReader reader) throws IOException {
-		return 0x8; // shadow: A = 0.5 in 4444 coding
+	public int readUntransparentColor(ByteReader reader) throws IOException {
+		return 136; // shadow: A = 0.5 in 8888 coding
 	}
 
 	@Override
@@ -38,7 +38,7 @@ public class ShadowTranslator implements DatBitmapTranslator<SingleImage> {
 	}
 
 	@Override
-	public short getTransparentColor() {
+	public int getTransparentColor() {
 		return 0;
 	}
 

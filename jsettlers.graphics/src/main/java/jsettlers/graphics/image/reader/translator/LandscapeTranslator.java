@@ -42,13 +42,13 @@ public class LandscapeTranslator implements DatBitmapTranslator<SingleImage> {
 	}
 
 	@Override
-	public short getTransparentColor() {
+	public int getTransparentColor() {
 		return 0;
 	}
 
 	@Override
-	public short readUntransparentColor(ByteReader reader) throws IOException {
-		return type.convertTo4444(reader.read16());
+	public int readUntransparentColor(ByteReader reader) throws IOException {
+		return type.convertTo8888(reader.read16());
 	}
 
 	@Override

@@ -2,7 +2,6 @@ package go.graphics;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.ShortBuffer;
 import java.util.Arrays;
 
 public class ManagedHandle {
@@ -65,7 +64,10 @@ public class ManagedHandle {
 		return lowest_damage_placement;
 	}
 
-	protected UIPoint addTexture(ShortBuffer texData, int width, int height, int start) {
+	protected UIPoint addTexture(ImageData texture, int start) {
+		int width = texture.getWidth();
+		int height = texture.getHeight();
+
 		int leastRemaining = remaining_pixels[start];
 		for(int i = 0; i != width; i++) {
 			if(leastRemaining > remaining_pixels[i+start]) {
@@ -80,7 +82,7 @@ public class ManagedHandle {
 
 		// ...and populate it
 		try {
-			bufferHolder.dc.updateTexture(bufferHolder.texture, start, texture_size-leastRemaining, width, height, texData);
+			bufferHolder.dc.updateTexture(bufferHolder.texture, start, texture_size-leastRemaining, texture);
 		} catch(IllegalBufferException e) {}
 		return new UIPoint(start/(float)texture_size, (texture_size-leastRemaining)/(float)texture_size);
 	}

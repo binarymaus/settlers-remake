@@ -18,13 +18,12 @@ import go.graphics.AbstractColor;
 import go.graphics.ETextureType;
 import go.graphics.EUnifiedMode;
 import go.graphics.GLDrawContext;
+import go.graphics.ImageData;
 import go.graphics.TextureHandle;
 import go.graphics.UnifiedDrawHandle;
 
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.ShortBuffer;
+import java.nio.IntBuffer;
 
 /**
  * This class is a text drawer used to wrap the text renderer.
@@ -135,24 +134,18 @@ public abstract class AbstractTextDrawer<T extends GLDrawContext> {
 			}
 		}
 
-		ShortBuffer bfr = ByteBuffer.allocateDirect(tex_width*tex_height*2).order(ByteOrder.nativeOrder()).asShortBuffer();
+		ImageData img = new ImageData(tex_width, tex_height);
+		IntBuffer data = img.getWriteData32();
 
 		int[] pixels = getRGB();
 		endDraw();
 
-		final short alpha_channel = 0b1111;
-		final short alpha_white = ~alpha_channel;
 		for (int y = 0; y != tex_height; y++) {
-			for(int x = 0;x != tex_width;x++) {
-				int pixel = pixels[(tex_height-y-1)*tex_width+x];
-
-				short a = (short)(((pixel >> 24)&0xFF)*15f/255f);
-				bfr.put((short) (a | alpha_white));
-			}
+			data.put(pixels, (tex_height - y - 1) * tex_width, tex_width);
 		}
 
-		bfr.rewind();
-		font_tex = drawContext.generateTexture(max_len, tex_height, bfr, "text-drawer");
+		data.rewind();
+		font_tex = drawContext.generateTexture(img, "text-drawer");
 		if(font_tex != null) font_tex.setType(ETextureType.LINEAR_FILTER);
 	}
 

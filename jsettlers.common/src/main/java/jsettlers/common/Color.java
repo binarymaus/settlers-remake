@@ -119,6 +119,10 @@ public final class Color extends AbstractColor {
 		return new Color(red * color.getRed(), green * color.getGreen(), blue * color.getBlue(), alpha * color.getAlpha());
 	}
 
+	public Color multiply(float factor) {
+		return new Color(red * factor, green * factor, blue * factor, alpha);
+	}
+
 	/**
 	 * Gets the (float) alpha value.
 	 * 
@@ -194,6 +198,10 @@ public final class Color extends AbstractColor {
 		return (argb & 0xff00ff00) | ((argb & 0xff) << 16) | ((argb >> 16) & 0xff);
 	}
 
+	public int getRGBA() {
+		return ((argb >> 24)&0xff) | ((argb&0xffffff)<<8);
+	}
+
 	/**
 	 * Converts a color given in float values to ARGB.
 	 * 
@@ -250,8 +258,28 @@ public final class Color extends AbstractColor {
 		return (rgb565 & 0xf000) | ((rgb565 & 0x780) << 1) | ((rgb565 & 0x1e) << 3) | 0xf;
 	}
 
-	public static int convert555to4444(int argb555) {
-		return ((argb555 & 0x7800) << 1) | ((argb555 & 0x3c0) << 2) | ((argb555 & 0x1e) << 3) | 0xf;
+	public static int convert565to8888(int rgb565) {
+		return cnv5to8(rgb565 >> 11) << 24 | cnv6to8(rgb565 >> 5) << 16 | cnv5to8(rgb565) << 8 | 0xff;
+	}
+
+	public static int convert555to8888(int argb555) {
+		return cnv5to8(argb555>>10)<<24 | cnv5to8(argb555>>5)<<16 | cnv5to8(argb555) << 8 | 0xff;
+	}
+
+	public static int convert4444to8888(int argb4444) {
+		return cnv4to8(argb4444) << 24| cnv4to8(argb4444>>4) << 0 | cnv4to8(argb4444>>8) << 8 | cnv4to8(argb4444>>12) << 16;
+	}
+
+	private static int cnv4to8(int data) {
+		return (int)((data&0xF)*255f/15f);
+	}
+
+	private static int cnv5to8(int data) {
+		return (int)((data&0x1F)*255f/31f);
+	}
+
+	private static int cnv6to8(int data) {
+		return (int)((data&0x3F)*255f/63f);
 	}
 
 	/**

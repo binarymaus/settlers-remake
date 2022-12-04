@@ -20,7 +20,5 @@ public class ImagePreloadTask implements Runnable {
 	@Override
 	public void run() {
 		SettlerImageMap.getInstance();
-
-		Background.preloadTexture();
 	}
 }

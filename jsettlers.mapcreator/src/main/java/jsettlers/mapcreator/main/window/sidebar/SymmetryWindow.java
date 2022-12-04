@@ -13,7 +13,6 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JToolBar;
-import java.util.HashMap;
 import java.util.Map;
 
 public class SymmetryWindow extends JPanel {
@@ -55,5 +54,6 @@ public class SymmetryWindow extends JPanel {
 	static {
 		PRESETS.put(DefaultSymmetries.DEFAULT, ShapeIcon.NO_SYM);
 		PRESETS.put(DefaultSymmetries.REPEAT4, ShapeIcon.SYM_REPEAT4);
+		PRESETS.put(DefaultSymmetries.POINT, ShapeIcon.SYM_POINT);
 	}
 }

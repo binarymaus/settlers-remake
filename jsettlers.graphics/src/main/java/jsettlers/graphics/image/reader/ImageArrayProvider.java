@@ -40,5 +40,5 @@ public interface ImageArrayProvider {
 	 */
 	void startImage(int width, int height) throws IOException;
 
-	void writeLine(short[] data, int length) throws IOException;
+	void writeLine(int[] data, int length) throws IOException;
 }

@@ -102,8 +102,6 @@ public final class MapDrawContext implements IGLProvider {
 		new Color(0xFFFF578F)
 	};
 
-	public boolean ENABLE_ORIGINAL = true;
-
 	/**
 	 * Creates a new map context for a given map.
 	 *

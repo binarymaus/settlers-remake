@@ -21,8 +21,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
+import java.nio.file.Files;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -57,6 +61,8 @@ public class SelectSettlersFolderDialog extends JFrame {
 	private static final long serialVersionUID = 1L;
 
 	private static final String HELP_URL = "https://github.com/jsettlers/settlers-remake/blob/master/README.md";
+
+	private static final File FLATPAK_FLAG = new File("/.flatpak-info");
 
 	private final ExecutorService executorService = Executors.newSingleThreadExecutor(runnable -> {
 		Thread thread = new Thread(runnable, "fs-loader-thread");
@@ -182,6 +188,32 @@ public class SelectSettlersFolderDialog extends JFrame {
 			setSize(750, 640);
 			setLocationRelativeTo(null);
 		});
+	}
+
+	public static File askForFolder() {
+		if(FLATPAK_FLAG.exists()) {
+			try {
+				JOptionPane.showMessageDialog(null, Labels.getString("flatpak-description"));
+				Process proc = Runtime.getRuntime().exec(new String[]{"zenity", "--file-selection" ,"--directory" ,"--title", Labels.getString("flatpak-title")});
+				proc.waitFor();
+				String dir = null;
+				try(BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()))) {
+					dir = reader.readLine();
+				}
+				if(dir != null) {
+					return new File(dir);
+				}
+				return null;
+
+			} catch (IOException | InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+
+		final SelectSettlersFolderDialog folderChooser = new SelectSettlersFolderDialog();
+		SwingUtilities.invokeLater(() -> folderChooser.setVisible(true));
+
+		return folderChooser.waitForUserInput();
 	}
 
 	/**
