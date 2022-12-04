@@ -29,6 +29,7 @@ public class AttackableMovable extends Movable implements IAttackableMovable {
 
 		this.health -= hitStrength;
 		if (health <= 0) {
+			((Player)attackingPlayer).getEndgameStatistic().incremenetAmountOfKills();
 			this.kill();
 		}
 

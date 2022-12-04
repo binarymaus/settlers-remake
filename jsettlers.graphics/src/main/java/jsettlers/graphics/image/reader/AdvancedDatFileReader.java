@@ -250,12 +250,12 @@ public class AdvancedDatFileReader implements DatFileReader {
 	private final DatFileType type;
 	private final String file_name;
 
-	public static void main(String[] args) {
-		var file = new File("Siedler3_12.f8007e01f.dat");
-		var reader = new AdvancedDatFileReader(file, DatFileType.getForPath(file), "bla");
-		var list = reader.getSettlers();
-		var image = list.get(15);
-	}
+	// public static void main(String[] args) {
+	// 	var file = new File("Siedler3_12.f8007e01f.dat");
+	// 	var reader = new AdvancedDatFileReader(file, DatFileType.getForPath(file), "bla");
+	// 	var list = reader.getSettlers();
+	// 	var image = list.get(15);
+	// }
 
 	public AdvancedDatFileReader(File file, DatFileType type, String file_name) {
 		this(file, type, new DefaultDatFileMapping(), new IdentityShadowMapping(), file_name);
@@ -542,6 +542,33 @@ public class AdvancedDatFileReader implements DatFileReader {
 		DatBitmapReader.readCompressedData(reader, translator, metadata.width, metadata.height, array);
 	}
 
+	private SettlerImage replaceByCustomImage(SettlerImage settlerImage, String name) {
+		Path path = Paths.get("img/image " + 15 + "_"+ 16 + "_fake.png");
+		try {
+			var fakeImage = ImageIO.read(path.toFile());
+			BufferedImage bufferedImage = new BufferedImage(fakeImage.getWidth(), fakeImage.getHeight(), BufferedImage.TYPE_USHORT_555_RGB);
+			var pixels = ((DataBufferUShort)bufferedImage.getData().getDataBuffer()).getData();
+			for(var m = 0; m < pixels.length; m++) {
+				pixels[m] = (short)Color.convert555to4444(pixels[m]);
+				if(pixels[m] == 15) {
+					pixels[m] = 0;
+				}
+			}
+			var metadata = settlerImage.getMetadata();
+			metadata.height = 31;
+			metadata.width = 45;
+
+			var image = settlerTranslator.createImage(metadata, () -> {
+				return ShortBuffer.wrap(pixels);
+			}, name);
+			
+			return image;
+		} catch (IOException ex) {
+			return settlerImage;
+		}
+				
+	}
+
 	private synchronized void loadSettlers(int goldIndex, String name) throws IOException {
 		initializeIfNeeded();
 		int realSettlerIndex = mapping.mapSettlersSequence(goldIndex);
@@ -554,27 +581,10 @@ public class AdvancedDatFileReader implements DatFileReader {
 		
 		for (int i = 0; i < framePositions.length; i++) {
 			images[i] = DatBitmapReader.getImage(settlerTranslator, this, framePositions[i], name + "-S" + goldIndex + ":" + i);
-			if(goldIndex == 15 && i >= 12 && i <= 23) {
-				Path path = Paths.get("img/image " + 15 + "_"+ 16 + "_fake.png");
-				var fakeImage = ImageIO.read(path.toFile());
-				BufferedImage bufferedImage = new BufferedImage(fakeImage.getWidth(), fakeImage.getHeight(), BufferedImage.TYPE_USHORT_555_RGB);
-				var pixels = ((DataBufferUShort)bufferedImage.getData().getDataBuffer()).getData();
-				for(var m = 0; m < pixels.length; m++) {
-					pixels[m] = (short)Color.convert555to4444(pixels[m]);
-					if(pixels[m] == 15) {
-						pixels[m] = 0;
-					}
-				}
-				var metadata = images[i].getMetadata();
-				metadata.height = 31;
-				metadata.width = 45;
-
-				var image = settlerTranslator.createImage(metadata, () -> {
-					return ShortBuffer.wrap(pixels);
-				}, name);
-				
-				images[i] = image;
-			}
+			
+			// if(goldIndex == 15 && i >= 12 && i <= 23) {
+			// 	images[i] = replaceByCustomImage(images[i], name);
+			// }
 		}
 				
 		int torsoPosition = torsoStarts[realSettlerIndex];

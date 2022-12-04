@@ -28,6 +28,7 @@ public class EndgameStatistic implements IEndgameStatistic, Serializable {
 	private Player player;
 	private short amountOfProducedSoldiers = 0;
 	private short amountOfProducedGold = 0;
+	private long amountOfKills = 0;
 
 	public EndgameStatistic(Player player) {
 		this.player = player;
@@ -49,6 +50,11 @@ public class EndgameStatistic implements IEndgameStatistic, Serializable {
 	}
 
 	@Override
+	public long getAmountOfKills() {
+		return amountOfKills;
+	}
+
+	@Override
 	public String getName() {
 		return player.getPlayerType().toString();
 	}
@@ -64,6 +70,10 @@ public class EndgameStatistic implements IEndgameStatistic, Serializable {
 
 	public void incrementAmountOfProducedGold() {
 		amountOfProducedGold++;
+	}
+
+	public void incremenetAmountOfKills() {
+		amountOfKills++;
 	}
 
 	@Override

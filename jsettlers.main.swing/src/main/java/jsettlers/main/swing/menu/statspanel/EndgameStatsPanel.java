@@ -54,7 +54,7 @@ public class EndgameStatsPanel extends BackgroundPanel {
 	private static final String[] columns = new String[] {
 			Labels.getString("stats-panel-name"),
 			Labels.getString("stats-panel-team"),
-			Labels.getString("stats-panel-manna"),
+			Labels.getString("stats-panel-kills"),
 			Labels.getString("stats-panel-gold"),
 			Labels.getString("stats-panel-soldiers"),
 	};
@@ -79,7 +79,7 @@ public class EndgameStatsPanel extends BackgroundPanel {
 
 		row[0] = igs.getName();
 		row[1] = "" + igs.getTeam();
-		row[2] = "" + igs.getAmountOfProducedMana();
+		row[2] = "" + igs.getAmountOfKills();
 		row[3] = "" + igs.getAmountOfProducedGold();
 		row[4] = "" + igs.getAmountOfProducedSoldiers();
 
