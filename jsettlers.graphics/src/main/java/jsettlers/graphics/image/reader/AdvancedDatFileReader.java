@@ -542,32 +542,32 @@ public class AdvancedDatFileReader implements DatFileReader {
 		DatBitmapReader.readCompressedData(reader, translator, metadata.width, metadata.height, array);
 	}
 
-	private SettlerImage replaceByCustomImage(SettlerImage settlerImage, String name) {
-		Path path = Paths.get("img/image " + 15 + "_"+ 16 + "_fake.png");
-		try {
-			var fakeImage = ImageIO.read(path.toFile());
-			BufferedImage bufferedImage = new BufferedImage(fakeImage.getWidth(), fakeImage.getHeight(), BufferedImage.TYPE_USHORT_555_RGB);
-			var pixels = ((DataBufferUShort)bufferedImage.getData().getDataBuffer()).getData();
-			for(var m = 0; m < pixels.length; m++) {
-				pixels[m] = (short)Color.convert555to4444(pixels[m]);
-				if(pixels[m] == 15) {
-					pixels[m] = 0;
-				}
-			}
-			var metadata = settlerImage.getMetadata();
-			metadata.height = 31;
-			metadata.width = 45;
+	// private SettlerImage replaceByCustomImage(SettlerImage settlerImage, String name) {
+	// 	Path path = Paths.get("img/image " + 15 + "_"+ 16 + "_fake.png");
+	// 	try {
+	// 		var fakeImage = ImageIO.read(path.toFile());
+	// 		BufferedImage bufferedImage = new BufferedImage(fakeImage.getWidth(), fakeImage.getHeight(), BufferedImage.TYPE_USHORT_555_RGB);
+	// 		var pixels = ((DataBufferUShort)bufferedImage.getData().getDataBuffer()).getData();
+	// 		for(var m = 0; m < pixels.length; m++) {
+	// 			pixels[m] = (short)Color.convert555to4444(pixels[m]);
+	// 			if(pixels[m] == 15) {
+	// 				pixels[m] = 0;
+	// 			}
+	// 		}
+	// 		var metadata = settlerImage.getMetadata();
+	// 		metadata.height = 31;
+	// 		metadata.width = 45;
 
-			var image = settlerTranslator.createImage(metadata, () -> {
-				return ShortBuffer.wrap(pixels);
-			}, name);
+	// 		var image = settlerTranslator.createImage(metadata, () -> {
+	// 			return ShortBuffer.wrap(pixels);
+	// 		}, name);
 			
-			return image;
-		} catch (IOException ex) {
-			return settlerImage;
-		}
+	// 		return image;
+	// 	} catch (IOException ex) {
+	// 		return settlerImage;
+	// 	}
 				
-	}
+	// }
 
 	private synchronized void loadSettlers(int goldIndex, String name) throws IOException {
 		initializeIfNeeded();
