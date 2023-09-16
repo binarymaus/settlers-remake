@@ -28,6 +28,7 @@ import java.awt.Window;
 import java.awt.event.WindowEvent;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.swing.SwingUtilities;
@@ -180,7 +181,7 @@ public class GLFWContextCreator extends AsyncContextCreator {
 			}
 
 			if(action == GLFW.GLFW_PRESS) {
-				startKeyEvent(name);
+				startKeyEvent(name, new HashSet<EModifier>());
 			} else if(action == GLFW.GLFW_RELEASE){
 				endKeyEvent(name);
 			}

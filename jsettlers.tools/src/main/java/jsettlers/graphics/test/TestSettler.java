@@ -49,6 +49,16 @@ public class TestSettler implements IGraphicsMovable, IGraphicsFerry, IGraphicsC
 	}
 
 	@Override
+	public void setUnitGroup(int unitGroup) {
+		
+	}
+
+	@Override
+	public int getUnitGroup() {
+		return 0;
+	}
+
+	@Override
 	public EMovableAction getAction() {
 		return EMovableAction.WALKING;
 	}

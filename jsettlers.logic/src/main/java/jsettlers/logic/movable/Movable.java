@@ -121,6 +121,8 @@ public abstract class Movable implements ILogicMovable, FoWTask {
 
 	private boolean leavePosition = false;
 
+	private int unitGroup = -1;
+
 	private transient Tick<? extends Movable> tick;
 
 	protected Movable(AbstractMovableGrid grid, EMovableType movableType, ShortPoint2D position, Player player, Movable replace) {
@@ -145,6 +147,14 @@ public abstract class Movable implements ILogicMovable, FoWTask {
 		playerControlled = movableType.playerControllable;
 
 		this.id = MovableManager.requestId(this, replace);
+	}
+
+	public int getUnitGroup() {
+		return this.unitGroup;
+	}
+
+	public void setUnitGroup(int unitGroup) {
+		this.unitGroup = unitGroup;
 	}
 
 	/**
