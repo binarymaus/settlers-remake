@@ -12,24 +12,20 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *******************************************************************************/
-package jsettlers.mapcreator.main.window;
+package jsettlers.mapcreator.main.window.newmap;
 
-import java.awt.Color;
 import java.awt.Component;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.JComboBox;
-import javax.swing.JList;
-import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
 
-import jsettlers.common.landscape.ELandscapeType;
 import jsettlers.logic.map.loading.newmap.MapFileHeader;
 import jsettlers.logic.map.loading.newmap.MapFileHeader.MapType;
+import jsettlers.mapcreator.data.MapData;
 import jsettlers.mapcreator.localization.EditorLabels;
-import jsettlers.mapcreator.main.window.sidebar.RectIcon;
+import jsettlers.mapcreator.main.window.MapHeaderEditorPanel;
 
 /**
  * Panel to create a new file
@@ -46,16 +42,9 @@ public class NewFilePanel extends Box {
 	private static final MapFileHeader DEFAULT = new MapFileHeader(MapType.NORMAL, "new map", null, "", (short) 300, (short) 300, (short) 1,
 			(short) 10, null, new short[MapFileHeader.PREVIEW_IMAGE_SIZE * MapFileHeader.PREVIEW_IMAGE_SIZE]);
 
-	/**
-	 * Available ground types
-	 */
-	private static final ELandscapeType[] GROUND_TYPES = new ELandscapeType[] { ELandscapeType.WATER8, ELandscapeType.GRASS,
-			ELandscapeType.DRY_GRASS, ELandscapeType.SNOW, ELandscapeType.DESERT };
-
-	/**
-	 * Selected ground type
-	 */
-	private final JComboBox<ELandscapeType> groundTypes;
+	private final FillNewFilePanel fillPanel = new FillNewFilePanel();
+	private final ImageImportPanel imgImport = new ImageImportPanel();
+	private final JTabbedPane creationType = new JTabbedPane();
 
 	/**
 	 * Header editor panel
@@ -72,34 +61,23 @@ public class NewFilePanel extends Box {
 		add(headerEditor);
 		headerEditor.getNameField().selectAll();
 
-		JPanel ground = new JPanel();
-		ground.setBorder(BorderFactory.createTitledBorder(EditorLabels.getLabel("newfile.ground-type")));
+		creationType.addTab(EditorLabels.getLabel("newfile.ground-type"), fillPanel);
+		creationType.addTab(EditorLabels.getLabel("newfile.image"), imgImport);
 
-		this.groundTypes = new JComboBox<>(GROUND_TYPES);
-		ground.add(groundTypes);
-		groundTypes.setRenderer(new DefaultListCellRenderer() {
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-
-				ELandscapeType type = (ELandscapeType) value;
-				setIcon(new RectIcon(22, new Color(type.color.getARGB()), Color.GRAY));
-				setText(EditorLabels.getLabel("landscape." + type.name()));
-
-				return this;
-			}
-		});
-		add(ground);
+		add(creationType);
 
 	}
 
 	/**
 	 * @return The selected ground type
 	 */
-	public ELandscapeType getGroundTypes() {
-		return (ELandscapeType) groundTypes.getSelectedItem();
+	public MapData getMapData() {
+		Component current = creationType.getSelectedComponent();
+		if(current == null) {
+			current = fillPanel;
+		}
+
+		return ((InitialMapProvider) current).getMapData(getHeader());
 	}
 
 	/**

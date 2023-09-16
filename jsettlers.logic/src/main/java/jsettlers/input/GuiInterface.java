@@ -40,6 +40,7 @@ import jsettlers.common.action.MoveToAction;
 import jsettlers.common.action.PointAction;
 import jsettlers.common.action.ScreenChangeAction;
 import jsettlers.common.action.SelectAreaAction;
+import jsettlers.common.action.SelectMovablesAction;
 import jsettlers.common.action.SetAcceptedStockMaterialAction;
 import jsettlers.common.action.SetBuildingPriorityAction;
 import jsettlers.common.action.SetDockAction;
@@ -181,7 +182,11 @@ public class GuiInterface implements IMapInterfaceListener, ITaskExecutorGuiInte
 					}
 				}
 				break;
-
+			case SELECT_MOVABLES: {
+				var a = (SelectMovablesAction)action;
+				setSelection(new SelectionSet(a.getSelection()));
+				break;
+			}
 			case SPEED_TOGGLE_PAUSE:
 				clock.invertPausing();
 				break;

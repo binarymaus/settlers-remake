@@ -117,7 +117,7 @@ public class LwjglTest {
 
 			if(point_index < 2) return;
 
-			if(pointGeometry == null || !pointGeometry.isValid()) pointGeometry = gl2.createUnifiedDrawCall(2, null, null, new float[] {0, 0, 1, 1});
+			if(pointGeometry == null || !pointGeometry.isValid()) pointGeometry = gl2.createUnifiedDrawCall(2, null, null, null, new float[] {0, 0, 1, 1});
 
 			synchronized (pointLock) {
 				for (int i = 1; i != point_index; i++) {

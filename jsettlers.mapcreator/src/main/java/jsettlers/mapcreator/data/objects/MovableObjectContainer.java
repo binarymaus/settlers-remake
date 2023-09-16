@@ -63,6 +63,17 @@ public class MovableObjectContainer implements ObjectContainer, IGraphicsMovable
 	}
 
 	@Override
+	public void setUnitGroup(int unitGroup) {
+		
+	}
+
+	@Override
+	public int getUnitGroup() {
+		return 0;
+	}
+
+
+	@Override
 	public boolean isWounded() {
 		return false;
 	}

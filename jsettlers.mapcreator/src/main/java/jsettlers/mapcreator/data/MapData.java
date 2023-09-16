@@ -47,6 +47,7 @@ import jsettlers.logic.map.loading.data.objects.StackMapDataObject;
 import jsettlers.logic.map.loading.data.objects.StoneMapDataObject;
 import jsettlers.logic.map.loading.newmap.FreshMapSerializer;
 import jsettlers.logic.map.loading.newmap.FreshMapSerializer.IMapDataReceiver;
+import jsettlers.logic.map.loading.newmap.MapFileHeader;
 import jsettlers.mapcreator.data.MapDataDelta.HeightChange;
 import jsettlers.mapcreator.data.MapDataDelta.LandscapeChange;
 import jsettlers.mapcreator.data.MapDataDelta.ObjectAdder;
@@ -98,6 +99,10 @@ public class MapData implements IMapData {
 	private       IGraphicsBackgroundListener backgroundListener;
 
 	private LandscapeEditor landscapeEditor = new LandscapeEditor((pt) -> getLandscape(pt.x, pt.y), (pt, type) -> setLandscape(pt.x, pt.y, type));
+
+	public MapData(MapFileHeader header, ELandscapeType ground) {
+		this(header.getWidth(), header.getHeight(), header.getMaxPlayers(), ground);
+	}
 
 	public MapData(int width, int height, int playerCount, ELandscapeType ground) {
 		if (width <= 0 || height <= 0) {
@@ -315,6 +320,10 @@ public class MapData implements IMapData {
 			}
 		}
 
+		setHeightUnsafe(x, y, height);
+	}
+
+	public void setHeightUnsafe(int x, int y, int height) {
 		byte safeHeight;
 		if (height >= Byte.MAX_VALUE) {
 			safeHeight = Byte.MAX_VALUE;

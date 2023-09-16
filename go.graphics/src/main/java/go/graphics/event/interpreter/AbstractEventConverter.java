@@ -22,6 +22,7 @@ import java.util.Set;
 import go.graphics.UIPoint;
 import go.graphics.event.GOEvent;
 import go.graphics.event.GOEventHandlerProvider;
+import go.graphics.event.GOGroupEvent;
 import go.graphics.event.GOKeyEvent;
 import go.graphics.event.SingleHandlerGoEvent;
 import go.graphics.event.command.EModifier;
@@ -209,7 +210,9 @@ public class AbstractEventConverter {
 		return EnumSet.noneOf(EModifier.class);
 	}
 
-	protected synchronized void startKeyEvent(String string) {
+	protected synchronized void startKeyEvent(String string, Set<EModifier> currentModifiers) {
+		var event = new GOGroupEvent(string, currentModifiers);
+		handleEvent(event);
 		if (ongoingKeyEvent == null) {
 			ongoingKeyEvent = new GOKeyEvent(string);
 			replaceKeyEvent(ongoingKeyEvent);

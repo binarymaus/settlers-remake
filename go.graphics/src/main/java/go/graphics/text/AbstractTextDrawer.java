@@ -168,7 +168,7 @@ public abstract class AbstractTextDrawer<T extends GLDrawContext> {
 				line_offset += char_widths[l*TEXTURE_LINE_LEN+c]+char_spacing;
 			}
 		}
-		geometry = drawContext.createUnifiedDrawCall(CHARACTER_COUNT*4, "text-drawer", font_tex, geodata);
+		geometry = drawContext.createUnifiedDrawCall(CHARACTER_COUNT*4, "text-drawer", font_tex, font_tex, geodata);
 		geometry.forceNoCache();
 	}
 

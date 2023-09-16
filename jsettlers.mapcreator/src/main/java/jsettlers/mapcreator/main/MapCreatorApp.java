@@ -19,16 +19,12 @@ import javax.swing.ToolTipManager;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
-import jsettlers.common.resources.ResourceManager;
 import jsettlers.logic.map.loading.MapLoadException;
 import jsettlers.exceptionhandler.ExceptionHandler;
 import jsettlers.main.swing.JSettlersSwingUtil;
 import jsettlers.main.swing.SwingManagedJSettlers;
-import jsettlers.main.swing.resources.SwingResourceProvider;
-import jsettlers.main.swing.settings.SettingsManager;
 import jsettlers.mapcreator.control.EditorControl;
-import jsettlers.mapcreator.main.window.EditorFrame;
-import jsettlers.mapcreator.main.window.NewFilePanel;
+import jsettlers.mapcreator.main.window.newmap.NewFilePanel;
 import jsettlers.mapcreator.main.window.NewOrOpenDialog;
 import jsettlers.mapcreator.main.window.OpenPanel;
 
@@ -91,7 +87,7 @@ public class MapCreatorApp {
 		} else {
 			NewFilePanel newFile = dlg.getNewFilePanel();
 			EditorControl control = new EditorControl();
-			control.createNewMap(newFile.getHeader(), newFile.getGroundTypes());
+			control.createNewMap(newFile.getHeader(), newFile.getMapData());
 		}
 	}
 

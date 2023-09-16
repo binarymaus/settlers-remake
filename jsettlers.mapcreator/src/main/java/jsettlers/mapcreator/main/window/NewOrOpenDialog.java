@@ -22,6 +22,7 @@ import javax.swing.JFrame;
 import javax.swing.JTabbedPane;
 
 import jsettlers.mapcreator.localization.EditorLabels;
+import jsettlers.mapcreator.main.window.newmap.NewFilePanel;
 
 /**
  * Display a dialog to create a new map or open an existing one, displayed at startup

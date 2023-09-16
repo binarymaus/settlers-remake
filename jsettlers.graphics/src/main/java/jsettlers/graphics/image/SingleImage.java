@@ -176,6 +176,7 @@ public class SingleImage extends Image implements ImageDataPrivider {
 				geometryIndex.texY,
 				geometryIndex.texHeight,
 				geometryIndex.texture,
+				geometryIndex.texture2,
 				toffsetX,
 				toffsetY,
 				theight,

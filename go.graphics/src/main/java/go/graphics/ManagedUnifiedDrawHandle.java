@@ -6,7 +6,7 @@ public class ManagedUnifiedDrawHandle extends UnifiedDrawHandle {
 	private final ManagedHandle parent;
 
 	protected ManagedUnifiedDrawHandle(ManagedHandle parent, float texX, float texY, float texWidth, float texHeight) {
-		super(parent.bufferHolder.dc, parent.bufferHolder.id, 4*parent.quad_index++, 4, parent.bufferHolder.texture, parent.bufferHolder.vertices);
+		super(parent.bufferHolder.dc, parent.bufferHolder.id, 4*parent.quad_index++, 4, parent.bufferHolder.texture, parent.bufferHolder.texture2, parent.bufferHolder.vertices);
 		this.texX = texX;
 		this.texY = texY;
 		this.parent = parent;

@@ -204,7 +204,17 @@ public class BearerMovable extends CivilianMovable implements IBearerMovable, IM
 					EOfferPriority minimumAcceptedPriority = mov.request != null ? mov.request.getMinimumAcceptedOfferPriority() : EOfferPriority.LOWEST;
 					return mov.offer.isStillValid(minimumAcceptedPriority);
 				}),
-				take(mov -> mov.materialType, true),
+				selector(
+					take(mov -> mov.materialType, true),
+					sequence(
+						action(mov -> {
+							// material might have been stolen
+							mov.offer.offerTaken();
+							mov.offer = null;
+						}),
+						alwaysFail()
+					)
+				),
 				action(mov -> {
 					mov.offer.offerTaken();
 					mov.offer = null;

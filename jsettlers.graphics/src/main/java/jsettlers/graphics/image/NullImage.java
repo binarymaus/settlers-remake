@@ -77,7 +77,7 @@ public final class NullImage extends SingleImage {
 
 	@Override
 	public void drawOnlyImageAt(GLDrawContext gl, float x, float y, float z, Color torsoColor, float fow) {
-		if(nullGeometry == null || !nullGeometry.isValid()) nullGeometry = gl.createUnifiedDrawCall(4,  "placeholder/null", null, nullData);
+		if(nullGeometry == null || !nullGeometry.isValid()) nullGeometry = gl.createUnifiedDrawCall(4,  "placeholder/null", null, null, nullData);
 
 		nullGeometry.drawSimple(EPrimitiveType.Quad, x, y, z, 1, 1, null, NULL_IMAGE_ALPHA);
 		nullGeometry.drawSimple(EPrimitiveType.LineLoop, x, y, z, 1, 1, Color.RED, 1);

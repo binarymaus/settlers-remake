@@ -16,7 +16,6 @@ package jsettlers.graphics.debug;
 
 import go.graphics.EPrimitiveType;
 import go.graphics.GLDrawContext;
-import go.graphics.IllegalBufferException;
 import go.graphics.UnifiedDrawHandle;
 import go.graphics.area.Area;
 import go.graphics.event.GOEvent;
@@ -194,7 +193,7 @@ public class DatFileTester {
 		private void drawImage(GLDrawContext gl2, int y, int index, int x, SingleImage image) {
 			image.drawAt(gl2, x - image.getOffsetX(), y + image.getHeight() + image.getOffsetY(), 0, colors[index % colors.length], 1);
 
-			if(lineGeometry == null) lineGeometry = gl2.createUnifiedDrawCall(3, null, null, new float[] {0, 0, 0, 1, 1, 1});
+			if(lineGeometry == null) lineGeometry = gl2.createUnifiedDrawCall(3, null, null, null, new float[] {0, 0, 0, 1, 1, 1});
 			lineGeometry.drawSimple(EPrimitiveType.LineStrip, x, y, 0, -image.getOffsetX(), image.getHeight() + image.getOffsetY(), Color.RED, 1);
 		}
 

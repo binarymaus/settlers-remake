@@ -32,12 +32,14 @@ import jsettlers.ai.highlevel.pioneers.PioneerAi;
 import jsettlers.ai.highlevel.pioneers.PioneerGroup;
 import jsettlers.ai.highlevel.pioneers.target.SameBlockedPartitionLikePlayerFilter;
 import jsettlers.ai.highlevel.pioneers.target.SurroundedByResourcesFilter;
+import jsettlers.common.CommonConstants;
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.landscape.EResourceType;
 import jsettlers.common.material.EMaterialType;
 import jsettlers.common.movable.EMovableType;
 import jsettlers.common.player.ECivilisation;
 import jsettlers.common.player.IInGamePlayer;
+import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.input.tasks.ConstructBuildingTask;
 import jsettlers.input.tasks.ConvertGuiTask;
@@ -46,6 +48,7 @@ import jsettlers.input.tasks.EGuiAction;
 import jsettlers.input.tasks.MoveToGuiTask;
 import jsettlers.input.tasks.WorkAreaGuiTask;
 import jsettlers.logic.buildings.Building;
+import jsettlers.logic.constants.MatchConstants;
 import jsettlers.logic.map.grid.MainGrid;
 import jsettlers.logic.map.grid.movable.MovableGrid;
 import jsettlers.logic.movable.interfaces.ILogicMovable;
@@ -55,7 +58,7 @@ import static jsettlers.ai.highlevel.AiBuildingConstants.*;
 import static jsettlers.common.buildings.EBuildingType.*;
 import static jsettlers.common.material.EMaterialType.GEMS;
 import static jsettlers.common.material.EMaterialType.GOLD;
-import static jsettlers.common.material.EMaterialType.MEAD;
+
 import jsettlers.common.action.EMoveToType;
 
 /**
@@ -313,7 +316,26 @@ class WhatToDoAi implements IWhatToDoAi {
 			}
 		}
 
-		List<ShortPoint2D> threatenedBorder = aiStatistics.threatenedBorderOf(playerId);
+		List<ShortPoint2D> threatenedBorder = new ArrayList<>();
+		if(CommonConstants.AI_MORE_TOWERS.get()) {
+			int width = mainGrid.getWidth();
+			int height = mainGrid.getHeight();
+
+			// just guess some tower positions
+			for(int i = 0; i < 1000; i++) {
+				int x = MatchConstants.aiRandom().nextInt(0, width);
+				int y = MatchConstants.aiRandom().nextInt(0, height);
+
+				IPlayer player = mainGrid.getPartitionsGrid().getPlayerAt(x, y);
+				if (player == null || player.getPlayerId() != playerId) continue;
+
+				if (!mainGrid.getPartitionsGrid().isEnforcedByTower(x, y)) {
+					threatenedBorder.add(new ShortPoint2D(x, y));
+				}
+			}
+		}
+
+		threatenedBorder.addAll(aiStatistics.threatenedBorderOf(playerId));
 		if (threatenedBorder.size() == 0) {
 			return false;
 		}

@@ -106,4 +106,6 @@ public abstract class CommonConstants {
 	public static Supplier<Boolean> PLAYALL_MUSIC = () -> false;
 
 	public static Supplier<Float> MUSIC_VOLUME = () -> 1f;
+
+	public static Supplier<Boolean> AI_MORE_TOWERS = () -> false;
 }

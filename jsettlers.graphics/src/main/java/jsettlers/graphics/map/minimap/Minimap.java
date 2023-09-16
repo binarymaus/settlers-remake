@@ -160,8 +160,8 @@ public final class Minimap implements IMinimapData {
 			}
 
 			if(geometry == null || !geometry.isValid()) {
-				geometry = context.createUnifiedDrawCall(4, "minimap", texture, new float[] {0, 0, 0, 0, width, 0, 1, 0,(stride + 1) * width, height, 1, 1, stride * width, height, 0, 1});
-				lineGeometry = context.createUnifiedDrawCall(6, "minimap-frame", null, null);
+				geometry = context.createUnifiedDrawCall(4, "minimap", texture, null, new float[] {0, 0, 0, 0, width, 0, 1, 0,(stride + 1) * width, height, 1, 1, stride * width, height, 0, 1});
+				lineGeometry = context.createUnifiedDrawCall(6, "minimap-frame", null, null, null);
 			}
 
 			if(updateGeometry) {

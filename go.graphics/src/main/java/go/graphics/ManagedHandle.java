@@ -83,6 +83,8 @@ public class ManagedHandle {
 		// ...and populate it
 		try {
 			bufferHolder.dc.updateTexture(bufferHolder.texture, start, texture_size-leastRemaining, texture);
+			// TODO properly fill tex2
+			bufferHolder.dc.updateTexture(bufferHolder.texture2, start, texture_size-leastRemaining, texture);
 		} catch(IllegalBufferException e) {}
 		return new UIPoint(start/(float)texture_size, (texture_size-leastRemaining)/(float)texture_size);
 	}

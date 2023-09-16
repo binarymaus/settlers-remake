@@ -15,6 +15,8 @@
 
 package jsettlers.main.android.core.resources;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
@@ -97,6 +99,18 @@ public class OriginalImageProvider {
 			this.image = image;
 		}
 
+
+		private IntBuffer fixRGBA8Buffer(IntBuffer orig) {
+			IntBuffer bfr = ByteBuffer.allocateDirect(orig.remaining()*4).order(ByteOrder.nativeOrder()).asIntBuffer();
+			while(orig.hasRemaining()) {
+				int color = orig.get();
+				bfr.put(((color<<24)&0xFF000000) | ((color >> 8)&0xFFFFFF));
+			}
+			orig.rewind();
+			bfr.rewind();
+			return bfr;
+		}
+
 		public void load() {
 			Image loaded = ImageProvider.getInstance().getImage(image);
 			int[] colors = new int[1];
@@ -105,7 +119,7 @@ public class OriginalImageProvider {
 
 			if (loaded instanceof SingleImage) {
 				ImageData data = ((SingleImage) loaded).getData();
-				IntBuffer bfr = data.getReadData32();
+				IntBuffer bfr = fixRGBA8Buffer(data.getReadData32());
 
 				width = data.getWidth();
 				height = data.getHeight();

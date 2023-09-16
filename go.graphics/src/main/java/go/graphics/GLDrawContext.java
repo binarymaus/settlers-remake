@@ -75,19 +75,14 @@ public abstract class GLDrawContext {
 	}
 
 	/**
-	 *
-	 * @param vertices
-	 * 		Maximum number of vertices
-	 * @param name
-	 * 		The label that the OpenGL handles get (nullable)
-	 * @param texture
-	 * 		It determines whether this handle is textured or only single colored
-	 * @param data
-	 * 		If data is not equal null this will be a readonly buffer filled with data
-	 * @return
-	 * 		A handle to draw via the unified shader
+	 * @param vertices Maximum number of vertices
+	 * @param name     The label that the OpenGL handles get (nullable)
+	 * @param texture  It determines whether this handle is textured or only single colored
+	 * @param texture2
+	 * @param data     If data is not equal null this will be a readonly buffer filled with data
+	 * @return A handle to draw via the unified shader
 	 */
-	public abstract UnifiedDrawHandle createUnifiedDrawCall(int vertices, String name, TextureHandle texture, float[] data);
+	public abstract UnifiedDrawHandle createUnifiedDrawCall(int vertices, String name, TextureHandle texture, TextureHandle texture2, float[] data);
 
 	protected abstract MultiDrawHandle createMultiDrawCall(String name, ManagedHandle source);
 
@@ -109,7 +104,8 @@ public abstract class GLDrawContext {
 		int texture_size = getMaxManagedTextureSize();
 
 		TextureHandle tex = generateTexture(new ImageData(texture_size, texture_size), "managed" + ManagedHandle.instance_count);
-		UnifiedDrawHandle parent = createUnifiedDrawCall(quad_count*4, "managed" + ManagedHandle.instance_count, tex, null);
+		TextureHandle tex2 = generateTexture(new ImageData(texture_size, texture_size), "managed" + ManagedHandle.instance_count + "-2");
+		UnifiedDrawHandle parent = createUnifiedDrawCall(quad_count*4, "managed" + ManagedHandle.instance_count, tex, tex2, null);
 		managedHandles.add(new ManagedHandle(parent, quad_count, texture_size));
 	}
 

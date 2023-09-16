@@ -704,7 +704,7 @@ public class VulkanDrawContext extends GLDrawContext implements VkDrawContext {
 	}
 
 	@Override
-	public UnifiedDrawHandle createUnifiedDrawCall(int vertices, String name, TextureHandle texture, float[] data) {
+	public UnifiedDrawHandle createUnifiedDrawCall(int vertices, String name, TextureHandle texture, TextureHandle texture2, float[] data) {
 		BufferHandle vertexBuffer = memoryManager.createBuffer(vertices*(texture!=null?4:2)*4, EVulkanMemoryType.STATIC, EVulkanBufferUsage.VERTEX_UNIFORM_BUFFER);
 		if (data != null) {
 			try(MemoryStack stack = MemoryStack.stackPush()) {
@@ -714,7 +714,7 @@ public class VulkanDrawContext extends GLDrawContext implements VkDrawContext {
 			}
 		}
 
-		return new UnifiedDrawHandle(this, -1, 0, vertices, texture, vertexBuffer);
+		return new UnifiedDrawHandle(this, -1, 0, vertices, texture, texture2, vertexBuffer);
 	}
 
 	@Override

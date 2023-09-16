@@ -51,10 +51,10 @@ public class LWJGLDrawContext extends GLDrawContext {
 
 		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-		if(glcaps.GL_ARB_instanced_arrays && glcaps.GL_ARB_uniform_buffer_object) {
+		if(glcaps.GL_ARB_instanced_arrays && glcaps.GL_ARB_uniform_buffer_object && false) {
 			prog_unified_multi = new ShaderProgram("unified-multi");
 		}
-		if(glcaps.GL_EXT_draw_instanced) prog_unified_array = new ShaderProgram("unified-array");
+		if(glcaps.GL_EXT_draw_instanced && false) prog_unified_array = new ShaderProgram("unified-array");
 		prog_background = new ShaderProgram("background");
 		prog_unified = new ShaderProgram("unified");
 
@@ -71,7 +71,7 @@ public class LWJGLDrawContext extends GLDrawContext {
 	final GLCapabilities glcaps;
 
 	private BufferHandle lastGeometry = null;
-	private TextureHandle lastTexture = null;
+	private TextureHandle[] lastTextures = new TextureHandle[2];
 
 	private ShaderProgram lastProgram = null;
 	private void useProgram(ShaderProgram id) {
@@ -108,27 +108,34 @@ public class LWJGLDrawContext extends GLDrawContext {
 	}
 
 	public TextureHandle resizeTexture(TextureHandle textureIndex, ImageData image) {
-		bindTexture(textureIndex);
+		bindTextures(textureIndex, textureIndex);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.getWidth(), image.getHeight(), 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, image.getReadData32());
 		return textureIndex;
 	}
 	
 	public void updateTexture(TextureHandle texture, int left, int bottom,
 							  ImageData image) {
-		bindTexture(texture);
+		bindTextures(texture, texture);
 		glTexSubImage2D(GL_TEXTURE_2D, 0, left, bottom, image.getWidth(), image.getHeight(),
 				GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, image.getReadData32());
 	}
 
-	protected void bindTexture(TextureHandle texture) {
-		if(lastTexture != texture) {
+	protected void bindTextures(TextureHandle... textures) {
+		for(int i = 0; i < textures.length; i++) {
+			TextureHandle texture = textures[i];
+
+			if(lastTextures[i] == texture) continue;
+
 			int id = 0;
-			if (texture != null) {
+			if(texture != null) {
 				id = texture.getTextureId();
 			}
+
+			glActiveTexture(GL_TEXTURE0 + i);
 			glBindTexture(GL_TEXTURE_2D, id);
-			lastTexture = texture;
 		}
+
+		lastTextures = textures;
 	}
 
 	private void bindGeometry(BufferHandle geometry) {
@@ -229,7 +236,7 @@ public class LWJGLDrawContext extends GLDrawContext {
 	}
 
 	@Override
-	public UnifiedDrawHandle createUnifiedDrawCall(int vertices, String name, TextureHandle texture, float[] data) {
+	public UnifiedDrawHandle createUnifiedDrawCall(int vertices, String name, TextureHandle texture, TextureHandle texture2, float[] data) {
 		int vao = -1;
 
 		if(glcaps.GL_ARB_vertex_array_object) vao = glGenVertexArrays();
@@ -244,7 +251,7 @@ public class LWJGLDrawContext extends GLDrawContext {
 			glBufferData(GL_ARRAY_BUFFER, vertices*(texture!=null?4:2)*4, GL_DYNAMIC_DRAW);
 		}
 
-		UnifiedDrawHandle handle = new UnifiedDrawHandle(this, vao, 0, vertices, texture, vertexBuffer);
+		UnifiedDrawHandle handle = new UnifiedDrawHandle(this, vao, 0, vertices, texture, texture2, vertexBuffer);
 
 		if(glcaps.GL_ARB_vertex_array_object) {
 			bindFormat(vao);
@@ -340,7 +347,7 @@ public class LWJGLDrawContext extends GLDrawContext {
 	}
 
 	protected void drawMulti(MultiDrawHandle call) {
-		bindTexture(call.sourceQuads.texture);
+		bindTextures(call.sourceQuads.texture, call.sourceQuads.texture2);
 
 		if(call.getVertexArrayId() != -1) {
 			bindFormat(call.getVertexArrayId());
@@ -357,7 +364,7 @@ public class LWJGLDrawContext extends GLDrawContext {
 	}
 
 	public void drawUnifiedArray(UnifiedDrawHandle call, int primitive, int vertexCount, float[] trans, float[] colors, int array_len) {
-		if(call.texture != null) bindTexture(call.texture);
+		if(call.texture != null) bindTextures(call.texture, call.texture2);
 
 		if(call.getVertexArrayId() != -1) {
 			bindFormat(call.getVertexArrayId());
@@ -396,7 +403,7 @@ public class LWJGLDrawContext extends GLDrawContext {
 
 	@Override
 	public void drawUnified(UnifiedDrawHandle call, int primitive, int count, int mode, float x, float y, float z, float sx, float sy, AbstractColor color, float intensity) {
-		if(call.texture != null) bindTexture(call.texture);
+		if(call.texture != null) bindTextures(call.texture, call.texture2);
 		useProgram(prog_unified);
 
 		if(call.getVertexArrayId() != -1) {
@@ -437,7 +444,7 @@ public class LWJGLDrawContext extends GLDrawContext {
 	}
 
 	public void drawBackground(BackgroundDrawHandle handle) {
-		bindTexture(handle.texture);
+		bindTextures(handle.texture, handle.texture);
 		useProgram(prog_background);
 		if(handle.getVertexArrayId() != -1) {
 			bindFormat(handle.getVertexArrayId());
@@ -466,6 +473,7 @@ public class LWJGLDrawContext extends GLDrawContext {
 		public final int global;
 		public final int trans;
 		public final int tex;
+		public final int tex2;
 		public final int color;
 		public final int height;
 		public final int mode;
@@ -520,6 +528,7 @@ public class LWJGLDrawContext extends GLDrawContext {
 			global = glGetUniformLocation(program, "globalTransform");
 			trans = glGetUniformLocation(program, "transform");
 			tex = glGetUniformLocation(program, "texHandle");
+			tex2 = glGetUniformLocation(program, "tex2Handle");
 			color = glGetUniformLocation(program, "color");
 			height = glGetUniformLocation(program, "height");
 			mode = glGetUniformLocation(program, "mode");
@@ -534,6 +543,7 @@ public class LWJGLDrawContext extends GLDrawContext {
 
 			useProgram(this);
 			if(tex != -1) glUniform1i(tex, 0);
+			if(tex2 != -1) glUniform1f(tex2, 1);
 
 			shaders.add(this);
 		}

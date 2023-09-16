@@ -467,7 +467,7 @@ public class DatFileViewer extends JFrame implements ListSelectionListener {
 		private void drawImage(GLDrawContext gl2, int x, int y, int index, SingleImage image) {
 			image.drawAt(gl2, x - image.getOffsetX(), y + image.getHeight() + image.getOffsetY(), 0, colors[index % colors.length], 1);
 
-			if(lineGeometry == null) lineGeometry = gl2.createUnifiedDrawCall(3, null, null, new float[] {0, 0, 0, 1, 1, 1});
+			if(lineGeometry == null) lineGeometry = gl2.createUnifiedDrawCall(3, null, null, null, new float[] {0, 0, 0, 1, 1, 1});
 			lineGeometry.drawSimple(EPrimitiveType.LineStrip, x, y, 0, -image.getOffsetX(), image.getHeight() + image.getOffsetY(), Color.RED, 1);
 		}
 

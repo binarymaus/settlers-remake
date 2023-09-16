@@ -1,7 +1,6 @@
 package go.graphics.swing.opengl;
 
 import go.graphics.ETextureType;
-import go.graphics.GLDrawContext;
 import go.graphics.TextureHandle;
 
 import static org.lwjgl.opengl.GL11C.GL_LINEAR;
@@ -20,7 +19,7 @@ public class LWJGLTextureHandle extends TextureHandle {
 	public void setType(ETextureType type) {
 		super.setType(type);
 
-		((LWJGLDrawContext)dc).bindTexture(this);
+		((LWJGLDrawContext)dc).bindTextures(this, this);
 		switch(getType()) {
 			case LINEAR_FILTER:
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

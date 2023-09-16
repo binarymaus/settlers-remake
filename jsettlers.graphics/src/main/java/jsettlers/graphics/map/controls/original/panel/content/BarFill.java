@@ -58,7 +58,7 @@ public class BarFill extends UIPanel {
 		FloatRectangle position = getPosition();
 		float fillX = barFillPercentage < .01f ? 0 : barFillPercentage > .99f ? 1 : EMPTY_X * (1 - barFillPercentage) + FULL_X * barFillPercentage;
 
-		if(geometry == null || !geometry.isValid()) geometry = gl.createUnifiedDrawCall(4, "barfill", null, new float[] {0, 0, 0, 1, 1, 1, 1, 0});
+		if(geometry == null || !geometry.isValid()) geometry = gl.createUnifiedDrawCall(4, "barfill", null, null, new float[] {0, 0, 0, 1, 1, 1, 1, 0});
 		geometry.drawSimple(EPrimitiveType.Quad, position.getMinX(), position.getMinY(), 0, position.getWidth()*fillX, position.getHeight(), barColor, 1);
 
 		super.drawBackground(gl);

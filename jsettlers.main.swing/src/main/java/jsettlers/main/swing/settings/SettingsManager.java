@@ -72,6 +72,8 @@ public class SettingsManager implements ISoundSettingsProvider {
 	private static final String SETTING_BUILDING = "building";
 	private static final String SETTING_CIVILISATION = "civ";
 
+	private static final String SETTING_AI_TOWER_FOCUS = "ai-tower-focus";
+
 	private static SettingsManager manager;
 
 	private final Properties storedSettings = new Properties();
@@ -82,6 +84,7 @@ public class SettingsManager implements ISoundSettingsProvider {
 
 		CommonConstants.PLAYALL_MUSIC = manager::isMusicPlayAll;
 		CommonConstants.MUSIC_VOLUME = manager::getMusicVolume;
+		CommonConstants.AI_MORE_TOWERS = manager::getAiTowerFocus;
 	}
 
 	public static SettingsManager getInstance() {
@@ -224,8 +227,18 @@ public class SettingsManager implements ISoundSettingsProvider {
 				.map(s -> ECivilisation.valueOf(s.toUpperCase()));
 	}
 
+	public boolean getAiTowerFocus() {
+		return Optional.ofNullable(get(SETTING_AI_TOWER_FOCUS))
+				.map(Boolean::parseBoolean)
+				.orElse(false);
+	}
+
 	public EBackendType getBackend() {
 		return BackendSelector.getBackendByName(getOrDefault(SETTING_BACKEND, () -> EBackendType.DEFAULT.cc_name));
+  }
+
+  public void setAiNoPioneers(boolean aiNoPioneers) {
+		set(SETTING_AI_TOWER_FOCUS, Boolean.toString(aiNoPioneers));
   }
 	public void setVolume(float volume) {
 		set(SETTING_VOLUME, Float.toString(volume));

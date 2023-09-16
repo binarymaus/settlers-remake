@@ -3,6 +3,7 @@
 in vec2 frag_texcoord;
 
 uniform sampler2D texHandle;
+uniform sampler2D tex2Handle;
 uniform float shadow_depth;
 
 uniform lowp int mode;

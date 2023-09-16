@@ -46,7 +46,6 @@ import go.graphics.swing.sound.SwingSoundPlayer;
 
 import jsettlers.common.CommonConstants;
 import jsettlers.common.buildings.EBuildingType;
-import jsettlers.common.landscape.ELandscapeType;
 import jsettlers.graphics.map.MapDrawContext;
 import jsettlers.logic.map.loading.MapLoadException;
 import jsettlers.common.menu.FakeMapGame;
@@ -78,7 +77,7 @@ import jsettlers.mapcreator.main.action.StartDrawingAction;
 import jsettlers.mapcreator.main.map.MapEditorControls;
 import jsettlers.mapcreator.main.window.EditorFrame;
 import jsettlers.mapcreator.main.window.LastUsedHandler;
-import jsettlers.mapcreator.main.window.NewFileDialog;
+import jsettlers.mapcreator.main.window.newmap.NewFileDialog;
 import jsettlers.mapcreator.main.window.OpenExistingDialog;
 import jsettlers.mapcreator.main.window.SettingsDialog;
 import jsettlers.mapcreator.main.window.sidebar.RectIcon;
@@ -237,11 +236,11 @@ public class EditorControl extends EditorControlBase implements IMapInterfaceLis
 	 * 
 	 * @param header
 	 *            Header of the file to open
-	 * @param ground
-	 *            Ground to use for the new map
+	 * @param data
+	 *            Initial state of the map
 	 */
-	public void createNewMap(MapFileHeader header, ELandscapeType ground) {
-		loadMap(header, new MapData(header.getWidth(), header.getHeight(), header.getMaxPlayers(), ground));
+	public void createNewMap(MapFileHeader header, MapData data) {
+		loadMap(header, data);
 	}
 
 	/**
@@ -394,7 +393,7 @@ public class EditorControl extends EditorControlBase implements IMapInterfaceLis
 
 		// create new control for new map
 		EditorControl control = new EditorControl();
-		control.createNewMap(header, dlg.getGroundTypes());
+		control.createNewMap(header, dlg.getNewMapData());
 	}
 
 	/**

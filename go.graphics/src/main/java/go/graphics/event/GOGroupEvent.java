@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2015 - 2016
+ * Copyright (c) 2015
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -12,57 +12,48 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *******************************************************************************/
-package jsettlers.mapcreator.main.window;
+package go.graphics.event;
 
-import java.awt.BorderLayout;
+import java.util.Set;
 
-import javax.swing.JFrame;
-
-import jsettlers.common.landscape.ELandscapeType;
-import jsettlers.logic.map.loading.newmap.MapFileHeader;
-import jsettlers.mapcreator.localization.EditorLabels;
+import go.graphics.event.command.EModifier;
 
 /**
- * Display new file dialog
+ * This is a go key event.
  * 
- * @author Andreas Butti
+ * @author michael
+ *
  */
-public class NewFileDialog extends AbstractOkCancelDialog {
-	private static final long serialVersionUID = 1L;
+public class GOGroupEvent extends SingleHandlerGoEvent {
+	private final String keyCode;
+	private Set<EModifier> modifiers;
 
 	/**
-	 * Panel with the editfield
-	 */
-	private NewFilePanel newFilePanel = new NewFilePanel();
-
-	/**
-	 * Constructor
+	 * Creates a new key event for a given key code.
 	 * 
-	 * @param parent
-	 *            Parent to center on
+	 * @param keyCode
+	 *            The key code.
 	 */
-	public NewFileDialog(JFrame parent) {
-		super(parent);
-		setTitle(EditorLabels.getLabel("newfile.header"));
-
-		add(newFilePanel, BorderLayout.CENTER);
-
-		pack();
-		setLocationRelativeTo(parent);
-		setModal(true);
+	public GOGroupEvent(String keyCode, Set<EModifier> modifiers) {
+		this.keyCode = keyCode;
+		this.modifiers = modifiers;
 	}
 
 	/**
-	 * @return The selected ground type
+	 * Gets the key code the event has.
+	 * 
+	 * @return The key code.
 	 */
-	public ELandscapeType getGroundTypes() {
-		return newFilePanel.getGroundTypes();
+	public String getKeyCode() {
+		return keyCode;
 	}
 
-	/**
-	 * @return The configured map header
+		/**
+	 * Gets the key code the event has.
+	 * 
+	 * @return The key code.
 	 */
-	public MapFileHeader getHeader() {
-		return newFilePanel.getHeader();
+	public Set<EModifier> getModifiers() {
+		return modifiers;
 	}
 }

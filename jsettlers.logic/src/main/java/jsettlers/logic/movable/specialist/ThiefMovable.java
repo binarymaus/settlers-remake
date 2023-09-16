@@ -86,10 +86,11 @@ public class ThiefMovable extends AttackableHumanMovable implements IGraphicsThi
 						selector(
 							condition(mov -> mov.getMaterial() != EMaterialType.NO_MATERIAL),
 							sequence(
-								stealMaterial(),
 								action(mov -> {
+									// 
 									mov.goToTarget = mov.returnPos;
-								})
+								}),
+								stealMaterial()
 							)
 						)
 					)

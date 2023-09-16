@@ -3,15 +3,17 @@ package go.graphics;
 public class UnifiedDrawHandle extends GLResourceIndex {
 	public final BufferHandle vertices;
 	public TextureHandle texture;
+	public TextureHandle texture2;
 
 	public int offset;
 	public final int vertexCount;
 
-	public UnifiedDrawHandle(GLDrawContext dc, int id, int offset, int vertexCount, TextureHandle texture, BufferHandle vertices) {
+	public UnifiedDrawHandle(GLDrawContext dc, int id, int offset, int vertexCount, TextureHandle texture, TextureHandle texture2, BufferHandle vertices) {
 		super(dc, id);
 		this.vertexCount = vertexCount;
 		this.vertices = vertices;
 		this.texture = texture;
+		this.texture2 = texture2;
 		this.offset = offset;
 	}
 

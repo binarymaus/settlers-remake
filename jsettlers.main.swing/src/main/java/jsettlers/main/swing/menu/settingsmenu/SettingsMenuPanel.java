@@ -51,6 +51,7 @@ public class SettingsMenuPanel extends JPanel {
 	private final JCheckBox playAllMusicCheckBox = new JCheckBox();
 	private final SettingsSlider fpsLimitSlider = new SettingsSlider("fps", 0,240, "timerless redraw");
 	private final SettingsSlider guiScaleSlider = new SettingsSlider("%", 50,400, "system default");
+	private final JCheckBox aiTowerFocusCheckBox = new JCheckBox();
 	private final BackendSelector backendSelector = new BackendSelector();
 
 	/**
@@ -87,6 +88,7 @@ public class SettingsMenuPanel extends JPanel {
 		addSetting("settings-backend", backendSelector);
 
 		addSetting("settings-gui-scale", guiScaleSlider);
+		addSetting("settings-ai-tower-focus", aiTowerFocusCheckBox);
 		
 		initButton();
 	}
@@ -125,6 +127,7 @@ public class SettingsMenuPanel extends JPanel {
 			settingsManager.setFpsLimit(fpsLimitSlider.getValue());
 			settingsManager.setBackend(backendSelector.getSelectedItem()+"");
 			settingsManager.setGuiScale(guiScaleSlider.getValue()/100f);
+			settingsManager.setAiNoPioneers(aiTowerFocusCheckBox.isSelected());
 			mainMenuPanel.reset();
 		});
 
@@ -144,5 +147,6 @@ public class SettingsMenuPanel extends JPanel {
 		fpsLimitSlider.setValue(settingsManager.getFpsLimit());
 		backendSelector.setSelectedItem(settingsManager.getBackend());
 		guiScaleSlider.setValue(Math.round(settingsManager.getGuiScale()*100));
+		aiTowerFocusCheckBox.setSelected(settingsManager.getAiTowerFocus());
 	}
 }

@@ -28,7 +28,9 @@ import jsettlers.common.sound.ISoundable;
  */
 public interface IGraphicsMovable extends ISelectable, ILocatable, ISoundable, IIDable {
 
-	EMovableType getMovableType();
+	int getUnitGroup();
+	void setUnitGroup(int unitGroup);
+    EMovableType getMovableType();
 
 	/**
 	 * Get the current action that the movable is doing.

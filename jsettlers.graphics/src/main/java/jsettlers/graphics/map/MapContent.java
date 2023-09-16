@@ -16,7 +16,11 @@ package jsettlers.graphics.map;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
+import java.util.HashMap;
+import java.util.List;
 
 import go.graphics.EPrimitiveType;
 import java.util.Optional;
@@ -27,6 +31,7 @@ import go.graphics.UIPoint;
 import go.graphics.UnifiedDrawHandle;
 import go.graphics.event.GOEvent;
 import go.graphics.event.GOEventHandler;
+import go.graphics.event.GOGroupEvent;
 import go.graphics.event.GOKeyEvent;
 import go.graphics.event.GOModalEventHandler;
 import go.graphics.event.command.EModifier;
@@ -49,6 +54,7 @@ import jsettlers.common.action.IAction;
 import jsettlers.common.action.PointAction;
 import jsettlers.common.action.ScreenChangeAction;
 import jsettlers.common.action.SelectAreaAction;
+import jsettlers.common.action.SelectMovablesAction;
 import jsettlers.common.action.ShowConstructionMarksAction;
 import jsettlers.common.buildings.BuildingVariant;
 import jsettlers.common.buildings.EBuildingType;
@@ -68,11 +74,14 @@ import jsettlers.common.menu.IStartedGame;
 import jsettlers.common.menu.UIState;
 import jsettlers.common.action.EMoveToType;
 import jsettlers.common.action.MoveToAction;
+import jsettlers.common.menu.messages.EMessageType;
 import jsettlers.common.menu.messages.IMessage;
+import jsettlers.common.menu.messages.SimpleMessage;
 import jsettlers.common.movable.IGraphicsMovable;
 import jsettlers.common.player.IPlayer;
 import jsettlers.common.position.FloatRectangle;
 import jsettlers.common.position.ShortPoint2D;
+import jsettlers.common.selectable.ISelectable;
 import jsettlers.common.selectable.ISelectionSet;
 import go.graphics.FramerateComputer;
 import jsettlers.common.statistics.IGameTimeProvider;
@@ -86,6 +95,7 @@ import jsettlers.graphics.font.FontDrawerFactory;
 import jsettlers.graphics.localization.Labels;
 import jsettlers.graphics.map.controls.IControls;
 import jsettlers.graphics.map.controls.original.OriginalControls;
+import jsettlers.graphics.map.controls.original.panel.button.SelectionManager;
 import jsettlers.graphics.map.draw.Background;
 import jsettlers.graphics.map.draw.DrawConstants;
 import jsettlers.graphics.map.draw.ImageProvider;
@@ -503,7 +513,7 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 		if (this.currentSelectionAreaStart != null && this.currentSelectionAreaEnd != null) {
 
 			if(selectionArea == null || !selectionArea.isValid()) {
-				selectionArea = gl.createUnifiedDrawCall(4, "selection-area", null, new float[] {0, 0, 1, 0, 1, 1, 0, 1});
+				selectionArea = gl.createUnifiedDrawCall(4, "selection-area", null, null, new float[] {0, 0, 1, 0, 1, 1, 0, 1});
 			}
 
 			float width = (float)(currentSelectionAreaEnd.getX() - currentSelectionAreaStart.getX());
@@ -684,7 +694,7 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 	private void drawDebugColors() {
 		GLDrawContext gl = this.context.getGl();
 
-		if(shapeHandle == null || !shapeHandle.isValid()) shapeHandle = gl.createUnifiedDrawCall(4, "debugshape", null, shape);
+		if(shapeHandle == null || !shapeHandle.isValid()) shapeHandle = gl.createUnifiedDrawCall(4, "debugshape", null, null, shape);
 
 		context.getScreenArea().stream().filterBounds(width, height).forEach((x, y) -> {
 			int argb = map.getDebugColorAt(x, y, debugColorMode);
@@ -704,6 +714,46 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 	 */
 	private void drawBackground(FloatRectangle screen) {
 		this.background.drawMapContent(this.context, screen);
+	}
+
+	private void handleGroupEvent(GOGroupEvent event) {
+			var keyEvent = (GOGroupEvent)event;
+			var keyCode = keyEvent.getKeyCode();
+			int intCode;
+			try {
+				intCode = Integer.parseInt(keyCode);
+			} catch (NumberFormatException e) {
+				return;
+			}
+			var controlKeyDown = keyEvent.getModifiers().contains(EModifier.CTRL);
+			if(intCode < 1 || intCode > 5) {
+				return;
+			}
+			var stream = Arrays.stream(this.movableGrid)
+			.filter(x -> x != null)
+			.filter(a -> a.getPlayer().getPlayerId() == localPlayer.getPlayerId());
+			List<ISelectable> currentSelection = new ArrayList<ISelectable>();
+			stream.forEach(s -> {
+				if(controlKeyDown) {
+					if(s.isSelected()) {
+						s.setUnitGroup(intCode);
+					}
+					else {
+						// All other units from this group which are not selected -> -1
+						if(s.getUnitGroup() == intCode) {
+							s.setUnitGroup(-1);
+						}
+					}
+					return;
+				}
+				// select units
+				if(s.getUnitGroup() == intCode) {
+					currentSelection.add(s);
+				}
+			});
+			if(currentSelection.size() > 0) {
+				this.connector.fireAction(new SelectMovablesAction(currentSelection));
+			}		
 	}
 
 	@Override
@@ -734,6 +784,9 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 		} else if (event instanceof GOZoomEvent) {
 			GOZoomEvent zoomEvent = (GOZoomEvent) event;
 			handleZoom(zoomEvent);
+		}
+		else if (event instanceof GOGroupEvent) {
+			handleGroupEvent((GOGroupEvent)event);
 		}
 	}
 
