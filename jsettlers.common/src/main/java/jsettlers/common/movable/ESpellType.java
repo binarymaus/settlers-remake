@@ -53,8 +53,8 @@ public enum ESpellType {
 	ROMAN_SEND_TROOPS(20, true, ECivilisation.ROMAN, "original_14_GUI_225"),
 	EGYPTIAN_SEND_TROOPS(20, true, ECivilisation.EGYPTIAN, "original_24_GUI_219"),
 	ASIAN_SEND_TROOPS(20, true, ECivilisation.ASIAN, "original_34_GUI_234"),
-	AMAZON_SEND_TROOPS(20, true, ECivilisation.AMAZON, "original_44_GUI_228"),
-	CLEAR_LAND(50, true, null, "original_44_GUI_164");
+	AMAZON_SEND_TROOPS(20, true, ECivilisation.AMAZON, "original_44_GUI_228");
+	//CLEAR_LAND(50, true, null, "original_44_GUI_164");
 
 
 	private short manna;

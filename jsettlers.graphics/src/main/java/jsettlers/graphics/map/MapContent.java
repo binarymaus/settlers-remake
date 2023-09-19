@@ -858,9 +858,6 @@ public final class MapContent implements RegionContent, IMapInterfaceListener, A
 			return new Action(EActionType.TOGGLE_DEBUG);
 		} else if ("o".equalsIgnoreCase(keyCode)) {
 			return new Action(EActionType.TOGGLE_ORIGINAL_GRAPHICS);
-		} else if ("q".equalsIgnoreCase(keyCode)) {
-			// TODO: Only show the exit menu.
-			return new Action(EActionType.EXIT);
 		} else if ("w".equalsIgnoreCase(keyCode)) {
 			return new Action(EActionType.TOGGLE_FOG_OF_WAR);
 		} else if ("z".equalsIgnoreCase(keyCode)) {
