@@ -3,6 +3,7 @@ package jsettlers.logic.movable.military;
 import jsettlers.algorithms.path.Path;
 import jsettlers.algorithms.simplebehaviortree.Node;
 import jsettlers.algorithms.simplebehaviortree.Root;
+import jsettlers.common.action.EMoveToType;
 import jsettlers.common.buildings.OccupierPlace;
 import jsettlers.common.movable.EDirection;
 import jsettlers.common.movable.EEffectType;
@@ -33,15 +34,15 @@ public abstract class SoldierMovable extends AttackableHumanMovable implements I
 	private ShortPoint2D inTowerAttackPosition;
 	protected boolean defending;
 
-	private ShortPoint2D currentTarget = null;
-	private ShortPoint2D goToTarget = null;
+	protected ShortPoint2D currentTarget = null;
+	protected ShortPoint2D goToTarget = null;
 
-	private int patrolStep = -1;
-	private ShortPoint2D[] patrolPoints = null;
+	protected int patrolStep = -1;
+	public ShortPoint2D[] patrolPoints = null;
 
-	private boolean enemyNearby;
+	public boolean enemyNearby;
 	private IAttackable toCloseEnemy;
-	private ShortPoint2D startPoint;
+	protected ShortPoint2D startPoint;
 
 
 	public SoldierMovable(AbstractMovableGrid grid, EMovableType movableType, ShortPoint2D position, Player player, Movable movable) {
@@ -56,6 +57,16 @@ public abstract class SoldierMovable extends AttackableHumanMovable implements I
 		for(EMovableType type : EMovableType.SOLDIERS) {
 			MovableManager.registerBehaviour(type, behaviour);
 		}
+	}
+
+	@Override
+	public void stopOrStartWorking(boolean stop) {
+		if(!playerControlled) return;
+
+		nextTarget = position;
+		nextMoveToType = stop? EMoveToType.FORCED : EMoveToType.DEFAULT;
+		goingToHealer = false;
+		isStopped = true;
 	}
 
 	private static Node<SoldierMovable> createSoldierBehaviour() {
@@ -143,7 +154,7 @@ public abstract class SoldierMovable extends AttackableHumanMovable implements I
 					)
 				),
 				// attack enemy
-				guard(mov -> mov.enemyNearby && !mov.isInTower,
+				guard(mov -> !mov.isStopped && mov.enemyNearby && !mov.isInTower,
 					selector(
 						sequence(
 							// handle potential enemy
@@ -213,7 +224,7 @@ public abstract class SoldierMovable extends AttackableHumanMovable implements I
 		);
 	}
 
-	private static Node<SoldierMovable> findTooCloseEnemy() {
+	static Node<SoldierMovable> findTooCloseEnemy() {
 		return sequence(
 				condition(mov -> mov.getMinSearchDistance() > 0),
 				condition(mov -> {
@@ -224,14 +235,14 @@ public abstract class SoldierMovable extends AttackableHumanMovable implements I
 		);
 	}
 
-	private static Node<SoldierMovable> findEnemy() {
+	protected static Node<SoldierMovable> findEnemy() {
 		return condition(mov -> {
 			mov.enemy = mov.grid.getEnemyInSearchArea(mov.getAttackPosition(), mov, mov.getMinSearchDistance(), mov.getMaxSearchDistance(), !mov.defending);
 			return mov.enemy != null;
 		});
 	}
 
-	private static Node<SoldierMovable> attackEnemy() {
+	protected static Node<SoldierMovable> attackEnemy() {
 		return sequence(
 				condition(SoldierMovable::isEnemyValid),
 				condition(SoldierMovable::isEnemyAttackable),
@@ -259,7 +270,7 @@ public abstract class SoldierMovable extends AttackableHumanMovable implements I
 
 	}
 
-	private void abortGoTo() {
+	protected void abortGoTo() {
 		currentTarget = null;
 		goToTarget = null;
 		patrolStep = -1;

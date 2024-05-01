@@ -44,7 +44,7 @@ public final class DrawConstants {
 
 	public static final long AVAILABLE_SOLDIERS_EXPIRE_TIME = 1000L*1000L;
 
-	public static boolean FORCE_ORIGINAL = true;
+	public static boolean FORCE_ORIGINAL = false;
 
 	private DrawConstants() {
 	}

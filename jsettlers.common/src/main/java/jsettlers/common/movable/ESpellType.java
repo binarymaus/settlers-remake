@@ -47,7 +47,15 @@ public enum ESpellType {
 
 	REMOVE_GOLD(20, true, ECivilisation.AMAZON, "original_44_GUI_264"),
 	CALL_GOODS(25, false, ECivilisation.AMAZON, "original_44_GUI_267"),
-	DESTROY_ARROWS(40, true, ECivilisation.AMAZON, "original_44_GUI_270");
+	DESTROY_ARROWS(40, true, ECivilisation.AMAZON, "original_44_GUI_270"),
+
+	// custom spells
+	ROMAN_SEND_TROOPS(20, true, ECivilisation.ROMAN, "original_14_GUI_225"),
+	EGYPTIAN_SEND_TROOPS(20, true, ECivilisation.EGYPTIAN, "original_24_GUI_219"),
+	ASIAN_SEND_TROOPS(20, true, ECivilisation.ASIAN, "original_34_GUI_234"),
+	AMAZON_SEND_TROOPS(20, true, ECivilisation.AMAZON, "original_44_GUI_228");
+	//CLEAR_LAND(50, true, null, "original_44_GUI_164");
+
 
 	private short manna;
 	private ImageLink imageLink;
@@ -92,6 +100,7 @@ public enum ESpellType {
 	public static final int DEFEATISM_MAX_SOLDIERS = 20;
 	public static final int INCREASE_MORALE_MAX_SOLDIERS = 20;
 	public static final int SEND_FOES_MAX_SOLDIERS = 20;
+	public static final int SEND_TROOPS_MAX_SOLDIERS = 200;
 	public static final int CALL_HELP_MAX_SOLDIERS = 20;
 	public static final int CURSE_BOWMAN_MAX_BOWMAN = 20;
 	public static final int DESTROY_ARROWS_MAX_BOWMAN = 20;

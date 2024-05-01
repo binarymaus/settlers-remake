@@ -7,7 +7,6 @@ import go.graphics.text.EFontSize;
 import jsettlers.common.action.Action;
 import jsettlers.common.action.AskCastSpellAction;
 import jsettlers.common.action.EActionType;
-import jsettlers.common.images.ImageLink;
 import jsettlers.common.movable.ESpellType;
 import jsettlers.common.player.IInGamePlayer;
 import jsettlers.common.player.IMannaInformation;
@@ -22,13 +21,11 @@ import jsettlers.graphics.ui.UIPanel;
 public class PriestSelectionContent extends AbstractSelectionContent {
 
 	private final IMannaInformation mannaInformation;
-	private final ISelectionSet selection;
 	private final Label availableManna;
 	private final String availableMannaString;
 
 	public PriestSelectionContent(ISelectionSet selection) {
 		super();
-		this.selection = selection;
 		spell_cost = Labels.getString("spell_cost");
 
 		availableManna = new Label("", EFontSize.NORMAL);
@@ -50,7 +47,7 @@ public class PriestSelectionContent extends AbstractSelectionContent {
 		for(ESpellType spell : ESpellType.values()) {
 			if(!spell.availableForCiv(selectionPlayer.getCivilisation())) continue;
 
-			float top = .95f-i*.1f;
+			float top = .95f-i* 0.07f;
 			panel.addChild(new SpellContent(spell), .1f, top-.1f, 1, top);
 
 			i++;
@@ -84,6 +81,7 @@ public class PriestSelectionContent extends AbstractSelectionContent {
 		private final ESpellType spell;
 		private final Button spell_icon;
 		private final Label spell_label;
+		private final Label manna_label;
 		private final String spell_name;
 
 		public SpellContent(ESpellType spell) {
@@ -92,23 +90,27 @@ public class PriestSelectionContent extends AbstractSelectionContent {
 			askCastSpellAction = new AskCastSpellAction(spell);
 			spell_name = Labels.getName(spell);
 			spell_label = new Label("", EFontSize.SMALL);
-			addChild(spell_icon, 0, 0, 3/9f, 1);
-			addChild(spell_label, 3.5f/9, 0f, .9f, 1);
-
+			manna_label = new Label("", EFontSize.SMALL);
+			addChild(spell_icon, 0, 0.5f, 1/6f, 1);
+			addChild(spell_label, 3.5f/9, 0.5f, .45f, 1);
+			addChild(manna_label, 7.0f/9f, 0.5f, 0.9f, 1);
 		}
 
 		@Override
 		public void drawAt(GLDrawContext gl) {
 			short cost = mannaInformation.getSpellCost(spell);
 
-			spell_label.setText(spell_name + "\n" + String.format(Locale.ENGLISH, spell_cost, cost));
+			spell_label.setText(spell_name);
+			manna_label.setText(String.format(Locale.ENGLISH, spell_cost, cost));
 			if(mannaInformation.canUseSpell(spell)) {
 				spell_icon.setIntensity(1);
 				spell_label.setIntensity(1);
+				manna_label.setIntensity(1);
 				spell_icon.setAction(askCastSpellAction);
 			} else {
 				spell_icon.setIntensity(.5f);
 				spell_label.setIntensity(.5f);
+				manna_label.setIntensity(.5f);
 				spell_icon.setAction(null);
 			}
 			super.drawAt(gl);

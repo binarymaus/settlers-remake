@@ -50,7 +50,10 @@ public class WrappedAnimation implements Sequence<Image> {
 
 	@Override
 	public Image getImageSafe(int index, Supplier<String> name) {
-		return index < 0 || index >= length() ? NullImage.getInstance() : getImage(index, name);
+		if(index < 0 || index >= length()) {
+			return NullImage.getInstance();
+		}
+		return getImage(index, name);
 	}
 
 }

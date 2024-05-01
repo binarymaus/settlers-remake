@@ -32,9 +32,9 @@ public class MaterialProductionSettings implements IMaterialProductionSettings, 
 	private final RelativeSettings<EMaterialType> absoluteToolRequests = new RelativeSettings<>(EMaterialType.NUMBER_OF_MATERIALS, ordinalToTypeMapper, true, 0, MAXIMUM_ABSOLUTE_REQUEST_VALUE);
 
 	public MaterialProductionSettings() {
-		relativeWeaponRequests.setUserValue(EMaterialType.SWORD, 1f);
-		relativeWeaponRequests.setUserValue(EMaterialType.BOW, 0.7f);
-		relativeWeaponRequests.setUserValue(EMaterialType.SPEAR, 0.3f);
+		relativeWeaponRequests.setUserValue(EMaterialType.SWORD, 0.1f);
+		relativeWeaponRequests.setUserValue(EMaterialType.BOW, 0.8f);
+		relativeWeaponRequests.setUserValue(EMaterialType.SPEAR, 0.1f);
 	}
 
 	private RelativeSettings<EMaterialType> getRelativeSettingsForType(EMaterialType type) {

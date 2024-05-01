@@ -47,9 +47,67 @@ public final class MaterialDistributionSettings implements IMaterialDistribution
 		this.civilisation = civilisation;
 
 		EBuildingType[] requestingBuildings = getBuildingTypes();
-		requestValueSum = requestingBuildings.length;
-		float initialValue = 1.0f;
-		Arrays.stream(requestingBuildings).forEach(buildingType -> distributionSettings.setUserValue(buildingType, initialValue));
+		requestValueSum = requestingBuildings.length;	
+		Arrays.stream(requestingBuildings).forEach(buildingType -> {
+			float initialValue = getInitialValue(materialType, buildingType);
+			distributionSettings.setUserValue(buildingType, initialValue);
+		});
+	}
+
+	private float getInitialValue(EMaterialType materialType, EBuildingType buildingType) {
+		switch(materialType) {
+			case FISH:
+				switch(buildingType) {
+					case COALMINE: return 0.15f;
+					case IRONMINE: return 0.15f;
+					case GOLDMINE: return 2.7f;
+					default: return 0.0f;
+				}
+			case MEAT:
+				switch(buildingType) {
+					case GOLDMINE: return 0.0f;
+					case IRONMINE: return 3.0f;
+					case COALMINE: return 0.0f;
+					default: return 0.0f;
+				}
+			case BREAD:
+				switch(buildingType) {
+					case GOLDMINE: return 0.0f;
+					case IRONMINE: return 0.0f;
+					case COALMINE: return 3.0f;
+					default: return 0.0f;
+				}
+			case COAL:
+				switch(buildingType) {
+					case GOLDMELT: return 1.146666666667f;
+					case TOOLSMITH: return 0.56f;
+					case IRONMELT: return 1.146666666667f;
+					case WEAPONSMITH: return 1.146666666667f;
+					default: return 0.0f;
+				}
+			case CROP:
+				switch(buildingType) {
+					case PIG_FARM: return 1.5f;
+					case MILL: return 1.5f;
+					case DONKEY_FARM: return 0.0f;
+					default: return 0.0f;
+				}
+			case IRON:
+				switch(buildingType) {
+					case TOOLSMITH: return 1.5f;
+					case WEAPONSMITH: return 1.5f;
+					case DOCKYARD: return 0.0f;
+					default: return 0.0f;
+				}
+			case WATER:
+				switch(buildingType) {
+					case PIG_FARM: return 1.5f;
+					case BAKER: return 1.5f;
+					case DONKEY_FARM: return 0.0f;
+					default: return 0.0f;
+				}
+			default: return 1.0f;
+		}
 	}
 
 	public final EBuildingType[] getBuildingTypes() {

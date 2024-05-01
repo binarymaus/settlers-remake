@@ -64,7 +64,7 @@ clean {
 	delete file(shaderResOutputDir)
 }
 
-task compileShaders(type: ShaderCompilationTask) {
+tasks.register('compileShaders', ShaderCompilationTask) {
 	inputDirectory = file(shaderDefinitionDir).toPath()
 	generatedSourcesDirectory = file(shaderJavaOutputDir).toPath()
 	generatedResourcesDirectory = file(shaderResOutputDir).toPath()

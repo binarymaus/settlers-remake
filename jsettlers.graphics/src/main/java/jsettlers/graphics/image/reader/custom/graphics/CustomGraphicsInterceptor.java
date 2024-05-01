@@ -42,9 +42,15 @@ public class CustomGraphicsInterceptor {
 	 * @return DatFileReader preferring the custom graphics
 	 */
 	public static DatFileReader prependCustomGraphics(int fileIndex, DatFileReader reader, ImageProvider imageProvider) {
+		if(fileIndex == 1337) {
+			System.out.println("fileIndex: 1337");
+			return new CustomMountainKingDatFile(reader, imageProvider);
+		}
 		if (fileIndex == 36) { // use our own ships
+			System.out.println("fileIndex: 36");
 			return new CustomShipsDatFile(reader, imageProvider);
 		} else if(fileIndex == 23) {
+			System.out.println("fileIndex: 23");
 			return new CustomEgyptianBuildingsDatFile(reader, imageProvider);
 		}
 		return reader;

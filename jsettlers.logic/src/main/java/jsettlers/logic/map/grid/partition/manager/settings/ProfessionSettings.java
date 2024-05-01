@@ -16,7 +16,7 @@ public class ProfessionSettings implements Serializable, IProfessionSettings {
 	private int workerCount;
 
 	public ProfessionSettings() {
-		this(0.10f, 0.25f, 0.25f);
+		this(0.25f, 0.25f, 0.25f);
 	}
 
 	public ProfessionSettings(float minBearerRatio, float maxDiggerRatio, float maxBricklayerRatio) {

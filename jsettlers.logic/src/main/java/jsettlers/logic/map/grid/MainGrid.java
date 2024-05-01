@@ -1257,6 +1257,11 @@ public final class MainGrid implements Serializable {
 			initPathfinders(width, height);
 		}
 
+		@Override
+		public  void playHealAnimation(ShortPoint2D point, int sound, int animation, float duration, Player player) {
+			mapObjectsManager.playHealAnimation(point, sound, animation, duration, player);
+		}
+
 		private void initPathfinders(short width, short height) {
 			pathfinderGrid = new PathfinderGrid();
 

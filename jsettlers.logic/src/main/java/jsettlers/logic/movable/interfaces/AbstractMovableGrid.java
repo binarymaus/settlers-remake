@@ -19,6 +19,7 @@ import jsettlers.algorithms.path.Path;
 import jsettlers.common.mapobject.EMapObjectType;
 import jsettlers.common.material.ESearchType;
 import jsettlers.common.position.ShortPoint2D;
+import jsettlers.logic.movable.Movable;
 import jsettlers.logic.player.Player;
 
 /**
@@ -108,4 +109,6 @@ public abstract class AbstractMovableGrid extends AbstractStrategyGrid {
 	public abstract int getHeight();
 
 	public abstract boolean isWater(int x, int y);
+
+	public abstract void playHealAnimation(ShortPoint2D point, int sound, int animation, float duration, Player player);
 }

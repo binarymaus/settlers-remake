@@ -56,7 +56,7 @@ public enum EMovableType {
 	PIONEER(EMaterialType.NO_MATERIAL, ESelectionType.SPECIALISTS, false, true),
 	GEOLOGIST(EMaterialType.NO_MATERIAL, ESelectionType.SPECIALISTS, false, true),
 
-	MAGE(EMaterialType.NO_MATERIAL, ESelectionType.PRIESTS, false, true, 0.7, 100f, 0f),
+	MAGE(EMaterialType.NO_MATERIAL, ESelectionType.PRIESTS, false, true, 0.1, 100f, 0f),
 
 	SWORDSMAN_L1(EMaterialType.SWORD, ESelectionType.SOLDIERS, false, true, 0.45, 100f, 10f),
 	SWORDSMAN_L2(EMaterialType.SWORD, ESelectionType.SOLDIERS, false, true, 0.45, 120f, 14f),
@@ -69,6 +69,8 @@ public enum EMovableType {
 	BOWMAN_L1(EMaterialType.BOW, ESelectionType.SOLDIERS, false, true, 0.6, 100f, 5f),
 	BOWMAN_L2(EMaterialType.BOW, ESelectionType.SOLDIERS, false, true, 0.6, 120f, 6f),
 	BOWMAN_L3(EMaterialType.BOW, ESelectionType.SOLDIERS, false, true, 0.6, 150f, 7f),
+
+	MOUNTAIN_KING(EMaterialType.BOW, ESelectionType.SOLDIERS, false, true, 0.1, 15000f, 9001f),
 
 	DONKEY(EMaterialType.NO_MATERIAL, ESelectionType.PEOPLE, false, true),
 	WHITEFLAGGED_DONKEY(EMaterialType.NO_MATERIAL, ESelectionType.PEOPLE, false, true),
@@ -204,6 +206,10 @@ public enum EMovableType {
 
 	public boolean isPikeman() {
 		return PIKEMEN.contains(this);
+	}
+
+	public boolean isMountainKing() {
+		return this == EMovableType.MOUNTAIN_KING;
 	}
 
 	public boolean isInfantry() {

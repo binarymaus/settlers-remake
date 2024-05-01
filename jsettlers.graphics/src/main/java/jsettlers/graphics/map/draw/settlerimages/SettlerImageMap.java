@@ -346,6 +346,9 @@ public final class SettlerImageMap {
 	public Image getImageForSettler(ECivilisation civilisation, EMovableType movableType, EMovableAction action, EMaterialType material, EDirection direction, float progress) {
 		SettlerImageMapItem item = getMapItem(civilisation, movableType, action, material, direction);
 
+		if(movableType.isMountainKing() && action != EMovableAction.NO_ACTION) {
+			System.out.println("Mountain king");
+		}
 		int duration = item.getDuration();
 		int imageIndex;
 		if (duration >= 0) {

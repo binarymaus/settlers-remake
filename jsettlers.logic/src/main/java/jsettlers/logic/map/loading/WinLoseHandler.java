@@ -18,10 +18,15 @@ import java.io.Serializable;
 
 import java.util.Objects;
 import java.util.stream.Stream;
+import java.util.*;
+import java.util.stream.*;
 
 import jsettlers.common.buildings.EBuildingType;
 import jsettlers.common.player.EWinState;
+import jsettlers.common.utils.coordinates.CoordinateStream;
+import jsettlers.logic.buildings.Building;
 import jsettlers.logic.map.grid.MainGrid;
+import jsettlers.logic.map.grid.partition.PartitionsGrid;
 import jsettlers.logic.map.grid.partition.data.BuildingCounts;
 import jsettlers.logic.player.Player;
 import jsettlers.logic.timer.IScheduledTimerable;
@@ -75,6 +80,21 @@ public abstract class WinLoseHandler implements IScheduledTimerable, Serializabl
 	protected void defeatDeadPlayers() {
 		playerStream().filter(this::isPlayerDead).forEach(player -> {
 			player.setWinState(EWinState.LOST);
+			Building.getAllBuildings().stream()
+				.filter(building -> building.getPlayer().getPlayerId() == player.playerId)
+				.forEach(building -> {
+					building.kill();
+				});
+			// Arrays.stream(partitionsGrid.getAllPartitions())
+			// 	.filter(partition -> partition.getPlayerId() == player.playerId)
+			// 	.forEach(partition -> {
+			// 		partition.decrement();
+			// 		var stream = new CoordinateStream() {
+						
+			// 		};
+			// 		partitionsGrid.acquirePartitionedArea(playerId, partitioner);
+			// 		partition.kill();
+			// 	});
 			System.out.println(player + " was defeated");
 		});
 	}

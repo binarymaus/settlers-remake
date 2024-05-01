@@ -15,12 +15,13 @@ import jsettlers.logic.player.Player;
 public class AttackableHumanMovable extends AttackableMovable implements IAttackableHumanMovable {
 
 	private static final long serialVersionUID = 6890695823402563L;
-	protected EMoveToType nextMoveToType;
-	protected ShortPoint2D nextTarget = null;
+	public EMoveToType nextMoveToType;
+	public ShortPoint2D nextTarget = null;
 	protected boolean goingToHealer = false;
 
 	// the following data only for ship passengers
 	protected IFerryMovable ferryToEnter = null;
+	public boolean isStopped = false;
 
 	public AttackableHumanMovable(AbstractMovableGrid grid, EMovableType movableType, ShortPoint2D position, Player player, Movable movable) {
 		super(grid, movableType, position, player, movable);
@@ -41,6 +42,7 @@ public class AttackableHumanMovable extends AttackableMovable implements IAttack
 		nextTarget = targetPosition;
 		nextMoveToType = moveToType;
 		goingToHealer = false;
+		isStopped = false;
 	}
 
 	@Override
@@ -113,4 +115,9 @@ public class AttackableHumanMovable extends AttackableMovable implements IAttack
 		}
 		ferryToEnter = null;
 	}
+
+	public void healPercentage(float percent) {
+		var max = getMovableType().getHealth();
+		this.health = Math.min(this.health + max / percent, max);
+    }
 }

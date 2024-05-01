@@ -174,6 +174,11 @@ public class MovableTestsMap implements IGraphicsGrid, IAStarPathMap {
 		}
 
 		@Override
+		public void playHealAnimation(ShortPoint2D point, int sound, int animation, float duration, Player player) {
+			
+		}
+
+		@Override
 		public void addJobless(IManageableBearer bearer) {
 			if (!materials.isEmpty()) {
 				ShortPoint2D source = materials.pop();

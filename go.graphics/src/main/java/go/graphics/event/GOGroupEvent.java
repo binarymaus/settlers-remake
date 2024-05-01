@@ -21,7 +21,7 @@ import go.graphics.event.command.EModifier;
 /**
  * This is a go key event.
  * 
- * @author michael
+ * @author binarymaus
  *
  */
 public class GOGroupEvent extends SingleHandlerGoEvent {

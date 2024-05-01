@@ -72,6 +72,7 @@ public enum EOriginalMapSettlersType {
 	BEEKEEPER(EMovableType.BEEKEEPER),
 	Metwinzer(EMovableType.MEAD_BREWER),
 	Alchemist(EMovableType.ALCHEMIST),
+	MountainKing(EMovableType.MOUNTAIN_KING),
 
 	NOT_A_SETTLER(null);
 

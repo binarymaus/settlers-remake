@@ -60,6 +60,7 @@ import jsettlers.logic.movable.interfaces.ILogicMovable;
 import jsettlers.logic.movable.military.BowmanMovable;
 import jsettlers.logic.movable.military.InfantryMovable;
 import jsettlers.logic.movable.military.MageMovable;
+import jsettlers.logic.movable.military.MountainKingMovable;
 import jsettlers.logic.movable.other.FerryMovable;
 import jsettlers.logic.movable.specialist.GeologistMovable;
 import jsettlers.logic.movable.specialist.PioneerMovable;
@@ -103,7 +104,7 @@ public abstract class Movable implements ILogicMovable, FoWTask {
 	private short animationDuration;
 
 	public transient ShortPoint2D oldFowPosition = null;
-	protected ShortPoint2D position;
+	public ShortPoint2D position;
 
 	protected Path path;
 
@@ -1051,7 +1052,8 @@ public abstract class Movable implements ILogicMovable, FoWTask {
 			case PIKEMAN_L2:
 			case PIKEMAN_L3:
 				return new InfantryMovable(grid, movableType, position, player, movable);
-
+			case MOUNTAIN_KING:
+				return new MountainKingMovable(grid, movableType, position, player, movable);
 			case BOWMAN_L1:
 			case BOWMAN_L2:
 			case BOWMAN_L3:

@@ -32,6 +32,7 @@ import jsettlers.logic.movable.interfaces.IBowmanMovable;
 import jsettlers.logic.movable.interfaces.IFerryMovable;
 import jsettlers.logic.movable.interfaces.ILogicMovable;
 import jsettlers.logic.movable.other.AttackableHumanMovable;
+import jsettlers.logic.movable.other.NotAttackableHumanMovable;
 import jsettlers.logic.movable.Movable;
 import jsettlers.logic.movable.interfaces.AbstractMovableGrid;
 import jsettlers.logic.movable.interfaces.IMageMovable;
@@ -40,7 +41,7 @@ import jsettlers.logic.player.Player;
 import static jsettlers.algorithms.simplebehaviortree.BehaviorTreeHelper.*;
 import static jsettlers.common.landscape.ELandscapeType.*;
 
-public class MageMovable extends AttackableHumanMovable implements IMageMovable {
+public class MageMovable extends NotAttackableHumanMovable implements IMageMovable {
 
 	private static final long serialVersionUID = 1L;
 
@@ -118,13 +119,6 @@ public class MageMovable extends AttackableHumanMovable implements IMageMovable 
 		nextTarget = targetPosition;
 		nextSpell = null;
 		goingToHealer = false;
-	}
-
-	@Override
-	public void moveToFerry(IFerryMovable ferry, ShortPoint2D entrancePosition) {
-		super.moveToFerry(ferry, entrancePosition);
-
-		nextSpell = null;
 	}
 
 	private CoordinateStream spellRegion() {
@@ -422,6 +416,14 @@ public class MageMovable extends AttackableHumanMovable implements IMageMovable 
 					grid.executeSearchType(this, new ShortPoint2D(x, y), ESearchType.PLANTABLE_TREE);
 				});
 				break;
+			case ROMAN_SEND_TROOPS:
+			case EGYPTIAN_SEND_TROOPS:
+			case ASIAN_SEND_TROOPS:
+			case AMAZON_SEND_TROOPS:
+				sort(spellRegion(currentTarget, Constants.SPELL_EFFECT_RADIUS))
+					.limit(ESpellType.SEND_TROOPS_MAX_SOLDIERS)
+					.forEach((x, y) -> { Movable.createMovable(EMovableType.SWORDSMAN_L3, getPlayer(), new ShortPoint2D(x,y), grid);});
+			break;
 		}
 
 		if(animation != -1) {
